@@ -1,4 +1,5 @@
 
+
 export type ElementType = 
   | 'section' 
   | 'container' 
@@ -65,6 +66,21 @@ export interface FormField {
   required?: boolean;
 }
 
+export interface GalleryImage {
+    id: string;
+    src: string;
+    alt?: string;
+}
+
+export interface TestimonialItem {
+    id: string;
+    content: string;
+    author: string;
+    role: string;
+    avatarSrc?: string;
+    rating: number;
+}
+
 export interface SavedTemplate {
     id: string;
     name: string;
@@ -98,6 +114,23 @@ export interface PageElement {
     address?: string;
     zoom?: number;
     
+    // Gallery Specific
+    galleryImages?: GalleryImage[];
+    galleryLayout?: 'grid' | 'masonry' | 'flex';
+    galleryColumnCount?: number;
+    galleryGap?: string;
+    galleryAspectRatio?: string; // 'aspect-square', 'aspect-video', 'auto'
+    galleryObjectFit?: 'cover' | 'contain' | 'fill';
+
+    // Testimonial Specific
+    testimonialItems?: TestimonialItem[];
+    testimonialLayout?: 'grid' | 'slider';
+    testimonialAvatarSize?: 'sm' | 'md' | 'lg' | 'xl';
+    testimonialAvatarShape?: 'circle' | 'square' | 'rounded';
+    testimonialBubbleColor?: string;
+    testimonialAutoplay?: boolean;
+    testimonialInterval?: number;
+
     // Form Specific
     formFields?: FormField[];
     formSubmitUrl?: string;
@@ -119,12 +152,20 @@ export interface PageElement {
     logoText?: string;
     logoSrc?: string;
     linkColor?: string;
-
-    author?: string;
-    role?: string;
-    rating?: number;
+    
+    // Card Specific
     cardTitle?: string;
     cardText?: string;
+    cardButtonText?: string;
+    cardImageType?: 'image' | 'icon';
+    cardIcon?: string;
+    cardIconColor?: string;
+    cardIconSize?: string;
+    cardLayout?: 'vertical' | 'horizontal';
+    cardHoverEffect?: 'none' | 'lift' | 'zoom' | 'glow' | 'border';
+    cardBadge?: string;
+    cardLink?: string;
+
     code?: string;
     
     // Button Specific

@@ -66,6 +66,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [suggestionList, setSuggestionList] = useState<string[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [activeTestimonialIndex, setActiveTestimonialIndex] = useState<number | null>(null);
 
     // Resolve element for display if global
     let displayElement = selectedElement;
@@ -109,7 +110,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         onUpdateProps(selectedElement.id, { formFields: currentFields });
     };
 
-
     const handleClassNameChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         if (!selectedElement) return;
         const value = e.target.value;
@@ -134,6 +134,11 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         }
     };
 
+    const handleBlur = () => {
+        // Delay hiding suggestions to allow click event on suggestion to fire first
+        setTimeout(() => setShowSuggestions(false), 200);
+    };
+
     const applySuggestion = (suggestion: string) => {
         if (!selectedElement) return;
         const currentClass = selectedElement.props.className || '';
@@ -150,6 +155,15 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         onUpdateProps(selectedElement.id, { className: newValue });
         setShowSuggestions(false);
         textareaRef.current?.focus();
+    };
+    
+    // Testimonial Helpers
+    const handleUpdateTestimonial = (index: number, field: string, value: any) => {
+        if (!selectedElement) return;
+        const items = [...(selectedElement.props.testimonialItems || [])];
+        if (!items[index]) return;
+        items[index] = { ...items[index], [field]: value };
+        onUpdateProps(selectedElement.id, { testimonialItems: items });
     };
 
     return (
@@ -223,11 +237,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                             </div>
                         </div>
                     )}
-                    
-                    {/* Only show properties if NOT a global instance, OR if it is global, we show the root props (but editing them is tricky without updating the template). 
-                        For now, we disable deep prop editing for global instances to avoid confusion, forcing user to 'Edit Master' or 'Detach'.
-                        We will hide the form below if isGlobalInstance is true, except maybe basic position/dimension overrides if we supported them.
-                    */}
 
                     {isGlobalInstance ? (
                          <div className="p-5 text-center text-gray-400 text-xs italic">
@@ -254,6 +263,153 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                 >
                                     {isAiLoading ? 'Thinking...' : 'Rewrite & Improve Text'}
                                 </button>
+                            </div>
+                        )}
+                        
+                        {/* Card Configuration */}
+                        {displayElement.type === 'card' && (
+                            <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>Card Configuration</h3>
+                                
+                                {/* Layout & Media Type */}
+                                <div className="grid grid-cols-2 gap-3">
+                                     <div>
+                                        <label className={labelClass}>Layout</label>
+                                        <select 
+                                            className={inputClass}
+                                            value={displayElement.props.cardLayout || 'vertical'}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { cardLayout: e.target.value })}
+                                        >
+                                            <option value="vertical">Vertical</option>
+                                            <option value="horizontal">Horizontal</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>Media</label>
+                                        <select 
+                                            className={inputClass}
+                                            value={displayElement.props.cardImageType || 'image'}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { cardImageType: e.target.value })}
+                                        >
+                                            <option value="image">Image</option>
+                                            <option value="icon">Icon</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Icon Picker */}
+                                {displayElement.props.cardImageType === 'icon' && (
+                                    <div className="space-y-3 bg-gray-50 p-3 rounded border border-gray-100">
+                                        <div>
+                                            <label className={labelClass}>Icon</label>
+                                            <select 
+                                                className={inputClass}
+                                                value={displayElement.props.cardIcon || 'Box'}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { cardIcon: e.target.value })}
+                                            >
+                                                {Object.keys(Icons).map(iconName => (
+                                                    <option key={iconName} value={iconName}>{iconName}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className={labelClass}>Color</label>
+                                                <ColorPicker 
+                                                    value={displayElement.props.cardIconColor || '#4f46e5'}
+                                                    onChange={(val) => onUpdateProps(selectedElement.id, { cardIconColor: val })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>Size Class</label>
+                                                <input 
+                                                    className={inputClass}
+                                                    value={displayElement.props.cardIconSize || 'w-12 h-12'}
+                                                    placeholder="w-12 h-12"
+                                                    onChange={(e) => onUpdateProps(selectedElement.id, { cardIconSize: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Content */}
+                                <div className="space-y-3">
+                                    <h4 className="text-[10px] font-bold text-gray-400">Content</h4>
+                                    <div>
+                                        <label className={labelClass}>Title</label>
+                                        <input 
+                                            className={inputClass}
+                                            value={displayElement.props.cardTitle || ''}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { cardTitle: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>Description</label>
+                                        <textarea 
+                                            className={inputClass}
+                                            rows={3}
+                                            value={displayElement.props.cardText || ''}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { cardText: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className={labelClass}>Button Text</label>
+                                            <input 
+                                                className={inputClass}
+                                                value={displayElement.props.cardButtonText || ''}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { cardButtonText: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Badge</label>
+                                            <input 
+                                                className={inputClass}
+                                                value={displayElement.props.cardBadge || ''}
+                                                placeholder="e.g. New"
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { cardBadge: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>Link URL</label>
+                                        <input 
+                                            className={inputClass}
+                                            value={displayElement.props.cardLink || ''}
+                                            placeholder="https://..."
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { cardLink: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                {/* Styles & Effects */}
+                                <div className="space-y-3 pt-2 border-t border-gray-100">
+                                     <h4 className="text-[10px] font-bold text-gray-400">Style & Effects</h4>
+                                     <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className={labelClass}>Hover Effect</label>
+                                            <select 
+                                                className={inputClass}
+                                                value={displayElement.props.cardHoverEffect || 'lift'}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { cardHoverEffect: e.target.value })}
+                                            >
+                                                <option value="none">None</option>
+                                                <option value="lift">Lift Up</option>
+                                                <option value="zoom">Zoom</option>
+                                                <option value="glow">Glow</option>
+                                                <option value="border">Border Color</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Background</label>
+                                            <ColorPicker 
+                                                value={displayElement.props.style?.backgroundColor}
+                                                onChange={(val) => onUpdateStyle(selectedElement.id, 'backgroundColor', val)}
+                                            />
+                                        </div>
+                                     </div>
+                                </div>
                             </div>
                         )}
 
@@ -286,6 +442,202 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                 </div>
                             </div>
                         )}
+                        
+                        {/* Testimonial Props */}
+                        {displayElement.type === 'testimonial' && (
+                            <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>Testimonial Settings</h3>
+                                
+                                {activeTestimonialIndex !== null ? (
+                                    // Item Editor Mode
+                                    <div className="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                        <div className="flex items-center justify-between mb-2">
+                                             <button 
+                                                onClick={() => setActiveTestimonialIndex(null)}
+                                                className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
+                                             >
+                                                <div className="rotate-90"><Icons.ChevronDown width={10} height={10} /></div> Back to List
+                                             </button>
+                                             <span className="text-[10px] font-bold text-gray-400">ITEM {activeTestimonialIndex + 1}</span>
+                                        </div>
+                                        
+                                        <div>
+                                            <label className={labelClass}>Quote</label>
+                                            <textarea 
+                                                className={inputClass}
+                                                rows={3}
+                                                value={displayElement.props.testimonialItems?.[activeTestimonialIndex]?.content || ''}
+                                                onChange={(e) => handleUpdateTestimonial(activeTestimonialIndex, 'content', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Author Name</label>
+                                            <input 
+                                                className={inputClass}
+                                                value={displayElement.props.testimonialItems?.[activeTestimonialIndex]?.author || ''}
+                                                onChange={(e) => handleUpdateTestimonial(activeTestimonialIndex, 'author', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Role / Title</label>
+                                            <input 
+                                                className={inputClass}
+                                                value={displayElement.props.testimonialItems?.[activeTestimonialIndex]?.role || ''}
+                                                onChange={(e) => handleUpdateTestimonial(activeTestimonialIndex, 'role', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Rating (0-5)</label>
+                                            <input 
+                                                type="number"
+                                                min="0" max="5"
+                                                className={inputClass}
+                                                value={displayElement.props.testimonialItems?.[activeTestimonialIndex]?.rating || 5}
+                                                onChange={(e) => handleUpdateTestimonial(activeTestimonialIndex, 'rating', Number(e.target.value))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Avatar Image</label>
+                                            <div className="flex gap-2">
+                                                {displayElement.props.testimonialItems?.[activeTestimonialIndex]?.avatarSrc && (
+                                                    <img 
+                                                        src={displayElement.props.testimonialItems?.[activeTestimonialIndex]?.avatarSrc} 
+                                                        className="w-8 h-8 rounded object-cover border border-gray-200"
+                                                    />
+                                                )}
+                                                <input 
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className={fileInputClass}
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const base64 = await onFileUpload(file);
+                                                            handleUpdateTestimonial(activeTestimonialIndex, 'avatarSrc', base64);
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                            <input 
+                                                className={`${inputClass} mt-2 text-xs`}
+                                                placeholder="Or image URL..."
+                                                value={displayElement.props.testimonialItems?.[activeTestimonialIndex]?.avatarSrc || ''}
+                                                onChange={(e) => handleUpdateTestimonial(activeTestimonialIndex, 'avatarSrc', e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // List Mode & Config
+                                    <>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className={labelClass}>Layout</label>
+                                                <select 
+                                                    className={inputClass}
+                                                    value={displayElement.props.testimonialLayout || 'grid'}
+                                                    onChange={(e) => onUpdateProps(selectedElement.id, { testimonialLayout: e.target.value })}
+                                                >
+                                                    <option value="grid">Grid</option>
+                                                    <option value="slider">Single Slider</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>Avatar Shape</label>
+                                                <select 
+                                                    className={inputClass}
+                                                    value={displayElement.props.testimonialAvatarShape || 'circle'}
+                                                    onChange={(e) => onUpdateProps(selectedElement.id, { testimonialAvatarShape: e.target.value })}
+                                                >
+                                                    <option value="circle">Circle</option>
+                                                    <option value="rounded">Rounded</option>
+                                                    <option value="square">Square</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-3">
+                                             <div>
+                                                <label className={labelClass}>Avatar Size</label>
+                                                <select 
+                                                    className={inputClass}
+                                                    value={displayElement.props.testimonialAvatarSize || 'md'}
+                                                    onChange={(e) => onUpdateProps(selectedElement.id, { testimonialAvatarSize: e.target.value })}
+                                                >
+                                                    <option value="sm">Small</option>
+                                                    <option value="md">Medium</option>
+                                                    <option value="lg">Large</option>
+                                                    <option value="xl">Extra Large</option>
+                                                </select>
+                                            </div>
+                                             <div>
+                                                <label className={labelClass}>Bubble Color</label>
+                                                <ColorPicker 
+                                                    value={displayElement.props.testimonialBubbleColor}
+                                                    onChange={(val) => onUpdateProps(selectedElement.id, { testimonialBubbleColor: val })}
+                                                />
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="space-y-2 pt-2">
+                                            <div className="flex justify-between items-center">
+                                                <label className={labelClass}>Items List</label>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {(displayElement.props.testimonialItems || []).map((item, i) => (
+                                                    <div 
+                                                        key={item.id} 
+                                                        className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded hover:border-indigo-300 cursor-pointer group"
+                                                        onClick={() => setActiveTestimonialIndex(i)}
+                                                    >
+                                                        <div className="flex items-center gap-2 overflow-hidden">
+                                                            {item.avatarSrc ? (
+                                                                <img src={item.avatarSrc} className="w-6 h-6 rounded-full object-cover bg-gray-100" />
+                                                            ) : (
+                                                                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-500">
+                                                                    {item.author.charAt(0)}
+                                                                </div>
+                                                            )}
+                                                            <div className="flex flex-col truncate">
+                                                                <span className="text-xs font-medium text-gray-700 truncate">{item.author}</span>
+                                                                <span className="text-[9px] text-gray-400 truncate">{item.role}</span>
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const newItems = (displayElement.props.testimonialItems || []).filter((_, idx) => idx !== i);
+                                                                onUpdateProps(selectedElement.id, { testimonialItems: newItems });
+                                                            }}
+                                                            className="text-gray-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <Icons.Trash width={12} height={12} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button 
+                                                    onClick={() => {
+                                                        const newItems = [...(displayElement.props.testimonialItems || [])];
+                                                        newItems.push({
+                                                            id: `t-${Date.now()}`,
+                                                            content: "New testimonial quote here.",
+                                                            author: "New Author",
+                                                            role: "Role",
+                                                            rating: 5,
+                                                            avatarSrc: ""
+                                                        });
+                                                        onUpdateProps(selectedElement.id, { testimonialItems: newItems });
+                                                        setActiveTestimonialIndex(newItems.length - 1);
+                                                    }}
+                                                    className="w-full py-2 text-xs bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 rounded flex items-center justify-center gap-1 transition-colors mt-2"
+                                                >
+                                                    <Icons.Plus /> Add Testimonial
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
 
                         {/* Text/Button Props */}
                         {(displayElement.type === 'text' || displayElement.type === 'button') && (
@@ -299,6 +651,187 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                         value={displayElement.props.content || ''}
                                         onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })}
                                     />
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Gallery Props */}
+                        {displayElement.type === 'gallery' && (
+                            <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>Gallery Configuration</h3>
+                                
+                                {/* Layout Settings */}
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className={labelClass}>Layout</label>
+                                            <select 
+                                                className={inputClass}
+                                                value={displayElement.props.galleryLayout || 'grid'}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { galleryLayout: e.target.value })}
+                                            >
+                                                <option value="grid">Grid</option>
+                                                <option value="masonry">Masonry</option>
+                                                <option value="flex">Justified (Flex)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Columns</label>
+                                            <select 
+                                                className={inputClass}
+                                                value={displayElement.props.galleryColumnCount || 3}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { galleryColumnCount: Number(e.target.value) })}
+                                                disabled={displayElement.props.galleryLayout === 'flex'}
+                                            >
+                                                {[1,2,3,4,5,6].map(n => (
+                                                    <option key={n} value={n}>{n} Col</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className={labelClass}>Gap</label>
+                                            <input 
+                                                type="text"
+                                                className={inputClass}
+                                                value={displayElement.props.galleryGap || '1rem'}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { galleryGap: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Aspect Ratio</label>
+                                            <select 
+                                                className={inputClass}
+                                                value={displayElement.props.galleryAspectRatio || 'aspect-square'}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { galleryAspectRatio: e.target.value })}
+                                                disabled={displayElement.props.galleryLayout === 'masonry'}
+                                            >
+                                                <option value="aspect-square">Square (1:1)</option>
+                                                <option value="aspect-video">Video (16:9)</option>
+                                                <option value="aspect-[4/3]">4:3</option>
+                                                <option value="aspect-[3/4]">3:4</option>
+                                                <option value="auto">Auto</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                         <label className={labelClass}>Object Fit</label>
+                                         <select 
+                                            className={inputClass}
+                                            value={displayElement.props.galleryObjectFit || 'cover'}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { galleryObjectFit: e.target.value })}
+                                        >
+                                            <option value="cover">Cover (Crop)</option>
+                                            <option value="contain">Contain</option>
+                                            <option value="fill">Fill</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Image Manager */}
+                                <div className="space-y-3 pt-2">
+                                    <div className="flex justify-between items-center">
+                                        <label className={labelClass}>Images</label>
+                                        <span className="text-[10px] text-gray-400">{(displayElement.props.galleryImages || []).length} items</span>
+                                    </div>
+                                    
+                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                        {(displayElement.props.galleryImages || []).map((img, i, arr) => (
+                                            <div key={img.id} className="flex gap-2 items-center bg-gray-50 border border-gray-200 p-1.5 rounded group">
+                                                <img src={img.src} alt="" className="w-8 h-8 object-cover rounded bg-gray-200" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] truncate text-gray-500">{img.alt || 'No caption'}</p>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <button 
+                                                        onClick={() => {
+                                                            if (i === 0) return;
+                                                            const newImages = [...arr];
+                                                            [newImages[i-1], newImages[i]] = [newImages[i], newImages[i-1]];
+                                                            onUpdateProps(selectedElement.id, { galleryImages: newImages });
+                                                        }}
+                                                        disabled={i === 0}
+                                                        className="p-1 text-gray-400 hover:text-indigo-600 disabled:opacity-30"
+                                                    >
+                                                        <div className="rotate-180"><Icons.ChevronDown width={10} height={10} /></div>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            if (i === arr.length - 1) return;
+                                                            const newImages = [...arr];
+                                                            [newImages[i+1], newImages[i]] = [newImages[i], newImages[i+1]];
+                                                            onUpdateProps(selectedElement.id, { galleryImages: newImages });
+                                                        }}
+                                                        disabled={i === arr.length - 1}
+                                                        className="p-1 text-gray-400 hover:text-indigo-600 disabled:opacity-30"
+                                                    >
+                                                        <Icons.ChevronDown width={10} height={10} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            const newImages = arr.filter((_, idx) => idx !== i);
+                                                            onUpdateProps(selectedElement.id, { galleryImages: newImages });
+                                                        }}
+                                                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+                                                    >
+                                                        <Icons.Trash width={10} height={10} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    <div className="border border-dashed border-gray-300 rounded p-4 text-center hover:bg-gray-50 transition-colors relative">
+                                        <input 
+                                            type="file" 
+                                            multiple
+                                            accept="image/*"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            onChange={async (e) => {
+                                                if (e.target.files) {
+                                                    const newImages = [];
+                                                    // Process files sequentially or parallel
+                                                    for (let i = 0; i < e.target.files.length; i++) {
+                                                        const file = e.target.files[i];
+                                                        const src = await onFileUpload(file);
+                                                        newImages.push({
+                                                            id: `img-${Date.now()}-${i}`,
+                                                            src,
+                                                            alt: file.name
+                                                        });
+                                                    }
+                                                    const currentImages = displayElement.props.galleryImages || [];
+                                                    onUpdateProps(selectedElement.id, { galleryImages: [...currentImages, ...newImages] });
+                                                }
+                                            }}
+                                        />
+                                        <div className="text-xs text-gray-500">
+                                            <Icons.Image className="mx-auto mb-1 opacity-50" />
+                                            <span>Click to Upload Images</span>
+                                            <p className="text-[10px] text-gray-400 mt-1">Supports multi-select</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* URL Add */}
+                                    <div className="flex gap-2">
+                                        <input 
+                                            placeholder="Add image via URL..."
+                                            className={inputClass}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    const val = e.currentTarget.value;
+                                                    if(val) {
+                                                        const newImg = { id: `img-${Date.now()}`, src: val, alt: 'Image' };
+                                                        const current = displayElement.props.galleryImages || [];
+                                                        onUpdateProps(selectedElement.id, { galleryImages: [...current, newImg] });
+                                                        e.currentTarget.value = '';
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
                                 </div>
                             </div>
                         )}
@@ -701,8 +1234,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                             </div>
                         )}
 
-                        {/* Image/Card Props */}
-                        {(displayElement.type === 'image' || displayElement.type === 'card') && (
+                        {/* Image Props */}
+                        {displayElement.type === 'image' && (
                             <div className="space-y-3">
                                 <h3 className={sectionTitleClass}>Media Settings</h3>
                                 <div>
@@ -727,39 +1260,13 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                     />
                                 </div>
 
-                                {displayElement.type === 'image' && (
-                                    <button 
-                                        onClick={onAiImage}
-                                        disabled={isAiLoading}
-                                        className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-violet-100 text-violet-700 text-xs font-medium rounded hover:bg-violet-200 transition-colors mt-2"
-                                    >
-                                        {isAiLoading ? 'Generating...' : <><Icons.Magic /> Generate New Image</>}
-                                    </button>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Card Specific */}
-                        {displayElement.type === 'card' && (
-                            <div className="space-y-3">
-                                <h3 className={sectionTitleClass}>Card Content</h3>
-                                <div>
-                                    <label className={labelClass}>Card Title</label>
-                                    <input 
-                                        className={inputClass}
-                                        value={displayElement.props.cardTitle || ''}
-                                        onChange={(e) => onUpdateProps(selectedElement.id, { cardTitle: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className={labelClass}>Card Description</label>
-                                    <textarea 
-                                        className={inputClass}
-                                        rows={3}
-                                        value={displayElement.props.cardText || ''}
-                                        onChange={(e) => onUpdateProps(selectedElement.id, { cardText: e.target.value })}
-                                    />
-                                </div>
+                                <button 
+                                    onClick={onAiImage}
+                                    disabled={isAiLoading}
+                                    className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-violet-100 text-violet-700 text-xs font-medium rounded hover:bg-violet-200 transition-colors mt-2"
+                                >
+                                    {isAiLoading ? 'Generating...' : <><Icons.Magic /> Generate New Image</>}
+                                </button>
                             </div>
                         )}
 
@@ -963,39 +1470,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                             </div>
                         )}
                         
-                        {/* Testimonial Props */}
-                        {displayElement.type === 'testimonial' && (
-                            <div className="space-y-3">
-                                <h3 className={sectionTitleClass}>Testimonial</h3>
-                                <div>
-                                    <label className={labelClass}>Quote</label>
-                                    <textarea 
-                                        className={inputClass}
-                                        rows={3}
-                                        value={displayElement.props.content || ''}
-                                        onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className={labelClass}>Author</label>
-                                    <input 
-                                        type="text"
-                                        className={inputClass}
-                                        value={displayElement.props.author || ''}
-                                        onChange={(e) => onUpdateProps(selectedElement.id, { author: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className={labelClass}>Role</label>
-                                    <input 
-                                        type="text"
-                                        className={inputClass}
-                                        value={displayElement.props.role || ''}
-                                        onChange={(e) => onUpdateProps(selectedElement.id, { role: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        )}
 
                         {/* Styles */}
                         <div className="space-y-4 pt-4 border-t border-gray-100">
@@ -1167,6 +1641,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                     rows={3}
                                     value={displayElement.props.className || ''}
                                     onChange={handleClassNameChange}
+                                    onBlur={handleBlur}
                                     placeholder="e.g. shadow-lg hover:scale-105"
                                 />
                                 {showSuggestions && suggestionList.length > 0 && (

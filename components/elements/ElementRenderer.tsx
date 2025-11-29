@@ -1,10 +1,70 @@
 
-import React from 'react';
-import { PageElement } from '../../types';
+
+import React, { useState, useEffect } from 'react';
+import { PageElement, TestimonialItem } from '../../types';
+import { Icons } from '../Icons';
 
 interface ElementRendererProps {
   element: PageElement;
 }
+
+const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string; avatarShape: string; bubbleColor: string }> = ({ 
+    items, avatarSize, avatarShape, bubbleColor 
+}) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    useEffect(() => {
+        if (items.length <= 1) return;
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % items.length);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [items.length]);
+
+    const currentItem = items[currentIndex];
+
+    return (
+        <div className="relative w-full max-w-2xl mx-auto p-4">
+             <div className="flex flex-col items-center text-center animate-fade-in transition-opacity duration-300">
+                 <div className={`p-8 rounded-2xl relative mb-6 shadow-sm`} style={{ backgroundColor: bubbleColor }}>
+                     <div className="text-4xl text-indigo-200 absolute top-4 left-4 font-serif leading-none">“</div>
+                     <p className="text-lg text-gray-700 relative z-10">{currentItem.content}</p>
+                 </div>
+                 
+                 <div className="flex items-center gap-4">
+                     {currentItem.avatarSrc && (
+                         <img 
+                             src={currentItem.avatarSrc} 
+                             alt={currentItem.author} 
+                             className={`${avatarSize} ${avatarShape} object-cover border-2 border-white shadow-sm`}
+                         />
+                     )}
+                     <div className="text-left">
+                         <h4 className="font-bold text-gray-900">{currentItem.author}</h4>
+                         <p className="text-sm text-gray-500">{currentItem.role}</p>
+                         <div className="flex text-yellow-400 text-xs mt-0.5">
+                             {[...Array(5)].map((_, i) => (
+                                 <span key={i} className={i < currentItem.rating ? 'opacity-100' : 'opacity-30'}>★</span>
+                             ))}
+                         </div>
+                     </div>
+                 </div>
+             </div>
+             
+             {items.length > 1 && (
+                 <div className="flex justify-center gap-2 mt-6">
+                     {items.map((_, idx) => (
+                         <button 
+                             key={idx}
+                             className={`w-2 h-2 rounded-full transition-colors ${idx === currentIndex ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                             onClick={() => setCurrentIndex(idx)}
+                         />
+                     ))}
+                 </div>
+             )}
+        </div>
+    );
+};
 
 export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => {
   switch (element.type) {
@@ -114,7 +174,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
         />
       );
 
-    case 'form':
+    case 'form': {
       const fields = element.props.formFields || [];
       const labelLayout = element.props.formLabelLayout || 'top';
       const isHorizontal = labelLayout === 'horizontal';
@@ -199,12 +259,85 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
           </div>
         </form>
       );
+    }
     
     case 'gallery':
+      const {
+          galleryImages = [],
+          galleryLayout = 'grid',
+          galleryColumnCount = 3,
+          galleryGap = '1rem',
+          galleryAspectRatio = 'aspect-square',
+          galleryObjectFit = 'cover'
+      } = element.props;
+
+      // Map column count to tailwind class
+      const gridCols: Record<number, string> = {
+          1: 'grid-cols-1',
+          2: 'grid-cols-2',
+          3: 'grid-cols-3',
+          4: 'grid-cols-4',
+          5: 'grid-cols-5',
+          6: 'grid-cols-6'
+      };
+
+      const masonryCols: Record<number, string> = {
+        1: 'columns-1',
+        2: 'columns-2',
+        3: 'columns-3',
+        4: 'columns-4',
+        5: 'columns-5',
+        6: 'columns-6'
+    };
+
+      const gapStyle = { gap: galleryGap };
+      const commonImgClass = `w-full h-full rounded pointer-events-none object-${galleryObjectFit} block`;
+      
+      // Handle different layouts
+      if (galleryLayout === 'masonry') {
+         return (
+             <div className={`${masonryCols[galleryColumnCount] || 'columns-3'} space-y-4`} style={{ columnGap: galleryGap }}>
+                 {galleryImages.map(img => (
+                     <div key={img.id} className="break-inside-avoid mb-4">
+                         <img 
+                            src={img.src} 
+                            alt={img.alt || ''} 
+                            className={`w-full rounded pointer-events-none block`}
+                            style={{ display: 'block' }} // Ensure block to avoid line-height gaps
+                        />
+                     </div>
+                 ))}
+             </div>
+         );
+      }
+      
+      if (galleryLayout === 'flex') {
+          return (
+              <div className="flex flex-wrap" style={gapStyle}>
+                   {galleryImages.map(img => (
+                     <div key={img.id} className={`flex-grow basis-64 min-w-[200px] ${galleryAspectRatio === 'auto' ? '' : galleryAspectRatio} relative`}>
+                         <img 
+                            src={img.src} 
+                            alt={img.alt || ''} 
+                            className={`${commonImgClass} absolute inset-0`}
+                        />
+                     </div>
+                 ))}
+              </div>
+          )
+      }
+
+      // Default to Grid
       return (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pointer-events-none">
-          {(element.props.items || ['https://via.placeholder.com/150', 'https://via.placeholder.com/150', 'https://via.placeholder.com/150']).map((src, i) => (
-            <img key={i} src={src} alt={`Gallery ${i}`} className="w-full h-32 object-cover rounded" />
+        <div className={`grid ${gridCols[galleryColumnCount] || 'grid-cols-3'}`} style={gapStyle}>
+          {galleryImages.map(img => (
+             <div key={img.id} className={`relative overflow-hidden rounded ${galleryAspectRatio}`}>
+                  <img 
+                    src={img.src} 
+                    alt={img.alt || ''} 
+                    className={commonImgClass} 
+                 />
+             </div>
           ))}
         </div>
       );
@@ -249,33 +382,138 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
        );
 
     case 'testimonial':
+        const {
+            testimonialItems = [],
+            testimonialLayout = 'grid',
+            testimonialAvatarSize = 'md',
+            testimonialAvatarShape = 'circle',
+            testimonialBubbleColor = '#f9fafb'
+        } = element.props;
+
+        const sizeClass = {
+            'sm': 'w-8 h-8',
+            'md': 'w-12 h-12',
+            'lg': 'w-16 h-16',
+            'xl': 'w-24 h-24'
+        }[testimonialAvatarSize] || 'w-12 h-12';
+
+        const shapeClass = {
+            'circle': 'rounded-full',
+            'rounded': 'rounded-lg',
+            'square': 'rounded-none'
+        }[testimonialAvatarShape] || 'rounded-full';
+
+        if (testimonialLayout === 'slider') {
+            return (
+                <TestimonialSlider 
+                    items={testimonialItems} 
+                    avatarSize={sizeClass} 
+                    avatarShape={shapeClass} 
+                    bubbleColor={testimonialBubbleColor}
+                />
+            );
+        }
+
         return (
-            <div className="flex flex-col items-center text-center p-6 bg-gray-50 rounded-xl pointer-events-none">
-                <div className="w-16 h-16 bg-gray-300 rounded-full mb-4 overflow-hidden">
-                    <img src="https://i.pravatar.cc/150" alt="Avatar" />
-                </div>
-                <p className="text-lg italic text-gray-700 mb-4">"{element.props.content || 'This product changed my life!'}"</p>
-                <h4 className="font-bold">{element.props.author || 'Jane Doe'}</h4>
-                <span className="text-sm text-gray-500">{element.props.role || 'CEO, Company'}</span>
-                <div className="flex text-yellow-400 mt-2">
-                    {[...Array(element.props.rating || 5)].map((_, i) => <span key={i}>★</span>)}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+                {testimonialItems.map(item => (
+                    <div key={item.id} className="flex flex-col h-full pointer-events-none">
+                         <div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}>
+                             {/* Triangle for speech bubble effect */}
+                             <div className="absolute top-full left-8 -mt-2 border-8 border-transparent" style={{ borderTopColor: testimonialBubbleColor }}></div>
+                             <p className="text-gray-700 italic relative z-10">"{item.content}"</p>
+                         </div>
+                         <div className="flex items-center gap-3 px-2">
+                            {item.avatarSrc && (
+                                <img 
+                                    src={item.avatarSrc} 
+                                    alt={item.author} 
+                                    className={`${sizeClass} ${shapeClass} object-cover bg-gray-200 border border-white shadow-sm`}
+                                />
+                            )}
+                            <div>
+                                <h4 className="font-bold text-sm text-gray-900">{item.author}</h4>
+                                <p className="text-xs text-gray-500">{item.role}</p>
+                                <div className="flex text-yellow-400 text-[10px]">
+                                    {[...Array(5)].map((_, i) => (
+                                        <span key={i} className={i < item.rating ? 'opacity-100' : 'opacity-30'}>★</span>
+                                    ))}
+                                </div>
+                            </div>
+                         </div>
+                    </div>
+                ))}
             </div>
         );
   
-    case 'card':
-        return (
-            <div className="bg-white rounded-lg shadow-md overflow-hidden pointer-events-none h-full flex flex-col">
-                <div className="h-40 bg-gray-200 w-full">
-                     <img src={element.props.src || 'https://via.placeholder.com/400x200'} className="w-full h-full object-cover" />
+    case 'card': {
+        const {
+            cardImageType = 'image',
+            cardIcon,
+            cardIconColor = '#4f46e5',
+            cardIconSize = 'w-12 h-12',
+            cardLayout = 'vertical',
+            cardHoverEffect = 'lift',
+            cardBadge,
+            cardTitle = 'Card Title',
+            cardText = 'Card description text goes here.',
+            cardButtonText = 'Read More',
+            src = 'https://via.placeholder.com/400x200',
+            href
+        } = element.props;
+
+        const isHorizontal = cardLayout === 'horizontal';
+        
+        // Hover effects
+        let hoverClasses = 'transition-all duration-300';
+        if (cardHoverEffect === 'lift') hoverClasses += ' hover:-translate-y-1 hover:shadow-lg';
+        if (cardHoverEffect === 'zoom') hoverClasses += ' hover:scale-[1.02] hover:shadow-lg';
+        if (cardHoverEffect === 'glow') hoverClasses += ' hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
+        if (cardHoverEffect === 'border') hoverClasses += ' hover:border-indigo-500';
+
+        const IconComp = cardIcon ? (Icons[cardIcon as keyof typeof Icons] || Icons.Box) : Icons.Box;
+
+        const content = (
+            <div className={`bg-white rounded-lg shadow-md overflow-hidden pointer-events-none h-full flex relative border border-transparent ${isHorizontal ? 'flex-row' : 'flex-col'} ${hoverClasses}`} style={{ backgroundColor: element.props.style?.backgroundColor }}>
+                {cardBadge && (
+                    <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm">
+                        {cardBadge}
+                    </div>
+                )}
+                
+                {/* Media Section */}
+                <div className={`${isHorizontal ? 'w-1/3 min-w-[120px]' : 'w-full h-48'} bg-gray-100 flex items-center justify-center overflow-hidden shrink-0`}>
+                    {cardImageType === 'image' ? (
+                        <img src={src} className="w-full h-full object-cover" alt={cardTitle} />
+                    ) : (
+                        <div className="p-6 flex items-center justify-center w-full h-full">
+                            <div style={{ color: cardIconColor }}>
+                                <IconComp className={cardIconSize} />
+                            </div>
+                        </div>
+                    )}
                 </div>
-                <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="text-xl font-bold mb-2">{element.props.cardTitle || 'Card Title'}</h3>
-                    <p className="text-gray-600 mb-4 flex-1">{element.props.cardText || 'Some example text to build on the card title and make up the bulk of the card\'s content.'}</p>
-                    <button className="self-start text-indigo-600 font-medium hover:underline">Read More &rarr;</button>
+
+                {/* Content Section */}
+                <div className="p-5 flex-1 flex flex-col">
+                    <h3 className="text-xl font-bold mb-2 text-gray-900 leading-tight">{cardTitle}</h3>
+                    <p className="text-gray-600 mb-4 flex-1 text-sm leading-relaxed">{cardText}</p>
+                    <span className="self-start text-indigo-600 font-medium text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
+                        {cardButtonText} <Icons.ArrowRight width={14} height={14} />
+                    </span>
                 </div>
             </div>
-        )
+        );
+
+        if (element.props.cardLink) {
+             return (
+                 <a href={element.props.cardLink} className="block h-full" onClick={e => e.preventDefault()}>
+                     {content}
+                 </a>
+             )
+        }
+        return content;
+    }
 
     default:
       return null;

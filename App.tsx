@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { PageElement, ElementType, SavedTemplate } from './types';
 import { EditorCanvas } from './components/EditorCanvas';
@@ -498,6 +499,34 @@ export default function App() {
                 ] : undefined,
                 formSubmitButtonText: type === 'form' ? 'Submit' : undefined,
                 formLabelLayout: type === 'form' ? 'top' : undefined,
+                // Gallery defaults
+                galleryLayout: type === 'gallery' ? 'grid' : undefined,
+                galleryColumnCount: type === 'gallery' ? 3 : undefined,
+                galleryGap: type === 'gallery' ? '1rem' : undefined,
+                galleryAspectRatio: type === 'gallery' ? 'aspect-square' : undefined,
+                galleryObjectFit: type === 'gallery' ? 'cover' : undefined,
+                galleryImages: type === 'gallery' ? [
+                    { id: 'g1', src: 'https://picsum.photos/400/300?random=1', alt: 'Image 1' },
+                    { id: 'g2', src: 'https://picsum.photos/400/300?random=2', alt: 'Image 2' },
+                    { id: 'g3', src: 'https://picsum.photos/400/300?random=3', alt: 'Image 3' }
+                ] : undefined,
+                // Testimonial Defaults
+                testimonialLayout: type === 'testimonial' ? 'grid' : undefined,
+                testimonialAvatarSize: type === 'testimonial' ? 'md' : undefined,
+                testimonialAvatarShape: type === 'testimonial' ? 'circle' : undefined,
+                testimonialBubbleColor: type === 'testimonial' ? '#f9fafb' : undefined,
+                testimonialItems: type === 'testimonial' ? [
+                    { id: 't1', content: "This product changed my business completely. Highly recommended!", author: "Sarah Johnson", role: "CEO, TechStart", rating: 5, avatarSrc: "https://i.pravatar.cc/150?u=1" },
+                    { id: 't2', content: "Amazing support and incredible features. Worth every penny.", author: "Mike Chen", role: "Developer", rating: 4, avatarSrc: "https://i.pravatar.cc/150?u=2" },
+                    { id: 't3', content: "Simple, intuitive, and powerful. Just what I needed.", author: "Emily Davis", role: "Designer", rating: 5, avatarSrc: "https://i.pravatar.cc/150?u=3" }
+                ] : undefined,
+                // Card defaults
+                cardImageType: type === 'card' ? 'image' : undefined,
+                cardLayout: type === 'card' ? 'vertical' : undefined,
+                cardHoverEffect: type === 'card' ? 'lift' : undefined,
+                cardButtonText: type === 'card' ? 'Read More' : undefined,
+                cardTitle: type === 'card' ? 'Card Title' : undefined,
+                cardText: type === 'card' ? 'Some example text to build on the card title and make up the bulk of the card\'s content.' : undefined
             },
             children
           };
