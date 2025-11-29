@@ -1,0 +1,84 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+
+interface PreviewFrameProps {
+  children: React.ReactNode;
+  width: string;
+  height?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, height = '100%', className, style }) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [mountNode, setMountNode] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const setupIframe = () => {
+        const doc = iframe.contentWindow?.document;
+        if (doc) {
+            // Ensure the document has a basic structure
+            if (!doc.body) {
+                 doc.write('<!DOCTYPE html><html><head></head><body style="margin:0;"></body></html>');
+                 doc.close();
+            }
+            
+            // Inject Tailwind
+            if (!doc.getElementById('tailwind-script')) {
+                const script = doc.createElement('script');
+                script.id = 'tailwind-script';
+                script.src = 'https://cdn.tailwindcss.com';
+                doc.head.appendChild(script);
+            }
+
+            // Inject Fonts
+            if (!doc.getElementById('font-inter')) {
+                const link = doc.createElement('link');
+                link.id = 'font-inter';
+                link.rel = 'stylesheet';
+                // Added multiple font families
+                link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lato:wght@300;400;700&family=Merriweather:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Oswald:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Raleway:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap';
+                doc.head.appendChild(link);
+            }
+            
+            // Inject Base Styles
+            if (!doc.getElementById('base-styles')) {
+                const styleEl = doc.createElement('style');
+                styleEl.id = 'base-styles';
+                styleEl.innerHTML = `
+                    body { font-family: 'Inter', sans-serif; background-color: white; overflow-x: hidden; }
+                    /* Custom scrollbar for webkit */
+                    ::-webkit-scrollbar { width: 6px; height: 6px; }
+                    ::-webkit-scrollbar-track { background: transparent; }
+                    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+                    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                `;
+                doc.head.appendChild(styleEl);
+            }
+            
+            setMountNode(doc.body);
+        }
+    };
+
+    setupIframe();
+    
+    // Re-setup on load if needed (though usually synchronous write works)
+    iframe.addEventListener('load', setupIframe);
+    return () => iframe.removeEventListener('load', setupIframe);
+
+  }, []);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      className={className}
+      style={{ ...style, width, height, border: 'none', transition: 'width 0.3s ease-in-out' }}
+      title="Editor Preview"
+    >
+      {mountNode && createPortal(children, mountNode)}
+    </iframe>
+  );
+};
