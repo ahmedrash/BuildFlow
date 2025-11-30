@@ -1,4 +1,5 @@
 
+
 import React, { MouseEvent, DragEvent, useState, useEffect } from 'react';
 import { PageElement, SavedTemplate } from '../types';
 import { Icons } from './Icons';
@@ -162,12 +163,18 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
   const renderBackground = () => {
     if (!['section', 'container', 'columns', 'navbar'].includes(renderedElement.type)) return null;
-    const { backgroundImage, backgroundVideo } = renderedElement.props.style || {};
+    const { backgroundImage, backgroundVideo, parallax } = renderedElement.props || {};
+    const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = renderedElement.props.style || {};
+    
+    // Prefer props.style but fallback to props if structured that way in newer logic, 
+    // though here we mostly use style prop. 
+    const finalBgImage = styleBgImage || backgroundImage;
+    const finalBgVideo = styleBgVideo || backgroundVideo;
 
-    if (backgroundVideo) {
+    if (finalBgVideo) {
       return (
         <video 
-          src={backgroundVideo} 
+          src={finalBgVideo} 
           autoPlay 
           loop 
           muted 
@@ -177,13 +184,13 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       );
     }
 
-    if (backgroundImage) {
-      const url = backgroundImage.startsWith('url') 
-        ? backgroundImage.slice(4, -1).replace(/["']/g, "") 
-        : backgroundImage;
+    if (finalBgImage) {
+      const url = finalBgImage.startsWith('url') 
+        ? finalBgImage.slice(4, -1).replace(/["']/g, "") 
+        : finalBgImage;
       return (
         <div 
-          className="absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none"
+          className={`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none ${parallax ? 'bg-fixed' : ''}`}
           style={{ backgroundImage: `url(${url})` }}
         />
       );

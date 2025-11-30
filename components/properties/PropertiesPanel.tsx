@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState } from 'react';
 import { PageElement, FormField, SavedTemplate } from '../../types';
 import { Icons } from '../Icons';
@@ -1552,6 +1553,16 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                                         onUpdateStyle(selectedElement.id, 'backgroundImage', `url('${base64}')`);
                                                     }
                                                 }}
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center justify-between mt-2 border border-gray-100 bg-gray-50 p-2 rounded">
+                                            <label className="text-[10px] text-gray-400">Parallax Effect</label>
+                                            <input 
+                                                type="checkbox"
+                                                className="accent-indigo-600 w-3 h-3"
+                                                checked={displayElement.props.parallax || false}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { parallax: e.target.checked })}
                                             />
                                         </div>
 
