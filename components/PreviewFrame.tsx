@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -24,6 +25,14 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
             if (!doc.body) {
                  doc.write('<!DOCTYPE html><html><head></head><body style="margin:0;"></body></html>');
                  doc.close();
+            }
+
+            // Inject Meta Viewport
+            if (!doc.querySelector('meta[name="viewport"]')) {
+                const meta = doc.createElement('meta');
+                meta.name = 'viewport';
+                meta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
+                doc.head.appendChild(meta);
             }
             
             // Inject Tailwind

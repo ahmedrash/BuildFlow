@@ -106,6 +106,8 @@ export interface PageElement {
     level?: 1 | 2 | 3 | 4 | 5 | 6;
     parallax?: boolean;
     videoUrl?: string;
+    backgroundImage?: string;
+    backgroundVideo?: string;
     autoplay?: boolean;
     controls?: boolean;
     listType?: 'ul' | 'ol';

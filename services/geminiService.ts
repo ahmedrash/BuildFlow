@@ -12,34 +12,69 @@ You are an expert web designer and frontend engineer.
 Your task is to generate a JSON structure representing a web page layout based on the user's description.
 
 The structure is a tree of "PageElement" objects.
+
 Interface PageElement {
-  id: string; // Unique UUID
-  type: 'section' | 'container' | 'text' | 'image' | 'button' | 'columns';
-  name: string;
+  id: string; // Unique UUID (e.g., "el-" + random)
+  type: 'section' | 'container' | 'columns' | 'text' | 'heading' | 'image' | 'button' | 'video' | 'card' | 'form' | 'gallery' | 'testimonial' | 'slider' | 'navbar';
+  name: string; // Descriptive name
   props: {
-    content?: string;
-    src?: string;
+    // Common
+    className?: string; // Tailwind CSS classes (e.g., "bg-white p-8", "grid grid-cols-3 gap-4")
     style?: {
-      backgroundColor?: string; // Hex or Tailwind color name (e.g. transparent, #ffffff)
+      backgroundColor?: string;
       color?: string;
-      padding?: string; // e.g. "2rem", "40px"
-      textAlign?: 'left' | 'center' | 'right';
-      fontSize?: string; // e.g. "2rem", "1.5rem"
-      borderRadius?: string;
-      gap?: string;
-      // ... standard CSS properties
+      padding?: string;
+      height?: string;
+      // ... standard CSS
     };
-    className?: string; // Tailwind classes for layout (e.g. "grid grid-cols-3 gap-4")
+    content?: string; // For text, heading, button
+
+    // Images
+    src?: string; // Use 'https://picsum.photos/800/600?random=1' for placeholders
+
+    // Cards (Self-contained, do not add children)
+    cardTitle?: string;
+    cardText?: string;
+    cardButtonText?: string;
+    cardImageType?: 'image' | 'icon'; // Default 'image'
+    cardIcon?: string; // e.g., 'Box', 'Layout', 'Settings' from Lucide
+    cardLayout?: 'vertical' | 'horizontal';
+    cardHoverEffect?: 'lift' | 'zoom' | 'glow';
+    
+    // Forms (Self-contained)
+    formFields?: Array<{ id: string; type: 'text'|'email'|'textarea'|'checkbox'; label: string; placeholder?: string }>;
+    formSubmitButtonText?: string;
+
+    // Gallery
+    galleryImages?: Array<{ id: string; src: string; alt?: string }>;
+    galleryLayout?: 'grid' | 'masonry' | 'flex';
+    galleryColumnCount?: number;
+
+    // Testimonials
+    testimonialItems?: Array<{ id: string; content: string; author: string; role: string; rating: number; avatarSrc?: string }>;
+    testimonialLayout?: 'grid' | 'slider';
+
+    // Navbar
+    logoText?: string;
+    navLinks?: Array<{ label: string; href: string }>;
+    
+    // Slider
+    sliderAutoplay?: boolean;
   };
   children?: PageElement[];
 }
 
 Rules:
-1. "section" is a full-width block.
-2. "columns" should use 'className': 'grid grid-cols-N gap-4' in props.
-3. "image" must have a 'src'. Use 'https://picsum.photos/800/600' or similar for placeholders unless specified.
-4. "button" has 'content' (label) and 'style'.
-5. Return ONLY the JSON array of root PageElements.
+1. **Structure**: Use 'section' for top-level blocks. Use 'container' for wrapping content. Use 'columns' with 'grid grid-cols-N' class for layouts.
+2. **Cards**: Use the 'card' type for feature blocks, blog posts, or services. Configure them via props (cardTitle, cardText), NOT children.
+3. **Forms**: Use the 'form' type. Define fields in 'formFields'.
+4. **Galleries**: Use 'gallery' type with 'galleryImages'.
+5. **Sliders**: The 'slider' element MUST have children. Each child must be a 'container' representing a slide.
+6. **Images**: Always provide a placeholder 'src' for images.
+7. **Tailwind**: Use Tailwind CSS classes in 'className' for spacing (p-4, m-2), layout (flex, grid), and typography (text-xl, font-bold).
+8. **IDs**: Generate unique string IDs for every element.
+
+Return ONLY the JSON array of root PageElements.
 `;
 
 export const generateLayout = async (prompt: string): Promise<PageElement[]> => {

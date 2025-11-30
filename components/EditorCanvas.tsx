@@ -35,6 +35,10 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const isGlobal = element.type === 'global';
 
   const handleClick = (e: MouseEvent) => {
+    // In preview mode, we want clicks to propagate to children (links, buttons) 
+    // and not trigger selection logic
+    if (isPreview) return;
+
     e.stopPropagation();
     if (isLocked && parentId) {
         onSelect(parentId, e); // Bubble up to the locked container
@@ -159,7 +163,10 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const dropIndicatorClass = dropPosition === 'inside' ? 'ring-2 ring-dashed ring-blue-500 bg-blue-50/50' : '';
   const globalClass = isGlobal ? 'ring-1 ring-amber-300 hover:ring-amber-500' : '';
 
-  const baseClasses = `${renderedElement.props.className || ''} ${selectionClass} ${dropIndicatorClass} ${globalClass} ${containerClasses} transition-all duration-200`;
+  // For buttons, we apply the custom classname to the inner element (in ElementRenderer) 
+  // instead of the wrapper to ensure styles like borders/bg apply correctly to the clickable area.
+  const classNameToApply = renderedElement.type === 'button' ? '' : (renderedElement.props.className || '');
+  const baseClasses = `${classNameToApply} ${selectionClass} ${dropIndicatorClass} ${globalClass} ${containerClasses} transition-all duration-200`;
 
   const renderBackground = () => {
     if (!['section', 'container', 'columns', 'navbar'].includes(renderedElement.type)) return null;
@@ -296,7 +303,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       
       return (
           <>
-            <ElementRenderer element={renderedElement} />
+            <ElementRenderer element={renderedElement} isPreview={isPreview} />
             {!isPreview && ['container', 'section', 'columns'].includes(renderedElement.type) && (!renderedElement.children || renderedElement.children.length === 0) && (
                  <div className="p-4 text-center text-gray-300 italic border-2 border-dashed border-gray-200 rounded select-none pointer-events-none bg-white/50">Empty {renderedElement.name}</div>
             )}
@@ -309,7 +316,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       id={element.id}
       className={baseClasses}
       style={commonStyle}
-      onClick={handleClick}
+      onClick={!isPreview ? handleClick : undefined}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -351,8 +358,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
           <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-500 z-50 pointer-events-none" />
       )}
       
-      {/* Locked Overlay to Capture Clicks for Global Elements */}
-      {isLocked && <div className="absolute inset-0 z-10 bg-transparent cursor-pointer" onClick={handleClick}></div>}
+      {/* Locked Overlay to Capture Clicks for Global Elements - Only active in editor */}
+      {isLocked && !isPreview && <div className="absolute inset-0 z-10 bg-transparent cursor-pointer" onClick={handleClick}></div>}
       
       {renderBackground()}
       

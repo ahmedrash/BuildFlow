@@ -6,6 +6,7 @@ import { Icons } from '../Icons';
 
 interface ElementRendererProps {
   element: PageElement;
+  isPreview?: boolean;
 }
 
 const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string; avatarShape: string; bubbleColor: string }> = ({ 
@@ -66,7 +67,10 @@ const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string
     );
 };
 
-export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => {
+export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPreview }) => {
+  // Helper to disable pointer events only in editor mode
+  const pointerClass = !isPreview ? 'pointer-events-none' : '';
+
   switch (element.type) {
     case 'text':
       return <>{element.props.content}</>;
@@ -80,7 +84,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
         <img 
           src={element.props.src || 'https://via.placeholder.com/300'} 
           alt={element.props.alt || 'Placeholder'} 
-          className="w-full h-auto object-cover pointer-events-none" 
+          className={`w-full h-auto object-cover ${pointerClass}`}
           style={{ borderRadius: element.props.style?.borderRadius }}
         />
       );
@@ -88,14 +92,19 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
     case 'button':
       const action = element.props.buttonAction || 'link';
       const isLink = action === 'link';
+      const customClass = element.props.className || '';
       
       if (isLink) {
           return (
                <a 
                   href={element.props.href || '#'}
                   target={element.props.target}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition inline-block pointer-events-none"
+                  className={`px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition inline-block ${pointerClass} ${customClass}`}
                   style={element.props.style}
+                  onClick={(e) => {
+                      // Prevent navigation in editor, but allow in preview
+                      if (!isPreview) e.preventDefault();
+                  }}
                >
                   {element.props.content || 'Button'}
                </a>
@@ -105,7 +114,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
       return (
         <button 
           type={action === 'submit' ? 'submit' : 'button'}
-          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition pointer-events-none"
+          className={`px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition ${pointerClass} ${customClass}`}
           style={element.props.style}
         >
           {element.props.content || 'Button'}
@@ -123,7 +132,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
         <div className="aspect-video w-full bg-black rounded overflow-hidden relative">
           <iframe 
               src={embedUrl} 
-              className="w-full h-full pointer-events-none" 
+              className={`w-full h-full ${pointerClass}`}
               title="Video player" 
               frameBorder="0" 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -161,7 +170,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
                   marginHeight={0} 
                   marginWidth={0} 
                   src={`https://maps.google.com/maps?q=${encodeURIComponent(element.props.address || 'San Francisco')}&t=&z=${element.props.zoom || 13}&ie=UTF8&iwloc=&output=embed`}
-                  className="pointer-events-none"
+                  className={pointerClass}
               ></iframe>
           </div>
       );
@@ -191,7 +200,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
       };
 
       return (
-        <form className="space-y-4 p-4 border border-dashed border-gray-200 rounded pointer-events-none bg-white/50 w-full relative">
+        <form className={`space-y-4 p-4 border border-dashed border-gray-200 rounded bg-white/50 w-full relative ${pointerClass}`}>
           {fields.length === 0 && <div className="text-gray-400 italic text-center">No fields added</div>}
           
           {fields.map((field, i) => (
@@ -211,14 +220,14 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
                           placeholder={field.placeholder}
                           style={inputStyle}
                           rows={3}
-                          disabled
+                          disabled={!isPreview}
                       />
                   ) : field.type === 'checkbox' ? (
                       <div className="flex items-center gap-2">
                            <input 
                               type="checkbox" 
                               className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" 
-                              disabled 
+                              disabled={!isPreview}
                            />
                            <label className="text-sm text-gray-700">{field.label}</label>
                       </div>
@@ -228,7 +237,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
                           className="w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500" 
                           placeholder={field.placeholder}
                           style={inputStyle}
-                          disabled
+                          disabled={!isPreview}
                       />
                   )}
                </div>
@@ -254,9 +263,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
             </button>
           </div>
           
-          <div className="absolute top-2 right-2 text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded">
-             Form Preview
-          </div>
+          {!isPreview && (
+              <div className="absolute top-2 right-2 text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded">
+                 Form Preview
+              </div>
+          )}
         </form>
       );
     }
@@ -291,7 +302,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
     };
 
       const gapStyle = { gap: galleryGap };
-      const commonImgClass = `w-full h-full rounded pointer-events-none object-${galleryObjectFit} block`;
+      const commonImgClass = `w-full h-full rounded ${pointerClass} object-${galleryObjectFit} block`;
       
       // Handle different layouts
       if (galleryLayout === 'masonry') {
@@ -302,7 +313,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
                          <img 
                             src={img.src} 
                             alt={img.alt || ''} 
-                            className={`w-full rounded pointer-events-none block`}
+                            className={`w-full rounded ${pointerClass} block`}
                             style={{ display: 'block' }} // Ensure block to avoid line-height gaps
                         />
                      </div>
@@ -357,7 +368,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
        
        return (
            <nav className={navClasses}>
-               <div className="font-bold text-lg pointer-events-none">
+               <div className={`font-bold text-lg ${pointerClass}`}>
                    {logoType === 'image' && logoSrc ? (
                        <img src={logoSrc} alt="Logo" className="h-8 object-contain" />
                    ) : (
@@ -365,13 +376,14 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
                    )}
                </div>
                
-               <ul className={`flex gap-6 pointer-events-none ${navOrientation === 'vertical' ? 'flex-col w-full' : 'items-center'}`}>
+               <ul className={`flex gap-6 ${pointerClass} ${navOrientation === 'vertical' ? 'flex-col w-full' : 'items-center'}`}>
                    {navLinks.map((link, i) => (
                        <li key={i}>
                            <a 
                                href={link.href} 
                                className="transition-colors hover:opacity-80"
                                style={{ color: linkColor || 'inherit' }}
+                               onClick={(e) => !isPreview && e.preventDefault()}
                            >
                                {link.label}
                            </a>
@@ -417,7 +429,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
                 {testimonialItems.map(item => (
-                    <div key={item.id} className="flex flex-col h-full pointer-events-none">
+                    <div key={item.id} className={`flex flex-col h-full ${pointerClass}`}>
                          <div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}>
                              {/* Triangle for speech bubble effect */}
                              <div className="absolute top-full left-8 -mt-2 border-8 border-transparent" style={{ borderTopColor: testimonialBubbleColor }}></div>
@@ -474,7 +486,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
         const IconComp = cardIcon ? (Icons[cardIcon as keyof typeof Icons] || Icons.Box) : Icons.Box;
 
         const content = (
-            <div className={`bg-white rounded-lg shadow-md overflow-hidden pointer-events-none h-full flex relative border border-transparent ${isHorizontal ? 'flex-row' : 'flex-col'} ${hoverClasses}`} style={{ backgroundColor: element.props.style?.backgroundColor }}>
+            <div className={`bg-white rounded-lg shadow-md overflow-hidden h-full flex relative border border-transparent ${isHorizontal ? 'flex-row' : 'flex-col'} ${hoverClasses} ${pointerClass}`} style={{ backgroundColor: element.props.style?.backgroundColor }}>
                 {cardBadge && (
                     <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm">
                         {cardBadge}
@@ -507,7 +519,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element }) => 
 
         if (element.props.cardLink) {
              return (
-                 <a href={element.props.cardLink} className="block h-full" onClick={e => e.preventDefault()}>
+                 <a 
+                    href={element.props.cardLink} 
+                    className="block h-full" 
+                    onClick={e => !isPreview && e.preventDefault()}
+                 >
                      {content}
                  </a>
              )
