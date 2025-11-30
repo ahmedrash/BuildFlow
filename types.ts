@@ -18,7 +18,7 @@ export type ElementType =
   | 'testimonial' 
   | 'card'
   | 'slider'
-  | 'global'; // Added global type
+  | 'global';
 
 export interface ElementStyle {
   backgroundColor?: string;
@@ -188,8 +188,11 @@ export interface PageElement {
   children?: PageElement[];
 }
 
-export interface AIRequest {
-  prompt: string;
-  targetId?: string;
-  context?: string;
+export interface BuildFlowEditorProps {
+    initialData?: PageElement[];
+    savedTemplates?: SavedTemplate[];
+    onSave?: (elements: PageElement[]) => void;
+    onSaveTemplate?: (template: SavedTemplate) => void;
+    onDeleteTemplate?: (id: string) => void;
+    onUploadImage?: (file: File) => Promise<string>;
 }

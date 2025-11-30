@@ -8,13 +8,13 @@ interface TopbarProps {
     setIsPreview: (val: boolean) => void;
     onOpenTemplates: () => void;
     onOpenSettings: () => void;
-    onOpenAi: () => void;
     onSave: () => void;
+    onExportHtml: () => void;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ 
     viewMode, setViewMode, isPreview, setIsPreview, 
-    onOpenTemplates, onOpenSettings, onOpenAi, onSave 
+    onOpenTemplates, onOpenSettings, onSave, onExportHtml
 }) => {
   return (
     <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 z-30 relative shadow-sm">
@@ -55,14 +55,6 @@ export const Topbar: React.FC<TopbarProps> = ({
           >
             <Icons.Globe /> <span className="hidden sm:inline">Settings</span>
           </button>
-
-           <button 
-            onClick={onOpenAi}
-            className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-600 text-white rounded-full hover:shadow-lg transition-all hover:scale-105 font-medium text-sm"
-          >
-            <Icons.Magic />
-            Generate
-          </button>
         </div>
 
         <div className="flex items-center gap-3">
@@ -73,7 +65,14 @@ export const Topbar: React.FC<TopbarProps> = ({
             {isPreview ? <><Icons.EyeOff /> Edit</> : <><Icons.Eye /> Preview</>}
           </button>
           <button 
-            className="flex items-center gap-2 px-4 py-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-medium"
+            onClick={onExportHtml}
+            className="flex items-center gap-2 px-3 py-2 text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium border border-gray-200"
+            title="Download as HTML"
+          >
+            <Icons.Download /> <span className="hidden sm:inline">Export</span>
+          </button>
+          <button 
+            className="flex items-center gap-2 px-4 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium"
             onClick={onSave}
           >
             <Icons.Save /> Save
