@@ -1,4 +1,3 @@
-
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], title: string, description: string): string => {
@@ -109,7 +108,94 @@ export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], 
                         <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 w-full sm:w-auto">{element.props.formSubmitButtonText}</button>
                      </form>
                 );
-                // ... Simplified renderers for other types ...
+                case 'navbar': {
+                    const navOrientation = element.props.navOrientation || 'horizontal';
+                    const isSticky = element.props.isSticky;
+                    const navClasses = "flex w-full p-4 bg-white " + (navOrientation === 'vertical' ? 'flex-col space-y-4 items-start' : 'flex-row justify-between items-center') + " " + (isSticky ? 'sticky top-0 z-50 shadow-sm' : '');
+                    
+                    return (
+                        <nav className={navClasses}>
+                            <div className="font-bold text-lg">
+                                {element.props.logoType === 'image' && element.props.logoSrc ? (
+                                    <img src={element.props.logoSrc} alt="Logo" className="h-8 object-contain" />
+                                ) : (
+                                    <span>{element.props.logoText || 'Logo'}</span>
+                                )}
+                            </div>
+                            <ul className={"flex gap-6 " + (navOrientation === 'vertical' ? 'flex-col w-full' : 'items-center')}>
+                                {element.props.navLinks?.map((link, i) => (
+                                    <li key={i}>
+                                        <a href={link.href} className="transition-colors hover:opacity-80" style={{ color: element.props.linkColor || 'inherit' }}>{link.label}</a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
+                    );
+                }
+                case 'video': {
+                    const videoSrc = element.props.videoUrl || 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+                    const isYoutube = videoSrc.includes('youtube') || videoSrc.includes('youtu.be');
+                    const embedUrl = isYoutube && !videoSrc.includes('embed') ? videoSrc.replace('watch?v=', 'embed/') : videoSrc;
+                    return (
+                        <div className="aspect-video w-full bg-black rounded overflow-hidden relative">
+                            <iframe src={embedUrl} className="w-full h-full" title="Video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+                        </div>
+                    );
+                }
+                case 'map': return (
+                     <div className="w-full h-64 bg-gray-100 rounded overflow-hidden">
+                        <iframe width="100%" height="100%" frameBorder="0" scrolling="no" marginHeight="0" marginWidth="0" src={"https://maps.google.com/maps?q=" + encodeURIComponent(element.props.address || 'San Francisco') + "&t=&z=" + (element.props.zoom || 13) + "&ie=UTF8&iwloc=&output=embed"}></iframe>
+                    </div>
+                );
+                case 'gallery': {
+                    const layout = element.props.galleryLayout || 'grid';
+                    const cols = element.props.galleryColumnCount || 3;
+                    const gap = element.props.galleryGap || '1rem';
+                    const images = element.props.galleryImages || [];
+                    
+                    if (layout === 'masonry') {
+                         return (
+                             <div className={'space-y-4 columns-' + cols} style={{ columnGap: gap }}>
+                                 {images.map(img => <div key={img.id} className="break-inside-avoid mb-4"><img src={img.src} alt={img.alt} className="w-full rounded block" /></div>)}
+                             </div>
+                         );
+                    }
+                    if (layout === 'flex') {
+                        return <div className="flex flex-wrap" style={{ gap }}>{images.map(img => <div key={img.id} className="flex-grow basis-64 min-w-[200px] relative"><img src={img.src} alt={img.alt} className="w-full h-full rounded object-cover" /></div>)}</div>;
+                    }
+                    return (
+                        <div className={'grid grid-cols-' + cols} style={{ gap }}>
+                            {images.map(img => <div key={img.id} className={'relative overflow-hidden rounded ' + (element.props.galleryAspectRatio || 'aspect-square')}><img src={img.src} alt={img.alt} className={"w-full h-full block object-" + (element.props.galleryObjectFit || 'cover')} /></div>)}
+                        </div>
+                    );
+                }
+                case 'testimonial': {
+                     const { testimonialItems = [], testimonialLayout = 'grid', testimonialAvatarSize = 'md', testimonialAvatarShape = 'circle', testimonialBubbleColor = '#f9fafb' } = element.props;
+                     const sizeClass = { 'sm': 'w-8 h-8', 'md': 'w-12 h-12', 'lg': 'w-16 h-16', 'xl': 'w-24 h-24' }[testimonialAvatarSize] || 'w-12 h-12';
+                     const shapeClass = { 'circle': 'rounded-full', 'rounded': 'rounded-lg', 'square': 'rounded-none' }[testimonialAvatarShape] || 'rounded-full';
+                     
+                     if (testimonialLayout === 'slider') return <TestimonialSlider items={testimonialItems} avatarSize={sizeClass} avatarShape={shapeClass} bubbleColor={testimonialBubbleColor} />;
+                     
+                     return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+                            {testimonialItems.map(item => (
+                                <div key={item.id} className="flex flex-col h-full">
+                                     <div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}>
+                                         <div className="absolute top-full left-8 -mt-2 border-8 border-transparent" style={{ borderTopColor: testimonialBubbleColor }}></div>
+                                         <p className="text-gray-700 italic relative z-10">"{item.content}"</p>
+                                     </div>
+                                     <div className="flex items-center gap-3 px-2">
+                                        {item.avatarSrc && <img src={item.avatarSrc} className={sizeClass + ' ' + shapeClass + ' object-cover bg-gray-200 border border-white shadow-sm'} />}
+                                        <div>
+                                            <h4 className="font-bold text-sm text-gray-900">{item.author}</h4>
+                                            <p className="text-xs text-gray-500">{item.role}</p>
+                                        </div>
+                                     </div>
+                                </div>
+                            ))}
+                        </div>
+                     );
+                }
                 case 'card': return (
                     <div className="bg-white rounded-lg shadow-md overflow-hidden h-full flex flex-col transition-all hover:shadow-lg">
                         <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
