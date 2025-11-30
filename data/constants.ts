@@ -1,3 +1,4 @@
+
 import { PageElement } from '../types';
 
 export const FONT_FAMILIES = [
@@ -5,6 +6,13 @@ export const FONT_FAMILIES = [
   'Playfair Display', 'Oswald', 'Raleway', 'Poppins', 'Merriweather', 
   'sans-serif', 'serif', 'monospace'
 ];
+
+export const MENU_PRESETS = {
+    'simple': [{ label: 'Home', href: '#' }, { label: 'About', href: '#about' }, { label: 'Contact', href: '#contact' }],
+    'business': [{ label: 'Solutions', href: '#solutions' }, { label: 'Pricing', href: '#pricing' }, { label: 'Resources', href: '#resources' }, { label: 'Login', href: '#login' }],
+    'portfolio': [{ label: 'Work', href: '#work' }, { label: 'Services', href: '#services' }, { label: 'About', href: '#about' }],
+    'app': [{ label: 'Features', href: '#features' }, { label: 'Docs', href: '#docs' }, { label: 'Blog', href: '#blog' }, { label: 'Sign Up', href: '#signup' }]
+};
 
 export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
   {

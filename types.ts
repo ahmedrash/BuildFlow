@@ -114,8 +114,11 @@ export interface PageElement {
     listStyleType?: string;
     itemSpacing?: string;
     items?: string[];
+    
+    // Map Specific
     address?: string;
     zoom?: number;
+    mapType?: 'roadmap' | 'satellite';
     
     // Gallery Specific
     galleryImages?: GalleryImage[];
@@ -154,7 +157,13 @@ export interface PageElement {
     logoType?: 'text' | 'image';
     logoText?: string;
     logoSrc?: string;
+    logoWidth?: string;
     linkColor?: string;
+    activeLinkColor?: string;
+    hamburgerColor?: string;
+    mobileMenuBreakpoint?: 'sm' | 'md' | 'lg' | 'none';
+    mobileMenuType?: 'dropdown' | 'slide-left' | 'slide-right';
+    menuBackgroundColor?: string;
     
     // Card Specific
     cardTitle?: string;
@@ -181,6 +190,7 @@ export interface PageElement {
     sliderInterval?: number;
     sliderNavType?: 'chevron' | 'arrow' | 'caret';
     sliderActiveIndex?: number;
+    sliderShowPagination?: boolean;
 
     style?: ElementStyle;
     className?: string;
@@ -195,4 +205,8 @@ export interface BuildFlowEditorProps {
     onSaveTemplate?: (template: SavedTemplate) => void;
     onDeleteTemplate?: (id: string) => void;
     onUploadImage?: (file: File) => Promise<string>;
+    
+    // API Keys
+    googleMapsApiKey?: string;
+    recaptchaSiteKey?: string;
 }

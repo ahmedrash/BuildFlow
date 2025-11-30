@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { PageElement, SavedTemplate } from '../types';
 import { ElementRenderer } from './elements/ElementRenderer';
@@ -149,15 +150,17 @@ const SliderRenderer: React.FC<{ element: PageElement; renderChild: (el: PageEle
                     >
                         {renderNavIcon('next')}
                     </button>
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-                        {element.children.map((_, i) => (
-                            <button
-                            key={i}
-                            className={`w-2 h-2 rounded-full transition-all ${i === activeIndex ? 'bg-white scale-125' : 'bg-white/50'}`}
-                            onClick={() => setActiveIndex(i)}
-                            />
-                        ))}
-                    </div>
+                    {element.props.sliderShowPagination !== false && (
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                            {element.children.map((_, i) => (
+                                <button
+                                key={i}
+                                className={`w-2 h-2 rounded-full transition-all ${i === activeIndex ? 'bg-white scale-125' : 'bg-white/50'}`}
+                                onClick={() => setActiveIndex(i)}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </>
             )}
         </>

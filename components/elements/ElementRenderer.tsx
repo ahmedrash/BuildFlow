@@ -1,8 +1,16 @@
 
 
-import React, { useState, useEffect } from 'react';
+
+
+
+
+
+
+
+import React, { useState, useEffect, useContext } from 'react';
 import { PageElement, TestimonialItem } from '../../types';
 import { Icons } from '../Icons';
+import { EditorConfigContext } from '../EditorConfigContext';
 
 interface ElementRendererProps {
   element: PageElement;
@@ -68,6 +76,9 @@ const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string
 };
 
 export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPreview }) => {
+  const { googleMapsApiKey, recaptchaSiteKey } = useContext(EditorConfigContext);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
   // Helper to disable pointer events only in editor mode
   const pointerClass = !isPreview ? 'pointer-events-none' : '';
 
@@ -160,8 +171,28 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       );
 
     case 'map':
+      const address = element.props.address || 'San Francisco';
+      const zoom = element.props.zoom || 13;
+      const mapType = element.props.mapType || 'roadmap';
+
+      if (!googleMapsApiKey) {
+        return (
+          <div className="w-full h-64 bg-gray-100 rounded overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-gray-300 text-gray-500 gap-2 relative">
+             <Icons.Map width={32} height={32} className="opacity-50" />
+             <div className="font-bold text-sm">Development Mode: Map</div>
+             <div className="text-xs text-center px-4">
+                 Address: {address}<br/>
+                 Zoom: {zoom} | Type: {mapType}
+             </div>
+             <div className="absolute top-2 right-2 text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200">
+                 No API Key
+             </div>
+          </div>
+        );
+      }
+
       return (
-          <div className="w-full h-64 bg-gray-100 rounded overflow-hidden">
+          <div className="w-full h-64 bg-gray-100 rounded overflow-hidden relative">
               <iframe 
                   width="100%" 
                   height="100%" 
@@ -169,8 +200,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                   scrolling="no" 
                   marginHeight={0} 
                   marginWidth={0} 
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(element.props.address || 'San Francisco')}&t=&z=${element.props.zoom || 13}&ie=UTF8&iwloc=&output=embed`}
+                  src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(address)}&zoom=${zoom}&maptype=${mapType}`}
                   className={pointerClass}
+                  title="Google Map"
               ></iframe>
           </div>
       );
@@ -246,10 +278,16 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
 
           {element.props.formEnableRecaptcha && (
               <div className={`flex ${isHorizontal ? 'justify-end' : ''}`}>
-                  <div className={`bg-gray-100 border border-gray-300 rounded p-2 flex items-center gap-2 w-fit ${isHorizontal ? 'ml-auto' : ''}`}>
-                      <div className="w-6 h-6 bg-white border rounded"></div>
-                      <span className="text-xs text-gray-500">I'm not a robot (reCAPTCHA)</span>
+                  {recaptchaSiteKey ? (
+                    <div className={`bg-gray-100 border border-gray-300 rounded p-4 flex items-center justify-center w-fit ${isHorizontal ? 'ml-auto' : ''}`}>
+                       <div className="text-xs text-gray-500">reCAPTCHA Widget Placeholder</div>
+                    </div>
+                  ) : (
+                    <div className={`bg-yellow-50 border border-yellow-200 rounded p-2 flex items-center gap-2 w-fit ${isHorizontal ? 'ml-auto' : ''}`}>
+                      <div className="w-6 h-6 bg-white border border-yellow-300 rounded flex items-center justify-center text-yellow-600 text-[10px]">?</div>
+                      <span className="text-xs text-yellow-700 font-medium">reCAPTCHA (Dev Mode)</span>
                   </div>
+                  )}
               </div>
           )}
 
@@ -359,30 +397,61 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
           navOrientation = 'horizontal', 
           logoType = 'text', 
           logoText = 'Logo', 
-          logoSrc, 
+          logoSrc,
+          logoWidth,
           navLinks = [],
-          linkColor
+          linkColor,
+          activeLinkColor,
+          mobileMenuBreakpoint = 'md',
+          mobileMenuType = 'dropdown',
+          hamburgerColor,
+          menuBackgroundColor
        } = element.props;
 
-       const navClasses = `flex w-full p-4 bg-white ${navOrientation === 'vertical' ? 'flex-col space-y-4 items-start' : 'flex-row justify-between items-center'} ${isSticky ? 'sticky top-0 z-50 shadow-sm' : ''}`;
+       const isVertical = navOrientation === 'vertical';
+       const breakpointClass = mobileMenuBreakpoint === 'none' ? 'flex' : `hidden ${mobileMenuBreakpoint}:flex`;
+       const mobileToggleClass = mobileMenuBreakpoint === 'none' ? 'hidden' : `flex ${mobileMenuBreakpoint}:hidden`;
        
+       const navClasses = `flex w-full p-4 bg-white transition-all duration-300 relative ${isVertical ? 'flex-col space-y-4 items-start h-full' : 'flex-row justify-between items-center'} ${isSticky ? 'sticky top-0 z-50 shadow-sm' : ''}`;
+       
+       // Styles
+       const linkStyle = { color: linkColor || 'inherit' };
+       const activeStyle = activeLinkColor ? { '--active-color': activeLinkColor } as React.CSSProperties : {};
+
        return (
-           <nav className={navClasses}>
-               <div className={`font-bold text-lg ${pointerClass}`}>
+           <nav className={navClasses} style={activeStyle}>
+               <div className={`font-bold text-lg ${pointerClass} flex items-center justify-between w-full ${isVertical ? '' : 'md:w-auto'}`}>
                    {logoType === 'image' && logoSrc ? (
-                       <img src={logoSrc} alt="Logo" className="h-8 object-contain" />
+                       <img 
+                           src={logoSrc} 
+                           alt="Logo" 
+                           className="object-contain" 
+                           style={{ width: logoWidth || 'auto', maxHeight: '40px' }}
+                       />
                    ) : (
                        <span>{logoText}</span>
                    )}
+                   
+                   {/* Mobile Toggle */}
+                   {!isVertical && (
+                       <button 
+                            className={`${mobileToggleClass} p-2 rounded hover:bg-gray-100 ${pointerClass}`}
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            style={{ color: hamburgerColor || 'inherit' }}
+                        >
+                           <Icons.Menu />
+                       </button>
+                   )}
                </div>
                
-               <ul className={`flex gap-6 ${pointerClass} ${navOrientation === 'vertical' ? 'flex-col w-full' : 'items-center'}`}>
+               {/* Desktop Menu */}
+               <ul className={`${breakpointClass} gap-6 ${pointerClass} ${isVertical ? 'flex-col w-full' : 'items-center'}`}>
                    {navLinks.map((link, i) => (
                        <li key={i}>
                            <a 
                                href={link.href} 
-                               className="transition-colors hover:opacity-80"
-                               style={{ color: linkColor || 'inherit' }}
+                               className={`transition-colors hover:opacity-80 font-medium ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
+                               style={linkStyle}
                                onClick={(e) => !isPreview && e.preventDefault()}
                            >
                                {link.label}
@@ -390,6 +459,69 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                        </li>
                    ))}
                </ul>
+               
+               {/* Mobile Menu */}
+               {isMenuOpen && !isVertical && (
+                   <>
+                   {/* Dropdown Style */}
+                   {mobileMenuType === 'dropdown' && (
+                       <div 
+                           className={`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col p-4 gap-4 animate-fade-in z-40 ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}
+                           style={{ backgroundColor: menuBackgroundColor || 'white' }}
+                       >
+                           {navLinks.map((link, i) => (
+                               <a 
+                                   key={i}
+                                   href={link.href} 
+                                   className={`text-lg font-medium transition-colors hover:opacity-80 block p-2 rounded hover:bg-gray-50 ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
+                                   style={linkStyle}
+                                   onClick={(e) => {
+                                       if(!isPreview) e.preventDefault();
+                                       setIsMenuOpen(false);
+                                   }}
+                               >
+                                   {link.label}
+                               </a>
+                           ))}
+                       </div>
+                   )}
+
+                   {/* Slide Side Styles */}
+                   {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
+                        <div className={`fixed inset-0 z-50 ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}>
+                            {/* Overlay */}
+                            <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div>
+                            
+                            {/* Drawer */}
+                            <div 
+                                className={`absolute top-0 bottom-0 ${mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right'} w-64 bg-white shadow-xl flex flex-col p-6 gap-4`}
+                                style={{ backgroundColor: menuBackgroundColor || 'white' }}
+                            >
+                                <div className="flex justify-end">
+                                    <button onClick={() => setIsMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-700">
+                                        <Icons.X />
+                                    </button>
+                                </div>
+                                
+                                {navLinks.map((link, i) => (
+                                   <a 
+                                       key={i}
+                                       href={link.href} 
+                                       className={`text-lg font-medium transition-colors hover:opacity-80 block p-2 rounded hover:bg-gray-50 ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
+                                       style={linkStyle}
+                                       onClick={(e) => {
+                                           if(!isPreview) e.preventDefault();
+                                           setIsMenuOpen(false);
+                                       }}
+                                   >
+                                       {link.label}
+                                   </a>
+                               ))}
+                            </div>
+                        </div>
+                   )}
+                   </>
+               )}
            </nav>
        );
 

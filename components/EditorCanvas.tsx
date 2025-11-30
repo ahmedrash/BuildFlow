@@ -265,18 +265,21 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
                           >
                              {renderNavIcon('next')}
                           </button>
-                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-                              {renderedElement.children.map((_, i) => (
-                                  <button
-                                    key={i}
-                                    className={`w-2 h-2 rounded-full transition-all ${i === activeIndex ? 'bg-white scale-125' : 'bg-white/50'}`}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onUpdateProps(element.id, { sliderActiveIndex: i });
-                                    }}
-                                  />
-                              ))}
-                          </div>
+                          
+                          {renderedElement.props.sliderShowPagination !== false && (
+                              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                                  {renderedElement.children.map((_, i) => (
+                                      <button
+                                        key={i}
+                                        className={`w-2 h-2 rounded-full transition-all ${i === activeIndex ? 'bg-white scale-125' : 'bg-white/50'}`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onUpdateProps(element.id, { sliderActiveIndex: i });
+                                        }}
+                                      />
+                                  ))}
+                              </div>
+                          )}
                       </>
                   )}
               </>

@@ -1,6 +1,15 @@
+
+
 import { PageElement, SavedTemplate } from "../types";
 
-export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], title: string, description: string): string => {
+export const exportHtml = (
+    elements: PageElement[], 
+    templates: SavedTemplate[], 
+    title: string, 
+    description: string,
+    googleMapsApiKey?: string,
+    recaptchaSiteKey?: string
+): string => {
   const elementsJson = JSON.stringify(elements);
   const templatesJson = JSON.stringify(templates);
 
@@ -24,7 +33,13 @@ export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], 
       .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+      @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+      .animate-slide-in-left { animation: slideInLeft 0.3s ease-out forwards; }
+      @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+      .animate-slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
     </style>
+    
+    ${recaptchaSiteKey ? `<script src="https://www.google.com/recaptcha/api.js" async defer></script>` : ''}
     
     <!-- React & ReactDOM (UMD) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -40,6 +55,8 @@ export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], 
         // Data injected from builder
         const elements = ${elementsJson};
         const savedTemplates = ${templatesJson};
+        const googleMapsApiKey = "${googleMapsApiKey || ''}";
+        const recaptchaSiteKey = "${recaptchaSiteKey || ''}";
 
         // --- Icons Component (Embedded) ---
         const Icons = {
@@ -51,8 +68,11 @@ export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], 
              Box: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
              Layout: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>,
              Smartphone: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>,
-             Magic: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></svg>,
+             Magic: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></svg>,
              Square: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg>,
+             Map: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
+             Menu: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+             X: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
         };
 
         // --- Renderers ---
@@ -84,6 +104,9 @@ export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], 
         };
 
         const ElementRenderer = ({ element }) => {
+            // State for interactive components
+            const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+
             switch (element.type) {
                 case 'text': return <>{element.props.content}</>;
                 case 'heading': { const Tag = 'h' + (element.props.level || 2); return <Tag>{element.props.content}</Tag>; }
@@ -105,30 +128,91 @@ export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], 
                                  <input type={field.type} className="w-full border-gray-300 shadow-sm p-2 border rounded" placeholder={field.placeholder} />
                              </div>
                         ))}
+                        {element.props.formEnableRecaptcha && (
+                            <div className="flex justify-end">
+                                {recaptchaSiteKey ? (
+                                    <div className="g-recaptcha" data-sitekey={recaptchaSiteKey}></div>
+                                ) : (
+                                    <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-700">reCAPTCHA (Dev Mode)</div>
+                                )}
+                            </div>
+                        )}
                         <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 w-full sm:w-auto">{element.props.formSubmitButtonText}</button>
                      </form>
                 );
                 case 'navbar': {
                     const navOrientation = element.props.navOrientation || 'horizontal';
                     const isSticky = element.props.isSticky;
-                    const navClasses = "flex w-full p-4 bg-white " + (navOrientation === 'vertical' ? 'flex-col space-y-4 items-start' : 'flex-row justify-between items-center') + " " + (isSticky ? 'sticky top-0 z-50 shadow-sm' : '');
+                    const isVertical = navOrientation === 'vertical';
+                    const breakpoint = element.props.mobileMenuBreakpoint || 'md';
+                    const mobileMenuType = element.props.mobileMenuType || 'dropdown';
+                    const breakpointClass = breakpoint === 'none' ? 'flex' : 'hidden ' + breakpoint + ':flex';
+                    const mobileToggleClass = breakpoint === 'none' ? 'hidden' : 'flex ' + breakpoint + ':hidden';
+                    const activeColor = element.props.activeLinkColor;
                     
+                    const navClasses = "flex w-full p-4 bg-white transition-all duration-300 relative " + (isVertical ? 'flex-col space-y-4 items-start h-full' : 'flex-row justify-between items-center') + " " + (isSticky ? 'sticky top-0 z-50 shadow-sm' : '');
+                    const linkStyle = { color: element.props.linkColor || 'inherit' };
+                    const activeStyle = activeColor ? { '--active-color': activeColor } : {};
+                    const hoverClass = activeColor ? 'hover:text-[var(--active-color)]' : 'hover:opacity-80';
+
                     return (
-                        <nav className={navClasses}>
-                            <div className="font-bold text-lg">
+                        <nav className={navClasses} style={activeStyle}>
+                            <div className={"font-bold text-lg flex items-center justify-between w-full " + (isVertical ? '' : 'md:w-auto')}>
                                 {element.props.logoType === 'image' && element.props.logoSrc ? (
-                                    <img src={element.props.logoSrc} alt="Logo" className="h-8 object-contain" />
+                                    <img src={element.props.logoSrc} alt="Logo" className="object-contain" style={{ width: element.props.logoWidth || 'auto', maxHeight: '40px' }} />
                                 ) : (
                                     <span>{element.props.logoText || 'Logo'}</span>
                                 )}
+                                {!isVertical && (
+                                    <button 
+                                        className={mobileToggleClass + " p-2 rounded hover:bg-gray-100"} 
+                                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                        style={{ color: element.props.hamburgerColor || 'inherit' }}
+                                    >
+                                        <Icons.Menu />
+                                    </button>
+                                )}
                             </div>
-                            <ul className={"flex gap-6 " + (navOrientation === 'vertical' ? 'flex-col w-full' : 'items-center')}>
+                            <ul className={breakpointClass + " gap-6 " + (isVertical ? 'flex-col w-full' : 'items-center')}>
                                 {element.props.navLinks?.map((link, i) => (
                                     <li key={i}>
-                                        <a href={link.href} className="transition-colors hover:opacity-80" style={{ color: element.props.linkColor || 'inherit' }}>{link.label}</a>
+                                        <a href={link.href} className={"transition-colors font-medium " + hoverClass} style={linkStyle}>{link.label}</a>
                                     </li>
                                 ))}
                             </ul>
+                            {isMenuOpen && !isVertical && (
+                                <>
+                                    {mobileMenuType === 'dropdown' && (
+                                        <div className={"absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col p-4 gap-4 animate-fade-in z-40 " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}>
+                                            {element.props.navLinks?.map((link, i) => (
+                                                <a key={i} href={link.href} className={"text-lg font-medium transition-colors block p-2 rounded hover:bg-gray-50 " + hoverClass} style={linkStyle} onClick={() => setIsMenuOpen(false)}>
+                                                    {link.label}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
+                                        <div className={"fixed inset-0 z-50 " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')}>
+                                            <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div>
+                                            <div 
+                                                className={"absolute top-0 bottom-0 w-64 bg-white shadow-xl flex flex-col p-6 gap-4 " + (mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right')}
+                                                style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}
+                                            >
+                                                <div className="flex justify-end">
+                                                    <button onClick={() => setIsMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-700">
+                                                        <Icons.X />
+                                                    </button>
+                                                </div>
+                                                {element.props.navLinks?.map((link, i) => (
+                                                    <a key={i} href={link.href} className={"text-lg font-medium transition-colors block p-2 rounded hover:bg-gray-50 " + hoverClass} style={linkStyle} onClick={() => setIsMenuOpen(false)}>
+                                                        {link.label}
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </nav>
                     );
                 }
@@ -142,11 +226,28 @@ export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], 
                         </div>
                     );
                 }
-                case 'map': return (
-                     <div className="w-full h-64 bg-gray-100 rounded overflow-hidden">
-                        <iframe width="100%" height="100%" frameBorder="0" scrolling="no" marginHeight="0" marginWidth="0" src={"https://maps.google.com/maps?q=" + encodeURIComponent(element.props.address || 'San Francisco') + "&t=&z=" + (element.props.zoom || 13) + "&ie=UTF8&iwloc=&output=embed"}></iframe>
-                    </div>
-                );
+                case 'map': {
+                    const address = element.props.address || 'San Francisco';
+                    const zoom = element.props.zoom || 13;
+                    const mapType = element.props.mapType || 'roadmap';
+                    
+                    if (!googleMapsApiKey) {
+                        return (
+                            <div className="w-full h-64 bg-gray-100 rounded overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-gray-300 text-gray-500 gap-2">
+                                <Icons.Map width={32} height={32} className="opacity-50" />
+                                <div className="font-bold text-sm">Development Mode: Map</div>
+                                <div className="text-xs text-center px-4">Address: {address}<br/>Zoom: {zoom} | Type: {mapType}</div>
+                            </div>
+                        );
+                    }
+                    return (
+                         <div className="w-full h-64 bg-gray-100 rounded overflow-hidden">
+                            <iframe width="100%" height="100%" frameBorder="0" scrolling="no" marginHeight="0" marginWidth="0" 
+                                src={"https://www.google.com/maps/embed/v1/place?key=" + googleMapsApiKey + "&q=" + encodeURIComponent(address) + "&zoom=" + zoom + "&maptype=" + mapType}
+                            ></iframe>
+                        </div>
+                    );
+                }
                 case 'gallery': {
                     const layout = element.props.galleryLayout || 'grid';
                     const cols = element.props.galleryColumnCount || 3;
@@ -230,8 +331,10 @@ export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], 
                 // Slider
                 if(type === 'slider' && children) return <SliderRenderer key={id} element={renderedElement} renderChild={renderElement} className={containerClasses + ' ' + (props.className || '')} style={props.style} />;
 
+                const classNameToApply = type === 'button' ? '' : (props.className || '');
+
                 return (
-                    <Tag key={id} className={containerClasses + ' ' + (props.className || '')} style={{...props.style, ...bgStyle}}>
+                    <Tag key={id} className={containerClasses + ' ' + classNameToApply} style={{...props.style, ...bgStyle}}>
                          {/* Background Image logic simplified for export */}
                          {(props.backgroundImage || props.style?.backgroundImage) && <div className="absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none" style={{ backgroundImage: props.style?.backgroundImage || props.backgroundImage }} />}
                          {children && children.length > 0 ? children.map(child => renderElement(child)) : <ElementRenderer element={renderedElement} />}
@@ -249,13 +352,38 @@ export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], 
                     return () => clearInterval(interval);
                 }
             }, []);
+
+            const renderNavIcon = (direction) => {
+                const type = element.props.sliderNavType || 'chevron';
+                if (type === 'arrow') return direction === 'prev' ? <Icons.ArrowLeft /> : <Icons.ArrowRight />;
+                if (type === 'caret') return direction === 'prev' ? <Icons.CaretLeft /> : <Icons.CaretRight />;
+                return <Icons.ChevronDown className={direction === 'prev' ? 'rotate-90' : '-rotate-90'} />;
+            };
+
             return (
                 <div className={className} style={style}>
                     {element.children.map((child, index) => (
-                        <div key={child.id} className={'w-full h-full top-0 left-0 transition-opacity duration-500 ease-in-out ' + (index === activeIndex ? 'relative opacity-100 z-10' : 'absolute opacity-0 -z-10')}>
+                        <div key={child.id} className={'w-full h-full top-0 left-0 transition-opacity duration-500 ease-in-out ' + (index === activeIndex ? 'relative opacity-100 z-10' : 'absolute opacity-0 -z-10 pointer-events-none')}>
                             {renderChild(child)}
                         </div>
                     ))}
+                    {element.children.length > 1 && (
+                        <>
+                            <button className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition-all" onClick={() => setActiveIndex(prev => (prev - 1 + element.children.length) % element.children.length)}>
+                                {renderNavIcon('prev')}
+                            </button>
+                            <button className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition-all" onClick={() => setActiveIndex(prev => (prev + 1) % element.children.length)}>
+                                {renderNavIcon('next')}
+                            </button>
+                            {element.props.sliderShowPagination !== false && (
+                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                                    {element.children.map((_, i) => (
+                                        <button key={i} className={'w-2 h-2 rounded-full transition-all ' + (i === activeIndex ? 'bg-white scale-125' : 'bg-white/50')} onClick={() => setActiveIndex(i)} />
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
             )
         };
@@ -265,4 +393,3 @@ export const exportHtml = (elements: PageElement[], templates: SavedTemplate[], 
     </script>
 </body>
 </html>`;
-};

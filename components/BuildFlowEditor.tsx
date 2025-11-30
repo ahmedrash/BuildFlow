@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useCallback } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';
@@ -11,6 +13,7 @@ import { TEMPLATES } from '../data/constants';
 import { Toast } from './ui/Toast';
 import { PromptModal } from './ui/PromptModal';
 import { exportHtml } from '../utils/htmlExporter';
+import { EditorConfigContext } from './EditorConfigContext';
 
 export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({ 
     initialData = TEMPLATES[0].elements, 
@@ -18,7 +21,9 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     onSave, 
     onSaveTemplate: onExternalSaveTemplate,
     onDeleteTemplate: onExternalDeleteTemplate,
-    onUploadImage 
+    onUploadImage,
+    googleMapsApiKey,
+    recaptchaSiteKey
 }) => {
   const [elements, setElements] = useState<PageElement[]>(initialData);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -210,6 +215,11 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
       setActiveElements(prev => updateElementRecursively(prev, currentId, (el) => ({ ...el, id: newId })));
       setSelectedId(newId);
   };
+  
+  const handleUpdateName = (id: string, name: string) => {
+      if (!name.trim()) return;
+      setActiveElements(prev => updateElementRecursively(prev, id, (el) => ({ ...el, name })));
+  };
 
   const handleUpdateProps = (id: string, newProps: any) => {
     setActiveElements(prev => updateElementRecursively(prev, id, (el) => ({
@@ -366,7 +376,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
       const newSlide: PageElement = {
           id: `slide-${Date.now()}`,
           type: 'container',
-          name: 'Slide',
+          name: 'New Slide',
           props: {
               className: 'w-full flex flex-col items-center justify-center p-10',
               style: { backgroundColor: '#f3f4f6', height: '100%' }
@@ -453,6 +463,8 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 listType: type === 'list' ? 'ul' : undefined,
                 items: type === 'list' ? ['Item 1', 'Item 2', 'Item 3'] : undefined,
                 address: type === 'map' ? 'New York, NY' : undefined,
+                zoom: type === 'map' ? 13 : undefined,
+                mapType: type === 'map' ? 'roadmap' : undefined,
                 videoUrl: type === 'video' ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : undefined,
                 // Navbar defaults
                 navLinks: type === 'navbar' ? [{ label: 'Home', href: '#' }, { label: 'About', href: '#' }] : undefined,
@@ -461,6 +473,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 sliderAutoplay: type === 'slider' ? false : undefined,
                 sliderInterval: type === 'slider' ? 3000 : undefined,
                 sliderNavType: 'chevron',
+                sliderShowPagination: true,
                 sliderActiveIndex: 0,
                 // Form defaults
                 formFields: type === 'form' ? [
@@ -545,7 +558,14 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
   };
 
   const handleExport = () => {
-    const html = exportHtml(elements, savedTemplates, pageSettings.title, pageSettings.description);
+    const html = exportHtml(
+        elements, 
+        savedTemplates, 
+        pageSettings.title, 
+        pageSettings.description,
+        googleMapsApiKey,
+        recaptchaSiteKey
+    );
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -563,276 +583,279 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
   const viewportWidth = viewMode === 'mobile' ? '375px' : viewMode === 'tablet' ? '768px' : '100%';
 
   return (
-    <div className="flex flex-col h-full bg-white font-sans text-slate-900">
-      
-      {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
-      
-      <PromptModal 
-        isOpen={promptConfig.isOpen}
-        title={promptConfig.title}
-        defaultValue={promptConfig.defaultValue}
-        showGlobalOption={promptConfig.showGlobalOption}
-        onClose={() => setPromptConfig(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={promptConfig.onConfirm}
-      />
+    <EditorConfigContext.Provider value={{ googleMapsApiKey, recaptchaSiteKey }}>
+        <div className="flex flex-col h-full bg-white font-sans text-slate-900">
+        
+        {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
+        
+        <PromptModal 
+            isOpen={promptConfig.isOpen}
+            title={promptConfig.title}
+            defaultValue={promptConfig.defaultValue}
+            showGlobalOption={promptConfig.showGlobalOption}
+            onClose={() => setPromptConfig(prev => ({ ...prev, isOpen: false }))}
+            onConfirm={promptConfig.onConfirm}
+        />
 
-      <Topbar 
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        isPreview={isPreview}
-        setIsPreview={setIsPreview}
-        onOpenTemplates={() => { setIsTemplatesModalOpen(true); setTemplatesTab('presets'); }}
-        onOpenSettings={() => setIsSettingsModalOpen(true)}
-        onSave={() => onSave ? onSave(elements) : null}
-        onExportHtml={handleExport}
-      />
-      
-      {editingTemplateId && (
-          <div className="bg-amber-100 px-4 py-2 text-center text-sm font-medium text-amber-800 flex justify-between items-center shadow-inner">
-             <span>You are editing a Master Template. Changes will affect all Global instances.</span>
-             <button 
-                onClick={handleFinishEditingTemplate}
-                className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600 text-xs"
-             >
-                Finish Editing
-             </button>
-          </div>
-      )}
-
-      <div className="flex flex-1 overflow-hidden">
-        {!isPreview && (
-          <Sidebar 
-            onDragStart={handleSidebarDragStart} 
-            elements={activeElements}
-            selectedId={selectedId}
-            onSelect={(id) => handleSelect(id)}
-          />
-        )}
-
-        <main 
-          className="flex-1 overflow-y-auto bg-gray-200/50 relative p-8 scroll-smooth flex justify-center"
-          onClick={() => setSelectedId(null)}
-        >
-          <PreviewFrame
-             width={viewportWidth}
-             className={`transition-all duration-500 ease-in-out h-fit min-h-[800px] bg-white shadow-2xl ${isPreview ? '' : 'ring-1 ring-gray-200'}`}
-          >
-             <div 
-                id="canvas-root" 
-                className="min-h-[800px] pb-20 relative"
-                onDragOver={(e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'copy';
-                }}
-                onDrop={(e) => {
-                     e.preventDefault();
-                     const type = e.dataTransfer.getData('type');
-                     if (type === 'new') {
-                         const elementType = e.dataTransfer.getData('elementType');
-                         if(elementType) {
-                             handleDropElement('root', 'inside', { type: 'new', elementType });
-                         }
-                     } else if (type === 'move') {
-                         const id = e.dataTransfer.getData('id');
-                         if (id) {
-                             handleDropElement('root', 'inside', { type: 'move', id });
-                         }
-                     }
-                }}
-            >
-                {activeElements.map(el => (
-                <EditorCanvas 
-                    key={el.id} 
-                    element={el} 
-                    selectedId={selectedId} 
-                    onSelect={handleSelect}
-                    isPreview={isPreview}
-                    onDropElement={handleDropElement}
-                    onDuplicate={handleDuplicate}
-                    onUpdateProps={handleUpdateProps}
-                    getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
-                />
-                ))}
-                
-                {activeElements.length === 0 && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 pointer-events-none">
-                    <Icons.Layout />
-                    <p className="mt-4 font-medium">Drag and drop elements here to start</p>
-                </div>
-                )}
-            </div>
-          </PreviewFrame>
-        </main>
-
-        {!isPreview && (
-          <PropertiesPanel
-            selectedElement={selectedElement}
-            onUpdateId={handleUpdateId}
-            onDelete={handleDelete}
-            onDuplicate={handleDuplicate}
-            onUpdateProps={handleUpdateProps}
-            onUpdateStyle={handleUpdateStyle}
-            onFileUpload={onUploadImage || (async () => "")}
-            onAddNavLink={handleAddNavLink}
-            onUpdateNavLink={handleUpdateNavLink}
-            onRemoveNavLink={handleRemoveNavLink}
-            onAddSlide={handleAddSlide}
-            onRemoveSlide={handleRemoveSlide}
-            onUpdateSlide={()=>{}}
-            onSaveTemplate={handleSaveTemplate}
-            onDetach={handleDetachElement}
-            onEditTemplate={handleEditTemplate}
-            savedTemplates={savedTemplates}
-          />
-        )}
-      </div>
-
-      {isTemplatesModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden h-[500px] flex flex-col">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-gray-900">Library</h3>
-                <button onClick={() => setIsTemplatesModalOpen(false)} className="text-gray-400 hover:text-gray-600">Close</button>
-            </div>
-            
-            <div className="flex border-b border-gray-200 px-6">
-                 <button 
-                   className={`py-3 mr-4 text-sm font-medium border-b-2 transition-colors ${templatesTab === 'presets' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                   onClick={() => setTemplatesTab('presets')}
-                 >
-                    Presets
-                 </button>
-                 <button 
-                   className={`py-3 text-sm font-medium border-b-2 transition-colors ${templatesTab === 'saved' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                   onClick={() => setTemplatesTab('saved')}
-                 >
-                    My Templates
-                 </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
-                {templatesTab === 'presets' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {TEMPLATES.map(t => (
-                            <button 
-                                key={t.name}
-                                onClick={() => {
-                                    setElements(t.elements);
-                                    setIsTemplatesModalOpen(false);
-                                }}
-                                className="bg-white p-4 rounded-xl border border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all text-left group"
-                            >
-                                <div className="h-32 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-300 group-hover:bg-indigo-50 group-hover:text-indigo-300 transition-colors">
-                                    <Icons.Layout />
-                                </div>
-                                <h4 className="font-bold text-gray-800">{t.name}</h4>
-                                <p className="text-xs text-gray-500 mt-1">Professional layout to get started fast.</p>
-                            </button>
-                        ))}
-                    </div>
-                ) : (
-                    <div>
-                        {savedTemplates.length === 0 ? (
-                            <div className="text-center text-gray-400 mt-10">
-                                <Icons.Box className="mx-auto mb-2 opacity-50" width={48} height={48} />
-                                <p>No saved templates yet.</p>
-                                <p className="text-xs">Select an element and click "Save as Template" to add one.</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {savedTemplates.map(t => (
-                                    <div 
-                                        key={t.id}
-                                        className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-lg transition-all flex flex-col group relative"
-                                    >
-                                        <button 
-                                            onClick={() => handleDeleteTemplate(t.id)}
-                                            className="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10"
-                                            title="Delete Template"
-                                        >
-                                            <Icons.Trash width={14} height={14} />
-                                        </button>
-                                        
-                                        <button 
-                                            className="flex-1 text-left"
-                                            onClick={() => {
-                                                handleDropElement('root', 'inside', { type: 'template', templateId: t.id });
-                                                setIsTemplatesModalOpen(false);
-                                                showToast("Template added to canvas");
-                                            }}
-                                        >
-                                            <div className="h-24 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-400 transition-colors">
-                                                {t.isGlobal ? <Icons.Globe /> : <Icons.Component />}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <h4 className="font-bold text-gray-800">{t.name}</h4>
-                                                {t.isGlobal && (
-                                                    <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded font-mono">GLOBAL</span>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-gray-500 mt-1">{t.isGlobal ? 'Syncs across all pages' : 'Standard copy'}</p>
-                                        </button>
-                                        
-                                        {t.isGlobal && (
-                                            <button 
-                                                onClick={() => handleEditTemplate(t.id)}
-                                                className="mt-3 w-full py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200"
-                                            >
-                                                Edit Master
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isSettingsModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Icons.Globe /> Page Settings</h3>
-                <button onClick={() => setIsSettingsModalOpen(false)} className="text-gray-400 hover:text-gray-600">Close</button>
-            </div>
-            <div className="p-6 space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Page Title</label>
-                    <input 
-                        className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-                        value={pageSettings.title}
-                        onChange={(e) => setPageSettings(p => ({ ...p, title: e.target.value }))}
-                    />
-                </div>
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Meta Description</label>
-                    <textarea 
-                        className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-                        rows={3}
-                        value={pageSettings.description}
-                        onChange={(e) => setPageSettings(p => ({ ...p, description: e.target.value }))}
-                    />
-                </div>
-            </div>
-            <div className="p-4 bg-gray-50 text-right">
+        <Topbar 
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            isPreview={isPreview}
+            setIsPreview={setIsPreview}
+            onOpenTemplates={() => { setIsTemplatesModalOpen(true); setTemplatesTab('presets'); }}
+            onOpenSettings={() => setIsSettingsModalOpen(true)}
+            onSave={() => onSave ? onSave(elements) : null}
+            onExportHtml={handleExport}
+        />
+        
+        {editingTemplateId && (
+            <div className="bg-amber-100 px-4 py-2 text-center text-sm font-medium text-amber-800 flex justify-between items-center shadow-inner">
+                <span>You are editing a Master Template. Changes will affect all Global instances.</span>
                 <button 
-                    onClick={() => {
-                        setIsSettingsModalOpen(false);
-                        showToast("Settings saved");
-                    }} 
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                    onClick={handleFinishEditingTemplate}
+                    className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600 text-xs"
                 >
-                    Save Changes
+                    Finish Editing
                 </button>
             </div>
-          </div>
-        </div>
-      )}
+        )}
 
-    </div>
+        <div className="flex flex-1 overflow-hidden">
+            {!isPreview && (
+            <Sidebar 
+                onDragStart={handleSidebarDragStart} 
+                elements={activeElements}
+                selectedId={selectedId}
+                onSelect={(id) => handleSelect(id)}
+            />
+            )}
+
+            <main 
+            className="flex-1 overflow-y-auto bg-gray-200/50 relative p-8 scroll-smooth flex justify-center"
+            onClick={() => setSelectedId(null)}
+            >
+            <PreviewFrame
+                width={viewportWidth}
+                className={`transition-all duration-500 ease-in-out h-fit min-h-[800px] bg-white shadow-2xl ${isPreview ? '' : 'ring-1 ring-gray-200'}`}
+            >
+                <div 
+                    id="canvas-root" 
+                    className="min-h-[800px] pb-20 relative"
+                    onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'copy';
+                    }}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        const type = e.dataTransfer.getData('type');
+                        if (type === 'new') {
+                            const elementType = e.dataTransfer.getData('elementType');
+                            if(elementType) {
+                                handleDropElement('root', 'inside', { type: 'new', elementType });
+                            }
+                        } else if (type === 'move') {
+                            const id = e.dataTransfer.getData('id');
+                            if (id) {
+                                handleDropElement('root', 'inside', { type: 'move', id });
+                            }
+                        }
+                    }}
+                >
+                    {activeElements.map(el => (
+                    <EditorCanvas 
+                        key={el.id} 
+                        element={el} 
+                        selectedId={selectedId} 
+                        onSelect={handleSelect}
+                        isPreview={isPreview}
+                        onDropElement={handleDropElement}
+                        onDuplicate={handleDuplicate}
+                        onUpdateProps={handleUpdateProps}
+                        getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
+                    />
+                    ))}
+                    
+                    {activeElements.length === 0 && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 pointer-events-none">
+                        <Icons.Layout />
+                        <p className="mt-4 font-medium">Drag and drop elements here to start</p>
+                    </div>
+                    )}
+                </div>
+            </PreviewFrame>
+            </main>
+
+            {!isPreview && (
+            <PropertiesPanel
+                selectedElement={selectedElement}
+                onUpdateId={handleUpdateId}
+                onUpdateName={handleUpdateName}
+                onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
+                onUpdateProps={handleUpdateProps}
+                onUpdateStyle={handleUpdateStyle}
+                onFileUpload={onUploadImage || (async () => "")}
+                onAddNavLink={handleAddNavLink}
+                onUpdateNavLink={handleUpdateNavLink}
+                onRemoveNavLink={handleRemoveNavLink}
+                onAddSlide={handleAddSlide}
+                onRemoveSlide={handleRemoveSlide}
+                onUpdateSlide={()=>{}}
+                onSaveTemplate={handleSaveTemplate}
+                onDetach={handleDetachElement}
+                onEditTemplate={handleEditTemplate}
+                savedTemplates={savedTemplates}
+            />
+            )}
+        </div>
+        {/* Modals unchanged */}
+        {isTemplatesModalOpen && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden h-[500px] flex flex-col">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <h3 className="text-lg font-bold text-gray-900">Library</h3>
+                    <button onClick={() => setIsTemplatesModalOpen(false)} className="text-gray-400 hover:text-gray-600">Close</button>
+                </div>
+                
+                <div className="flex border-b border-gray-200 px-6">
+                    <button 
+                    className={`py-3 mr-4 text-sm font-medium border-b-2 transition-colors ${templatesTab === 'presets' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => setTemplatesTab('presets')}
+                    >
+                        Presets
+                    </button>
+                    <button 
+                    className={`py-3 text-sm font-medium border-b-2 transition-colors ${templatesTab === 'saved' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => setTemplatesTab('saved')}
+                    >
+                        My Templates
+                    </button>
+                </div>
+
+                <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
+                    {templatesTab === 'presets' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {TEMPLATES.map(t => (
+                                <button 
+                                    key={t.name}
+                                    onClick={() => {
+                                        setElements(t.elements);
+                                        setIsTemplatesModalOpen(false);
+                                    }}
+                                    className="bg-white p-4 rounded-xl border border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all text-left group"
+                                >
+                                    <div className="h-32 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-300 group-hover:bg-indigo-50 group-hover:text-indigo-300 transition-colors">
+                                        <Icons.Layout />
+                                    </div>
+                                    <h4 className="font-bold text-gray-800">{t.name}</h4>
+                                    <p className="text-xs text-gray-500 mt-1">Professional layout to get started fast.</p>
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div>
+                            {savedTemplates.length === 0 ? (
+                                <div className="text-center text-gray-400 mt-10">
+                                    <Icons.Box className="mx-auto mb-2 opacity-50" width={48} height={48} />
+                                    <p>No saved templates yet.</p>
+                                    <p className="text-xs">Select an element and click "Save as Template" to add one.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {savedTemplates.map(t => (
+                                        <div 
+                                            key={t.id}
+                                            className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-lg transition-all flex flex-col group relative"
+                                        >
+                                            <button 
+                                                onClick={() => handleDeleteTemplate(t.id)}
+                                                className="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10"
+                                                title="Delete Template"
+                                            >
+                                                <Icons.Trash width={14} height={14} />
+                                            </button>
+                                            
+                                            <button 
+                                                className="flex-1 text-left"
+                                                onClick={() => {
+                                                    handleDropElement('root', 'inside', { type: 'template', templateId: t.id });
+                                                    setIsTemplatesModalOpen(false);
+                                                    showToast("Template added to canvas");
+                                                }}
+                                            >
+                                                <div className="h-24 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-400 transition-colors">
+                                                    {t.isGlobal ? <Icons.Globe /> : <Icons.Component />}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="font-bold text-gray-800">{t.name}</h4>
+                                                    {t.isGlobal && (
+                                                        <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded font-mono">GLOBAL</span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-1">{t.isGlobal ? 'Syncs across all pages' : 'Standard copy'}</p>
+                                            </button>
+                                            
+                                            {t.isGlobal && (
+                                                <button 
+                                                    onClick={() => handleEditTemplate(t.id)}
+                                                    className="mt-3 w-full py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200"
+                                                >
+                                                    Edit Master
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+            </div>
+        )}
+
+        {isSettingsModalOpen && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Icons.Globe /> Page Settings</h3>
+                    <button onClick={() => setIsSettingsModalOpen(false)} className="text-gray-400 hover:text-gray-600">Close</button>
+                </div>
+                <div className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Page Title</label>
+                        <input 
+                            className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+                            value={pageSettings.title}
+                            onChange={(e) => setPageSettings(p => ({ ...p, title: e.target.value }))}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Meta Description</label>
+                        <textarea 
+                            className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+                            rows={3}
+                            value={pageSettings.description}
+                            onChange={(e) => setPageSettings(p => ({ ...p, description: e.target.value }))}
+                        />
+                    </div>
+                </div>
+                <div className="p-4 bg-gray-50 text-right">
+                    <button 
+                        onClick={() => {
+                            setIsSettingsModalOpen(false);
+                            showToast("Settings saved");
+                        }} 
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                    >
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+            </div>
+        )}
+
+        </div>
+    </EditorConfigContext.Provider>
   );
 };

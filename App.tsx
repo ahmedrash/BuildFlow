@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { BuildFlowEditor } from './components/BuildFlowEditor';
 import { TEMPLATES } from './data/constants';
@@ -46,6 +47,11 @@ export default function App() {
     });
   };
 
+  // --- API Configuration ---
+  // In a real app, these would come from environment variables or a configuration endpoint.
+  const GOOGLE_MAPS_API_KEY = ""; 
+  const RECAPTCHA_SITE_KEY = "";
+
   return (
     <BuildFlowEditor 
       initialData={initialData}
@@ -54,6 +60,8 @@ export default function App() {
       onSaveTemplate={handleSaveTemplate}
       onDeleteTemplate={handleDeleteTemplate}
       onUploadImage={handleUploadImage}
+      googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+      recaptchaSiteKey={RECAPTCHA_SITE_KEY}
     />
   );
 }

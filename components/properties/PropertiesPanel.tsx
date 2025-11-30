@@ -1,14 +1,25 @@
 
+
+
+
+
+
+
+
+
+
+
 import React, { useRef, useState } from 'react';
 import { PageElement, FormField, SavedTemplate } from '../../types';
 import { Icons } from '../Icons';
 import { ColorPicker } from '../ui/ColorPicker';
-import { FONT_FAMILIES } from '../../data/constants';
+import { FONT_FAMILIES, MENU_PRESETS } from '../../data/constants';
 import { TAILWIND_CLASSES } from '../../data/tailwindClasses';
 
 interface PropertiesPanelProps {
     selectedElement: PageElement | null;
     onUpdateId: (currentId: string, newId: string) => void;
+    onUpdateName: (id: string, name: string) => void;
     onDelete: (id: string) => void;
     onDuplicate: (id: string) => void;
     onUpdateProps: (id: string, props: any) => void;
@@ -38,6 +49,7 @@ const sectionTitleClass = "text-xs font-bold text-gray-900 uppercase tracking-wi
 export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     selectedElement,
     onUpdateId,
+    onUpdateName,
     onDelete,
     onDuplicate,
     onUpdateProps,
@@ -170,13 +182,16 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             ) : (
                 <div className="p-0">
                     <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-                        <div>
-                            <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                {displayElement.name}
-                            </h2>
+                        <div className="flex-1 mr-4">
+                            {/* Name Editing */}
+                            <input 
+                                className="text-sm font-bold text-gray-800 bg-transparent border-b border-dashed border-transparent hover:border-gray-300 focus:border-indigo-500 outline-none w-full mb-1 transition-all"
+                                value={displayElement.name}
+                                onChange={(e) => onUpdateName(selectedElement.id, e.target.value)}
+                                placeholder="Element Name"
+                            />
                             {/* ID Editing */}
-                            <div className="flex items-center mt-1 bg-gray-100 rounded px-2 py-0.5">
+                            <div className="flex items-center bg-gray-100 rounded px-2 py-0.5">
                                 <span className="text-[10px] text-gray-400 font-mono mr-2">ID:</span>
                                 <input 
                                     className="text-[10px] text-gray-600 font-mono bg-transparent border-none outline-none w-full"
@@ -185,7 +200,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                 />
                             </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 shrink-0">
                             <button 
                                 onClick={() => onDuplicate(selectedElement.id)}
                                 className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors"
@@ -243,6 +258,401 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                         >
                             <Icons.Download width={14} height={14} /> Save as Template
                         </button>
+                        
+                        {/* NAVBAR CONFIGURATION */}
+                        {displayElement.type === 'navbar' && (
+                            <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>Navigation Bar</h3>
+                                
+                                {/* Menu Source */}
+                                <div>
+                                    <label className={labelClass}>Menu Source (Preset)</label>
+                                    <select 
+                                        className={inputClass}
+                                        onChange={(e) => {
+                                            const preset = MENU_PRESETS[e.target.value as keyof typeof MENU_PRESETS];
+                                            if (preset) {
+                                                onUpdateProps(selectedElement.id, { navLinks: preset });
+                                            }
+                                        }}
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>Select a predefined menu...</option>
+                                        <option value="simple">Simple (Home, About, Contact)</option>
+                                        <option value="business">Business (Solutions, Pricing...)</option>
+                                        <option value="portfolio">Portfolio (Work, Services...)</option>
+                                        <option value="app">App (Features, Docs...)</option>
+                                    </select>
+                                </div>
+
+                                {/* Link Configuration */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-sm font-medium text-gray-700">Menu Items</label>
+                                        <button onClick={() => onAddNavLink(selectedElement.id)} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 font-bold">+ Add</button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {displayElement.props.navLinks?.map((link, i) => (
+                                            <div key={i} className="flex gap-1 items-start bg-gray-50 p-2 rounded border border-gray-100 group relative">
+                                                <div className="flex-1 grid grid-cols-2 gap-2">
+                                                    <input 
+                                                        className="text-xs bg-white border border-gray-200 rounded px-1 py-1"
+                                                        value={link.label}
+                                                        placeholder="Label"
+                                                        onChange={(e) => onUpdateNavLink(selectedElement.id, i, 'label', e.target.value)}
+                                                    />
+                                                    <input 
+                                                        className="text-xs bg-white border border-gray-200 rounded px-1 py-1 text-gray-500"
+                                                        value={link.href}
+                                                        placeholder="#"
+                                                        onChange={(e) => onUpdateNavLink(selectedElement.id, i, 'href', e.target.value)}
+                                                    />
+                                                </div>
+                                                <button onClick={() => onRemoveNavLink(selectedElement.id, i)} className="p-1 text-gray-400 hover:text-red-500"><Icons.Trash width={12} height={12} /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Logo Configuration */}
+                                <div className="space-y-3 border-t border-gray-100 pt-3">
+                                    <h4 className="text-[10px] font-bold text-gray-400">Logo Integration</h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className={labelClass}>Type</label>
+                                            <select 
+                                                className={inputClass}
+                                                value={displayElement.props.logoType || 'text'}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { logoType: e.target.value })}
+                                            >
+                                                <option value="text">Text</option>
+                                                <option value="image">Image</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            {displayElement.props.logoType === 'image' ? (
+                                                <>
+                                                 <label className={labelClass}>Width</label>
+                                                 <input 
+                                                    className={inputClass}
+                                                    value={displayElement.props.logoWidth || 'auto'}
+                                                    placeholder="e.g. 120px"
+                                                    onChange={(e) => onUpdateProps(selectedElement.id, { logoWidth: e.target.value })}
+                                                 />
+                                                </>
+                                            ) : (
+                                                <>
+                                                <label className={labelClass}>Text</label>
+                                                <input 
+                                                    className={inputClass}
+                                                    value={displayElement.props.logoText || ''}
+                                                    onChange={(e) => onUpdateProps(selectedElement.id, { logoText: e.target.value })}
+                                                />
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {displayElement.props.logoType === 'image' && (
+                                        <div>
+                                            <label className={labelClass}>Image Source</label>
+                                            <input 
+                                                className={inputClass} 
+                                                value={displayElement.props.logoSrc || ''} 
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { logoSrc: e.target.value })}
+                                                placeholder="https://..."
+                                            />
+                                            <input 
+                                                type="file" 
+                                                accept="image/*"
+                                                className={fileInputClass}
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const base64 = await onFileUpload(file);
+                                                        onUpdateProps(selectedElement.id, { logoSrc: base64 });
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Layout & Style */}
+                                <div className="space-y-3 border-t border-gray-100 pt-3">
+                                    <h4 className="text-[10px] font-bold text-gray-400">Layout & Style</h4>
+                                    
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Sticky Header</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.isSticky || false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { isSticky: e.target.checked })}
+                                        />
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className={labelClass}>Hamburger Breakpoint</label>
+                                            <select 
+                                                className={inputClass}
+                                                value={displayElement.props.mobileMenuBreakpoint || 'md'}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuBreakpoint: e.target.value })}
+                                            >
+                                                <option value="none">None (Always Visible)</option>
+                                                <option value="sm">Mobile (sm)</option>
+                                                <option value="md">Tablet (md)</option>
+                                                <option value="lg">Laptop (lg)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Mobile Menu Style</label>
+                                            <select 
+                                                className={inputClass}
+                                                value={displayElement.props.mobileMenuType || 'dropdown'}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuType: e.target.value })}
+                                            >
+                                                <option value="dropdown">Dropdown</option>
+                                                <option value="slide-left">Side (Left)</option>
+                                                <option value="slide-right">Side (Right)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className={labelClass}>Link Color</label>
+                                            <ColorPicker 
+                                                value={displayElement.props.linkColor}
+                                                onChange={(val) => onUpdateProps(selectedElement.id, { linkColor: val })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Active Color</label>
+                                            <ColorPicker 
+                                                value={displayElement.props.activeLinkColor}
+                                                onChange={(val) => onUpdateProps(selectedElement.id, { activeLinkColor: val })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className={labelClass}>Hamburger Color</label>
+                                            <ColorPicker 
+                                                value={displayElement.props.hamburgerColor}
+                                                onChange={(val) => onUpdateProps(selectedElement.id, { hamburgerColor: val })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Menu Background</label>
+                                            <ColorPicker 
+                                                value={displayElement.props.menuBackgroundColor}
+                                                onChange={(val) => onUpdateProps(selectedElement.id, { menuBackgroundColor: val })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* MAP CONFIGURATION */}
+                        {displayElement.type === 'map' && (
+                             <div className="space-y-3">
+                                <h3 className={sectionTitleClass}>Map Settings</h3>
+                                <div>
+                                    <label className={labelClass}>Address / Location</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.address || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { address: e.target.value })}
+                                        placeholder="City, Place, or Address"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className={labelClass}>Zoom Level</label>
+                                        <input 
+                                            type="number"
+                                            min="1" max="21"
+                                            className={inputClass}
+                                            value={displayElement.props.zoom || 13}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { zoom: Number(e.target.value) })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>Map Type</label>
+                                        <select 
+                                            className={inputClass}
+                                            value={displayElement.props.mapType || 'roadmap'}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { mapType: e.target.value })}
+                                        >
+                                            <option value="roadmap">Roadmap</option>
+                                            <option value="satellite">Satellite</option>
+                                        </select>
+                                    </div>
+                                </div>
+                             </div>
+                        )}
+
+                        {/* SLIDER CONFIGURATION */}
+                        {displayElement.type === 'slider' && (
+                            <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>Slider Settings</h3>
+                                
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className={labelClass}>Navigation Style</label>
+                                        <select 
+                                            className={inputClass}
+                                            value={displayElement.props.sliderNavType || 'chevron'}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { sliderNavType: e.target.value })}
+                                        >
+                                            <option value="chevron">Chevron</option>
+                                            <option value="arrow">Arrow</option>
+                                            <option value="caret">Caret</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Show Pagination</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.sliderShowPagination !== false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { sliderShowPagination: e.target.checked })}
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Autoplay</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.sliderAutoplay || false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { sliderAutoplay: e.target.checked })}
+                                        />
+                                    </div>
+                                     <div>
+                                        <label className={labelClass}>Interval (ms)</label>
+                                        <input 
+                                            type="number"
+                                            className={inputClass}
+                                            value={displayElement.props.sliderInterval || 3000}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { sliderInterval: Number(e.target.value) })}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="pt-2 border-t border-gray-100">
+                                     <div className="flex items-center justify-between mb-2">
+                                        <label className="text-xs font-bold text-gray-900">Slides</label>
+                                        <button onClick={() => onAddSlide(selectedElement.id)} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 font-bold">+ Add</button>
+                                     </div>
+                                     <div className="space-y-2">
+                                         {displayElement.children?.map((slide, i) => (
+                                             <div key={slide.id} className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-200">
+                                                 <input 
+                                                     className="text-xs bg-transparent border-none outline-none flex-1 font-medium text-gray-700"
+                                                     value={slide.name}
+                                                     onChange={(e) => onUpdateName(slide.id, e.target.value)}
+                                                 />
+                                                 <button onClick={() => onRemoveSlide(selectedElement.id, i)} className="text-gray-400 hover:text-red-500 ml-2"><Icons.Trash width={12} height={12} /></button>
+                                             </div>
+                                         ))}
+                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* FORM CONFIGURATION */}
+                        {displayElement.type === 'form' && (
+                            <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>Form Builder</h3>
+                                
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-medium text-gray-700">Fields</label>
+                                    <button onClick={handleAddFormField} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 font-bold">+ Add</button>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    {displayElement.props.formFields?.map((field, i) => (
+                                        <div key={i} className="bg-gray-50 p-2 rounded border border-gray-200 relative group">
+                                            <button onClick={() => handleRemoveFormField(i)} className="absolute top-1 right-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Trash width={12} height={12} /></button>
+                                            <div className="grid grid-cols-2 gap-2 mb-2">
+                                                <input 
+                                                    className={inputClass} 
+                                                    value={field.label}
+                                                    onChange={(e) => handleUpdateFormField(i, 'label', e.target.value)}
+                                                    placeholder="Label"
+                                                />
+                                                <select 
+                                                    className={inputClass}
+                                                    value={field.type}
+                                                    onChange={(e) => handleUpdateFormField(i, 'type', e.target.value)}
+                                                >
+                                                    <option value="text">Text</option>
+                                                    <option value="email">Email</option>
+                                                    <option value="textarea">Textarea</option>
+                                                    <option value="number">Number</option>
+                                                    <option value="checkbox">Checkbox</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input 
+                                                    className={`${inputClass} flex-1`}
+                                                    value={field.placeholder || ''}
+                                                    onChange={(e) => handleUpdateFormField(i, 'placeholder', e.target.value)}
+                                                    placeholder="Placeholder"
+                                                />
+                                                <label className="flex items-center gap-1 text-[10px] text-gray-500 cursor-pointer">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={field.required}
+                                                        onChange={(e) => handleUpdateFormField(i, 'required', e.target.checked)}
+                                                    /> Req
+                                                </label>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <div className="space-y-3 pt-2 border-t border-gray-100">
+                                     <h4 className="text-[10px] font-bold text-gray-400">Submission Settings</h4>
+                                     <div>
+                                        <label className={labelClass}>Button Text</label>
+                                        <input 
+                                            className={inputClass}
+                                            value={displayElement.props.formSubmitButtonText || ''}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { formSubmitButtonText: e.target.value })}
+                                        />
+                                     </div>
+                                     <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Enable reCAPTCHA</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.formEnableRecaptcha || false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { formEnableRecaptcha: e.target.checked })}
+                                        />
+                                     </div>
+                                     <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Horizontal Layout</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.formLabelLayout === 'horizontal'}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { formLabelLayout: e.target.checked ? 'horizontal' : 'top' })}
+                                        />
+                                     </div>
+                                     <div>
+                                        <label className={labelClass}>Success Message</label>
+                                        <input 
+                                            className={inputClass}
+                                            value={displayElement.props.formSuccessMessage || ''}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { formSuccessMessage: e.target.value })}
+                                        />
+                                     </div>
+                                </div>
+                            </div>
+                        )}
                         
                         {/* Card Configuration */}
                         {displayElement.type === 'card' && (
@@ -388,7 +798,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                 </div>
                                 
                                 {/* Styles & Effects */}
-                                <div className="space-y-3 pt-2 border-t border-gray-100">
+                                <div className="space-y-3 pt-2 border-t border-gray-100 mt-2">
                                      <h4 className="text-[10px] font-bold text-gray-400">Style & Effects</h4>
                                      <div className="grid grid-cols-2 gap-3">
                                         <div>
@@ -447,8 +857,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                             </div>
                         )}
                         
-                        {/* (Other existing element configs maintained but AI buttons removed for brevity in this response snippet - full code below contains all logic without AI) */}
-                        
                         {/* Text/Button Props */}
                         {(displayElement.type === 'text' || displayElement.type === 'button') && (
                             <div className="space-y-3">
@@ -472,7 +880,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                 <div>
                                     <label className={labelClass}>Image URL</label>
                                     <input 
-                                        type="text"
+                                        type="text" 
                                         className={inputClass}
                                         value={displayElement.props.src || ''}
                                         onChange={(e) => onUpdateProps(selectedElement.id, { src: e.target.value })}
@@ -556,7 +964,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                 )}
                             </div>
 
-                            {/* ... Rest of styles (Text Color, Spacing, Typography, Custom CSS) ... */}
                             {/* Text Color */}
                             <div>
                                 <span className={labelClass}>Text Color</span>
