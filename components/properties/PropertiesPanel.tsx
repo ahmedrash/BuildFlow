@@ -332,6 +332,39 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Image Picker */}
+                                {(displayElement.props.cardImageType === 'image' || !displayElement.props.cardImageType) && (
+                                    <div className="space-y-3 bg-gray-50 p-3 rounded border border-gray-100">
+                                        <label className={labelClass}>Card Image</label>
+                                        <input 
+                                            type="text"
+                                            className={inputClass}
+                                            value={displayElement.props.src || ''}
+                                            placeholder="Image URL"
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { src: e.target.value })}
+                                        />
+                                        <input 
+                                            type="file" 
+                                            accept="image/*"
+                                            className={fileInputClass}
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const base64 = await onFileUpload(file);
+                                                    onUpdateProps(selectedElement.id, { src: base64 });
+                                                }
+                                            }}
+                                        />
+                                        <button 
+                                            onClick={onAiImage}
+                                            disabled={isAiLoading}
+                                            className="w-full flex items-center justify-center gap-2 py-1.5 px-3 bg-white border border-violet-200 text-violet-600 text-xs font-medium rounded hover:bg-violet-50 transition-colors"
+                                        >
+                                            <Icons.Magic width={12} height={12} /> Generate Image
+                                        </button>
+                                    </div>
+                                )}
                                 
                                 {/* Content */}
                                 <div className="space-y-3">
