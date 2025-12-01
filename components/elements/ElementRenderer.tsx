@@ -101,15 +101,29 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       const customClass = element.props.className || '';
       
       if (isLink) {
+          const { href, target } = element.props;
           return (
                <a 
-                  href={element.props.href || '#'}
-                  target={element.props.target}
+                  href={href || '#'}
+                  target={target}
                   className={`px-4 py-2 rounded transition inline-block ${pointerClass} ${customClass}`}
                   style={element.props.style}
                   onClick={(e) => {
-                      // Prevent navigation in editor, but allow in preview
-                      if (!isPreview) e.preventDefault();
+                      // Prevent navigation in editor
+                      if (!isPreview) {
+                          e.preventDefault();
+                          return;
+                      }
+
+                      const isEmpty = !href || href === '#';
+                      const isAnchor = href && href.startsWith('#');
+                      const isNewTab = target === '_blank';
+
+                      // In preview: disable if empty OR (opens in same tab AND not anchor)
+                      // We allow anchors (like #features) to work in preview as they don't reload page
+                      if (isEmpty || (!isNewTab && !isAnchor)) {
+                          e.preventDefault();
+                      }
                   }}
                >
                   {element.props.content || 'Button'}
@@ -320,16 +334,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       );
 
     case 'form': {
-        // If the form has children (which means it's the new Container-style form), 
-        // this renderer handles the *contents* (reCAPTCHA placement etc).
-        // However, EditorCanvas actually renders the <form> wrapper and its children recursion.
-        // ElementRenderer is called when there are NO children (e.g. legacy form or empty new form)
-        
         const fields = element.props.formFields || [];
-        // If it's a new form type but empty, we show a placeholder or let EditorCanvas show "Empty Form"
         if (!fields.length) return null;
         
-        // --- LEGACY SUPPORT FOR OLD MONOLITHIC FORMS ---
         const labelLayout = element.props.formLabelLayout || 'top';
         const isHorizontal = labelLayout === 'horizontal';
         
@@ -447,7 +454,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       const gapStyle = { gap: galleryGap };
       const commonImgClass = `w-full h-full rounded ${pointerClass} object-${galleryObjectFit} block`;
       
-      // Handle different layouts
       if (galleryLayout === 'masonry') {
          return (
              <div className={`${masonryCols[galleryColumnCount] || 'columns-3'} space-y-4`} style={{ columnGap: galleryGap }}>
@@ -457,7 +463,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                             src={img.src} 
                             alt={img.alt || ''} 
                             className={`w-full rounded ${pointerClass} block`}
-                            style={{ display: 'block' }} // Ensure block to avoid line-height gaps
+                            style={{ display: 'block' }} 
                         />
                      </div>
                  ))}
@@ -481,7 +487,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
           )
       }
 
-      // Default to Grid
       return (
         <div className={`grid ${gridCols[galleryColumnCount] || 'grid-cols-3'}`} style={gapStyle}>
           {galleryImages.map(img => (
@@ -519,7 +524,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
        
        const navClasses = `flex w-full p-4 bg-white transition-all duration-300 relative ${isVertical ? 'flex-col space-y-4 items-start h-full' : 'flex-row justify-between items-center'} ${isSticky ? 'sticky top-0 z-50 shadow-sm' : ''}`;
        
-       // Styles
        const linkStyle = { color: linkColor || 'inherit' };
        const activeStyle = activeLinkColor ? { '--active-color': activeLinkColor } as React.CSSProperties : {};
 
@@ -557,7 +561,18 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                href={link.href} 
                                className={`transition-colors hover:opacity-80 font-medium ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
                                style={linkStyle}
-                               onClick={(e) => !isPreview && e.preventDefault()}
+                               onClick={(e) => {
+                                   if (!isPreview) {
+                                       e.preventDefault();
+                                       return;
+                                   }
+                                   // Prevent same-tab navigation if empty or not anchor
+                                   const isEmpty = !link.href || link.href === '#';
+                                   const isAnchor = link.href && link.href.startsWith('#');
+                                   if (isEmpty || !isAnchor) {
+                                       e.preventDefault();
+                                   }
+                               }}
                            >
                                {link.label}
                            </a>
@@ -568,7 +583,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                {/* Mobile Menu */}
                {isMenuOpen && !isVertical && (
                    <>
-                   {/* Dropdown Style */}
                    {mobileMenuType === 'dropdown' && (
                        <div 
                            className={`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col p-4 gap-4 animate-fade-in z-40 ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}
@@ -581,7 +595,15 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                    className={`text-lg font-medium transition-colors hover:opacity-80 block p-2 rounded hover:bg-gray-50 ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
                                    style={linkStyle}
                                    onClick={(e) => {
-                                       if (!isPreview) e.preventDefault();
+                                       const isEmpty = !link.href || link.href === '#';
+                                       const isAnchor = link.href && link.href.startsWith('#');
+                                       
+                                       if (!isPreview) {
+                                           e.preventDefault();
+                                           setIsMenuOpen(false);
+                                           return;
+                                       }
+                                       if (isEmpty || !isAnchor) e.preventDefault();
                                        setIsMenuOpen(false);
                                    }}
                                >
@@ -591,7 +613,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                        </div>
                    )}
 
-                   {/* Slide Side Menu Style */}
                    {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
                        <div className={`fixed inset-0 z-50 ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}>
                            <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div>
@@ -611,7 +632,15 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                        className={`text-lg font-medium transition-colors hover:opacity-80 block p-2 rounded hover:bg-gray-50 ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
                                        style={linkStyle}
                                        onClick={(e) => {
-                                           if (!isPreview) e.preventDefault();
+                                           const isEmpty = !link.href || link.href === '#';
+                                           const isAnchor = link.href && link.href.startsWith('#');
+
+                                           if (!isPreview) {
+                                               e.preventDefault();
+                                               setIsMenuOpen(false);
+                                               return;
+                                           }
+                                           if (isEmpty || !isAnchor) e.preventDefault();
                                            setIsMenuOpen(false);
                                        }}
                                    >
@@ -685,8 +714,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
        );
 
     case 'card':
-        // If it has children, the parent rendered it. 
-        // We only need to render the badge if it exists.
         if (element.props.cardBadge) {
              return (
                 <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm pointer-events-none">

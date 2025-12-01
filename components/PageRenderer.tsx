@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -177,7 +175,7 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
                 />
                 
                 {/* Modal Content */}
-                <div className="relative bg-white rounded-lg shadow-2xl overflow-hidden max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
+                <div className="relative shadow-2xl overflow-hidden w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
                     <button 
                         className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors"
                         onClick={() => setActivePopupId(null)}

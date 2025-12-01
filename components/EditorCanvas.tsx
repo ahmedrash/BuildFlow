@@ -1,4 +1,5 @@
 
+
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -208,7 +209,17 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
   const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
     if (renderedElement.type === 'card' && renderedElement.props.cardLink) {
-        return <a href={renderedElement.props.cardLink} className="block h-full no-underline text-inherit" onClick={e => !isPreview && e.preventDefault()}>{children}</a>;
+        return <a href={renderedElement.props.cardLink} className="block h-full no-underline text-inherit" onClick={e => {
+            if (!isPreview) {
+                e.preventDefault();
+                return;
+            }
+            // In Preview: Disable if empty or not anchor (since cards assume _self)
+            const href = renderedElement.props.cardLink;
+            const isEmpty = !href || href === '#';
+            const isAnchor = href && href.startsWith('#');
+            if (isEmpty || !isAnchor) e.preventDefault();
+        }}>{children}</a>;
     }
     return <>{children}</>;
   };
