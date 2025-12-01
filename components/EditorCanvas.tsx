@@ -1,5 +1,6 @@
 
-import React, { MouseEvent, DragEvent, useState, useEffect, useRef } from 'react';
+
+import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
 import { Icons } from './Icons';
@@ -39,7 +40,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const isGlobal = element.type === 'global';
 
   // Position Tracking Logic for Toolbar
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isSelected && elementRef.current) {
         setPortalContainer(elementRef.current.ownerDocument.body);
         const updatePosition = () => {
@@ -77,7 +78,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     } else {
         setToolbarPos(prev => ({ ...prev, visible: false }));
     }
-  }, [isSelected, element.props.style, element.children?.length]); // Update on selection or layout shifts
+  }, [isSelected, element.props.style, element.children?.length, element.props.className]); // Update on selection or layout shifts
 
   const handleClick = (e: MouseEvent) => {
     // In preview mode, we want clicks to propagate to children (links, buttons) 

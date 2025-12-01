@@ -104,7 +104,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                <a 
                   href={element.props.href || '#'}
                   target={element.props.target}
-                  className={`px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition inline-block ${pointerClass} ${customClass}`}
+                  className={`px-4 py-2 rounded transition inline-block ${pointerClass} ${customClass}`}
                   style={element.props.style}
                   onClick={(e) => {
                       // Prevent navigation in editor, but allow in preview
@@ -119,7 +119,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       return (
         <button 
           type={action === 'submit' ? 'submit' : 'button'}
-          className={`px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition ${pointerClass} ${customClass}`}
+          className={`px-4 py-2 rounded transition ${pointerClass} ${customClass}`}
           style={element.props.style}
         >
           {element.props.content || 'Button'}

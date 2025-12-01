@@ -1,3 +1,5 @@
+
+
 import React, { useState, useCallback } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';
@@ -542,6 +544,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 },
                 className: type === 'columns' ? 'grid grid-cols-2 gap-4' : 
                            type === 'slider' ? 'relative w-full' : 
+                           type === 'button' ? 'bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded transition' : 
                            type === 'card' ? 'flex flex-col rounded-lg shadow-md overflow-hidden h-full transition-all hover:shadow-lg' :
                            type === 'form' ? 'flex flex-col gap-4 p-4 border border-dashed border-gray-200 rounded' : undefined,
                 level: type === 'heading' ? 2 : undefined,
