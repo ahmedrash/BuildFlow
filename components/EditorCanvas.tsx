@@ -1,5 +1,3 @@
-
-
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -18,7 +16,7 @@ interface EditorCanvasProps {
   getTemplate?: (id: string) => SavedTemplate | undefined;
   isLocked?: boolean; 
   popupTargets?: Set<string>; 
-  isPopupContent?: boolean; // NEW: If true, force visibility even if it's a target
+  isPopupContent?: boolean;
 }
 
 export const EditorCanvas: React.FC<EditorCanvasProps> = ({ 
@@ -92,10 +90,16 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
   const handleDragStart = (e: DragEvent) => {
     e.stopPropagation();
-    if (isLocked) { e.preventDefault(); return; }
+    if (isLocked || isPreview) { e.preventDefault(); return; }
+    
+    // Select the element when dragging starts if not already selected
+    if (!isSelected) {
+        onSelect(element.id, e as any);
+    }
+
     e.dataTransfer.setData('type', 'move');
     e.dataTransfer.setData('id', element.id);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = 'all';
   };
 
   const handleDragOver = (e: DragEvent) => {
@@ -275,7 +279,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      draggable={isSelected && !isLocked}
+      draggable={!isPreview && !isLocked}
       onDragStart={handleDragStart}
     >
       {dropPosition === 'top' && <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 z-50 pointer-events-none" />}

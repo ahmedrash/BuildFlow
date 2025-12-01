@@ -505,6 +505,25 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
       } else if (data.type === 'move') {
            const dragId = data.id;
            if (dragId === targetId) return;
+
+           const activeList = getActiveElements();
+           const dragEl = findElement(dragId, activeList);
+           if (dragEl) {
+                // Check if target is a descendant of the dragged element
+                const isDescendant = (parent: PageElement, target: string): boolean => {
+                    if (!parent.children) return false;
+                    for (const child of parent.children) {
+                        if (child.id === target) return true;
+                        if (isDescendant(child, target)) return true;
+                    }
+                    return false;
+                }
+                if (isDescendant(dragEl, targetId)) {
+                     showToast("Cannot move element into its own child");
+                     return;
+                }
+           }
+
            setActiveElements(prev => {
               const { newList, removed } = removeElementRecursively(prev, dragId);
               if (!removed) return prev;
