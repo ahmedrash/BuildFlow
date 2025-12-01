@@ -1,9 +1,6 @@
 
-
-
-
-
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
 import { Icons } from './Icons';
 import { ElementRenderer } from './elements/ElementRenderer';
@@ -36,6 +33,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const [dropPosition, setDropPosition] = useState<'inside' | 'top' | 'bottom' | null>(null);
   const elementRef = useRef<HTMLElement>(null);
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0, visible: false });
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
   
   const isSelected = selectedId === element.id && !isPreview;
   const isGlobal = element.type === 'global';
@@ -43,6 +41,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   // Position Tracking Logic for Toolbar
   useEffect(() => {
     if (isSelected && elementRef.current) {
+        setPortalContainer(elementRef.current.ownerDocument.body);
         const updatePosition = () => {
             if (elementRef.current) {
                 const rect = elementRef.current.getBoundingClientRect();
@@ -375,6 +374,9 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
   // Hover effects for Card wrapper
   const getCardHoverClass = () => {
+    // Disable hover effects when selected to prevent toolbar detachment/hiding
+    if (isSelected) return '';
+
     if (renderedElement.type !== 'card') return '';
     const { cardHoverEffect } = renderedElement.props;
     let classes = ' transition-all duration-300';
@@ -415,14 +417,16 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
           {renderChildren()}
       </LinkWrapper>
 
-      {/* Selection Controls - Rendered using Fixed positioning to escape overflow:hidden */}
-      {isSelected && toolbarPos.visible && (
+      {/* Selection Controls - Rendered via Portal to escape transforms/overflow */}
+      {isSelected && toolbarPos.visible && portalContainer && createPortal(
         <div 
             className="fixed flex items-center gap-0 z-[1000] h-7 shadow-sm"
             style={{ 
                 top: `${toolbarPos.top - 28}px`, 
                 left: `${toolbarPos.left}px` 
             }}
+            draggable
+            onDragStart={handleDragStart}
         >
              {parentId && (
                  <button 
@@ -447,7 +451,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
              <div className="bg-indigo-500 text-white px-2 rounded-r cursor-grab active:cursor-grabbing border-l border-indigo-400 h-full flex items-center justify-center" title="Drag to move">
                 <Icons.GripVertical width={14} height={14} />
              </div>
-        </div>
+        </div>,
+        portalContainer
       )}
 
     </Tag>
