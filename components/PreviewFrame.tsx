@@ -34,6 +34,20 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                 meta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
                 doc.head.appendChild(meta);
             }
+
+            // Inject Warning Suppression
+            if (!doc.getElementById('tw-suppress')) {
+                const script = doc.createElement('script');
+                script.id = 'tw-suppress';
+                script.innerHTML = `
+                  const originalWarn = console.warn;
+                  console.warn = (...args) => {
+                    if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) return;
+                    originalWarn.apply(console, args);
+                  };
+                `;
+                doc.head.appendChild(script);
+            }
             
             // Inject Tailwind
             if (!doc.getElementById('tailwind-script')) {
