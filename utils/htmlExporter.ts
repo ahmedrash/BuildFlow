@@ -1,5 +1,7 @@
 
 
+
+
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (
@@ -297,18 +299,48 @@ export const exportHtml = (
                         </div>
                      );
                 }
-                case 'card': return (
-                    <div className="bg-white rounded-lg shadow-md overflow-hidden h-full flex flex-col transition-all hover:shadow-lg">
-                        <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
-                             {element.props.cardImageType === 'image' ? <img src={element.props.src} className="w-full h-full object-cover" /> : <div className="text-indigo-600 text-4xl">★</div>}
-                        </div>
-                        <div className="p-5 flex-1 flex flex-col">
-                            <h3 className="text-xl font-bold mb-2">{element.props.cardTitle}</h3>
-                            <p className="text-gray-600 mb-4 flex-1">{element.props.cardText}</p>
-                            <span className="text-indigo-600 font-medium text-sm flex items-center gap-1">{element.props.cardButtonText} →</span>
-                        </div>
-                    </div>
-                );
+                case 'card': {
+                     // Check if it's a legacy monolithic card or a new container card
+                     if (!element.children || element.children.length === 0) {
+                         const {
+                             cardImageType = 'image',
+                             cardIcon,
+                             cardIconColor = '#4f46e5',
+                             cardIconSize = 'w-12 h-12',
+                             cardLayout = 'vertical',
+                             cardTitle = 'Card Title',
+                             cardText = 'Card description text goes here.',
+                             cardButtonText = 'Read More',
+                             src = 'https://via.placeholder.com/400x200',
+                         } = element.props;
+                         
+                         const isHorizontal = cardLayout === 'horizontal';
+                         const IconComp = cardIcon ? (Icons[cardIcon] || Icons.Box) : Icons.Box;
+
+                         return (
+                             <div className={'bg-white rounded-lg shadow-md overflow-hidden h-full flex transition-all hover:shadow-lg ' + (isHorizontal ? 'flex-row' : 'flex-col')}>
+                                 <div className={(isHorizontal ? 'w-1/3 min-w-[120px]' : 'w-full h-48') + ' bg-gray-100 flex items-center justify-center overflow-hidden shrink-0'}>
+                                     {cardImageType === 'image' ? <img src={src} className="w-full h-full object-cover" /> : <div className="text-indigo-600 text-4xl">★</div>}
+                                 </div>
+                                 <div className="p-5 flex-1 flex flex-col">
+                                     <h3 className="text-xl font-bold mb-2">{cardTitle}</h3>
+                                     <p className="text-gray-600 mb-4 flex-1">{cardText}</p>
+                                     <span className="text-indigo-600 font-medium text-sm flex items-center gap-1">{cardButtonText} →</span>
+                                 </div>
+                             </div>
+                         );
+                     }
+                     // If it has children, the parent container rendered it.
+                     // But we might want to render the badge here if we are supporting badges on composed cards
+                     if (element.props.cardBadge) {
+                         return (
+                            <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm pointer-events-none">
+                                {element.props.cardBadge}
+                            </div>
+                         );
+                     }
+                     return null;
+                }
                 default: return null;
             }
         };
@@ -322,7 +354,7 @@ export const exportHtml = (
                 }
                 const { type, children, id, props } = renderedElement;
                 const Tag = type === 'section' ? 'section' : 'div';
-                const containerClasses = ['section', 'container', 'columns', 'navbar', 'slider'].includes(type) ? 'relative overflow-hidden' : 'relative';
+                const containerClasses = ['section', 'container', 'columns', 'navbar', 'slider', 'card'].includes(type) ? 'relative overflow-hidden' : 'relative';
                 
                 // Background
                 const bgStyle = {};
@@ -332,12 +364,33 @@ export const exportHtml = (
                 if(type === 'slider' && children) return <SliderRenderer key={id} element={renderedElement} renderChild={renderElement} className={containerClasses + ' ' + (props.className || '')} style={props.style} />;
 
                 const classNameToApply = type === 'button' ? '' : (props.className || '');
+                
+                // Link Wrapper for Card
+                const LinkWrapper = ({children}) => {
+                     if (type === 'card' && props.cardLink) {
+                         return <a href={props.cardLink} className="block h-full no-underline text-inherit">{children}</a>;
+                     }
+                     return <>{children}</>;
+                };
+                
+                // Card Hover Effects in Export
+                let extraClasses = '';
+                if (type === 'card') {
+                    const { cardHoverEffect } = props;
+                    if (cardHoverEffect === 'lift') extraClasses = ' transition-all duration-300 hover:-translate-y-1 hover:shadow-xl';
+                    else if (cardHoverEffect === 'zoom') extraClasses = ' transition-all duration-300 hover:scale-[1.02] hover:shadow-xl';
+                    else if (cardHoverEffect === 'glow') extraClasses = ' transition-all duration-300 hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
+                    else if (cardHoverEffect === 'border') extraClasses = ' transition-all duration-300 hover:border-indigo-500 border border-transparent';
+                }
 
                 return (
-                    <Tag key={id} className={containerClasses + ' ' + classNameToApply} style={{...props.style, ...bgStyle}}>
+                    <Tag key={id} className={containerClasses + ' ' + classNameToApply + extraClasses} style={{...props.style, ...bgStyle}}>
                          {/* Background Image logic simplified for export */}
                          {(props.backgroundImage || props.style?.backgroundImage) && <div className="absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none" style={{ backgroundImage: props.style?.backgroundImage || props.backgroundImage }} />}
-                         {children && children.length > 0 ? children.map(child => renderElement(child)) : <ElementRenderer element={renderedElement} />}
+                         
+                         <LinkWrapper>
+                            {children && children.length > 0 ? children.map(child => renderElement(child)) : <ElementRenderer element={renderedElement} />}
+                         </LinkWrapper>
                     </Tag>
                 );
             };

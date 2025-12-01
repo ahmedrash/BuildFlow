@@ -69,38 +69,83 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                 { 
                     id: 'c1', type: 'card', name: 'Feature 1', 
                     props: { 
-                        cardTitle: 'Visual Editing', 
-                        cardText: 'Edit your site visually with our powerful drag and drop builder.',
-                        cardImageType: 'icon',
-                        cardIcon: 'Layout',
-                        cardIconColor: '#4f46e5',
-                        cardHoverEffect: 'lift',
-                        cardButtonText: 'Learn more'
-                    } 
+                        className: 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden flex flex-col items-start',
+                        cardHoverEffect: 'lift'
+                    },
+                    children: [
+                        {
+                            id: 'c1-img', type: 'image', name: 'Icon',
+                            props: {
+                                src: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+                                alt: 'Visual Editing',
+                                className: 'w-16 h-16 object-contain m-6 mb-0 opacity-80',
+                                style: { borderRadius: '0' }
+                            }
+                        },
+                        {
+                            id: 'c1-body', type: 'container', name: 'Body',
+                            props: { className: 'p-6' },
+                            children: [
+                                { id: 'c1-h', type: 'heading', name: 'Title', props: { level: 3, content: 'Visual Editing', className: 'text-xl font-bold mb-2 text-gray-900' } },
+                                { id: 'c1-t', type: 'text', name: 'Text', props: { content: 'Edit your site visually with our powerful drag and drop builder. No coding required.', className: 'text-gray-600 mb-4 text-sm leading-relaxed' } },
+                                { id: 'c1-b', type: 'button', name: 'Link', props: { content: 'Learn more →', buttonAction: 'link', className: 'text-indigo-600 font-medium text-sm p-0 bg-transparent hover:bg-transparent' } }
+                            ]
+                        }
+                    ]
                 },
                 { 
                     id: 'c2', type: 'card', name: 'Feature 2', 
                     props: { 
-                        cardTitle: 'AI Generation', 
-                        cardText: 'Generate layouts, text, and images instantly with Gemini.',
-                        cardImageType: 'icon',
-                        cardIcon: 'Magic',
-                        cardIconColor: '#7c3aed',
-                        cardHoverEffect: 'lift',
-                        cardButtonText: 'Try AI'
-                    } 
+                        className: 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden flex flex-col items-start',
+                        cardHoverEffect: 'lift'
+                    },
+                    children: [
+                        {
+                            id: 'c2-img', type: 'image', name: 'Icon',
+                            props: {
+                                src: 'https://cdn-icons-png.flaticon.com/512/2103/2103633.png',
+                                alt: 'Fast Performance',
+                                className: 'w-16 h-16 object-contain m-6 mb-0 opacity-80',
+                                style: { borderRadius: '0' }
+                            }
+                        },
+                        {
+                            id: 'c2-body', type: 'container', name: 'Body',
+                            props: { className: 'p-6' },
+                            children: [
+                                { id: 'c2-h', type: 'heading', name: 'Title', props: { level: 3, content: 'Fast Performance', className: 'text-xl font-bold mb-2 text-gray-900' } },
+                                { id: 'c2-t', type: 'text', name: 'Text', props: { content: 'Optimized for speed and SEO. Your sites will load instantly on any device.', className: 'text-gray-600 mb-4 text-sm leading-relaxed' } },
+                                { id: 'c2-b', type: 'button', name: 'Link', props: { content: 'View Specs →', buttonAction: 'link', className: 'text-indigo-600 font-medium text-sm p-0 bg-transparent hover:bg-transparent' } }
+                            ]
+                        }
+                    ]
                 },
                 { 
                     id: 'c3', type: 'card', name: 'Feature 3', 
                     props: { 
-                        cardTitle: 'Responsive', 
-                        cardText: 'Your site looks perfect on desktops, tablets, and mobile devices.',
-                        cardImageType: 'icon',
-                        cardIcon: 'Smartphone',
-                        cardIconColor: '#ec4899',
-                        cardHoverEffect: 'lift',
-                        cardButtonText: 'View Docs'
-                    } 
+                        className: 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden flex flex-col items-start',
+                        cardHoverEffect: 'lift'
+                    },
+                    children: [
+                        {
+                            id: 'c3-img', type: 'image', name: 'Icon',
+                            props: {
+                                src: 'https://cdn-icons-png.flaticon.com/512/1055/1055666.png',
+                                alt: 'Responsive',
+                                className: 'w-16 h-16 object-contain m-6 mb-0 opacity-80',
+                                style: { borderRadius: '0' }
+                            }
+                        },
+                        {
+                            id: 'c3-body', type: 'container', name: 'Body',
+                            props: { className: 'p-6' },
+                            children: [
+                                { id: 'c3-h', type: 'heading', name: 'Title', props: { level: 3, content: 'Fully Responsive', className: 'text-xl font-bold mb-2 text-gray-900' } },
+                                { id: 'c3-t', type: 'text', name: 'Text', props: { content: 'Looks perfect on desktops, tablets, and mobile devices automatically.', className: 'text-gray-600 mb-4 text-sm leading-relaxed' } },
+                                { id: 'c3-b', type: 'button', name: 'Link', props: { content: 'See Demo →', buttonAction: 'link', className: 'text-indigo-600 font-medium text-sm p-0 bg-transparent hover:bg-transparent' } }
+                            ]
+                        }
+                    ]
                 }
              ]
            }
@@ -241,7 +286,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                       children: [
                           { id: 's1-h', type: 'heading', name: 'Title', props: { level: 1, content: 'Innovate.', className: 'text-6xl font-bold mb-4 drop-shadow-md' } },
                           { id: 's1-p', type: 'text', name: 'Text', props: { content: 'Leading the market with superior technology.', className: 'text-xl mb-8 drop-shadow-md' } },
-                          { id: 's1-b', type: 'button', name: 'CTA', props: { content: 'Discover More', className: 'bg-white text-black px-6 py-3 rounded font-bold' } }
+                          { id: 's1-b', type: 'button', name: 'CTA', props: { content: 'Discover More', className: 'bg-white text-black px-6 py-3 rounded font-bold hover:bg-gray-100 transition' } }
                       ]
                   },
                   {
@@ -264,24 +309,54 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                           {
                               id: 'srv-1', type: 'card', name: 'Service 1',
                               props: {
-                                  cardTitle: 'Consulting',
-                                  cardText: 'Expert advice to optimize your workflow.',
-                                  cardLayout: 'horizontal',
-                                  cardImageType: 'image',
-                                  src: 'https://picsum.photos/400/300?random=20',
+                                  className: 'flex flex-col sm:flex-row bg-white rounded-lg shadow-sm hover:shadow-lg transition-all overflow-hidden border border-gray-100',
                                   cardHoverEffect: 'zoom'
-                              }
+                              },
+                              children: [
+                                  {
+                                      id: 'srv-1-img', type: 'image', name: 'Image',
+                                      props: {
+                                          src: 'https://picsum.photos/400/300?random=20',
+                                          className: 'w-full sm:w-1/3 object-cover min-h-[200px] sm:min-h-full',
+                                          alt: 'Consulting'
+                                      }
+                                  },
+                                  {
+                                      id: 'srv-1-body', type: 'container', name: 'Body',
+                                      props: { className: 'p-6 flex-1 flex flex-col justify-center' },
+                                      children: [
+                                          { id: 'srv-1-h', type: 'heading', name: 'Title', props: { level: 3, content: 'Consulting', className: 'text-2xl font-bold mb-2 text-gray-900' } },
+                                          { id: 'srv-1-t', type: 'text', name: 'Text', props: { content: 'Expert advice to optimize your workflow and increase revenue.', className: 'text-gray-600 mb-4' } },
+                                          { id: 'srv-1-b', type: 'button', name: 'Button', props: { content: 'Details →', buttonAction: 'link', className: 'text-indigo-600 font-bold bg-transparent p-0 hover:bg-transparent' } }
+                                      ]
+                                  }
+                              ]
                           },
                           {
                               id: 'srv-2', type: 'card', name: 'Service 2',
                               props: {
-                                  cardTitle: 'Development',
-                                  cardText: 'Full-stack solutions for your product.',
-                                  cardLayout: 'horizontal',
-                                  cardImageType: 'image',
-                                  src: 'https://picsum.photos/400/300?random=21',
+                                  className: 'flex flex-col sm:flex-row bg-white rounded-lg shadow-sm hover:shadow-lg transition-all overflow-hidden border border-gray-100',
                                   cardHoverEffect: 'zoom'
-                              }
+                              },
+                              children: [
+                                  {
+                                      id: 'srv-2-img', type: 'image', name: 'Image',
+                                      props: {
+                                          src: 'https://picsum.photos/400/300?random=21',
+                                          className: 'w-full sm:w-1/3 object-cover min-h-[200px] sm:min-h-full',
+                                          alt: 'Development'
+                                      }
+                                  },
+                                  {
+                                      id: 'srv-2-body', type: 'container', name: 'Body',
+                                      props: { className: 'p-6 flex-1 flex flex-col justify-center' },
+                                      children: [
+                                          { id: 'srv-2-h', type: 'heading', name: 'Title', props: { level: 3, content: 'Development', className: 'text-2xl font-bold mb-2 text-gray-900' } },
+                                          { id: 'srv-2-t', type: 'text', name: 'Text', props: { content: 'Full-stack solutions tailored for your unique product needs.', className: 'text-gray-600 mb-4' } },
+                                          { id: 'srv-2-b', type: 'button', name: 'Button', props: { content: 'Details →', buttonAction: 'link', className: 'text-indigo-600 font-bold bg-transparent p-0 hover:bg-transparent' } }
+                                      ]
+                                  }
+                              ]
                           }
                       ]
                   }

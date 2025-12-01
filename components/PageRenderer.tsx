@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useEffect, useState } from 'react';
 import { PageElement, SavedTemplate } from '../types';
 import { ElementRenderer } from './elements/ElementRenderer';
@@ -31,7 +33,7 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
     
     // Background Rendering
     const renderBackground = () => {
-        if (!['section', 'container', 'columns', 'navbar'].includes(type)) return null;
+        if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
         const { backgroundImage, backgroundVideo, parallax } = props || {};
         const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = props.style || {};
         
@@ -65,14 +67,34 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         return null;
     };
 
-    const containerClasses = ['section', 'container', 'columns', 'navbar', 'slider'].includes(type) 
+    const containerClasses = ['section', 'container', 'columns', 'navbar', 'slider', 'card'].includes(type) 
         ? 'relative overflow-hidden' 
         : 'relative';
 
     const classNameToApply = type === 'button' ? '' : (props.className || '');
     
+    // Hover effects for Card wrapper
+    const getCardHoverClass = () => {
+        if (type !== 'card') return '';
+        const { cardHoverEffect } = props;
+        let classes = ' transition-all duration-300';
+        if (cardHoverEffect === 'lift') classes += ' hover:-translate-y-1 hover:shadow-xl';
+        if (cardHoverEffect === 'zoom') classes += ' hover:scale-[1.02] hover:shadow-xl';
+        if (cardHoverEffect === 'glow') classes += ' hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
+        if (cardHoverEffect === 'border') classes += ' hover:border-indigo-500 border border-transparent';
+        return classes;
+    };
+
     // For exported/preview mode, we just render the structure
     const Tag = type === 'section' ? 'section' : 'div';
+    
+    // Link Wrapper for Card
+    const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
+        if (type === 'card' && props.cardLink) {
+             return <a href={props.cardLink} className="block h-full no-underline text-inherit">{children}</a>;
+        }
+        return <>{children}</>;
+    };
 
     // Slider specific children rendering
     if (type === 'slider' && children) {
@@ -88,14 +110,16 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
     }
 
     return (
-        <Tag key={id} className={`${classNameToApply} ${containerClasses}`} style={props.style}>
+        <Tag key={id} className={`${classNameToApply} ${containerClasses} ${getCardHoverClass()}`} style={props.style}>
             {renderBackground()}
             
-            {children && children.length > 0 ? (
-                children.map(child => renderElement(child))
-            ) : (
-                <ElementRenderer element={renderedElement} isPreview={isPreview} />
-            )}
+            <LinkWrapper>
+                {children && children.length > 0 ? (
+                    children.map(child => renderElement(child))
+                ) : (
+                    <ElementRenderer element={renderedElement} isPreview={isPreview} />
+                )}
+            </LinkWrapper>
         </Tag>
     );
   };

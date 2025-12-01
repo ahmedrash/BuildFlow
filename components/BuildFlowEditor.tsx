@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useCallback } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';
@@ -382,7 +379,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
               style: { backgroundColor: '#f3f4f6', height: '100%' }
           },
           children: [
-               { id: `txt-${Date.now()}`, type: 'heading', name: 'Slide Title', props: { level: 2, content: 'New Slide Title' } }
+               { id: `txt-${Date.now()}`, type: 'heading', name: 'Slide Title', props: { level: 2 as any, content: 'New Slide Title' } }
           ]
       };
       setActiveElements(prev => insertElementRecursively(prev, id, 'inside', newSlide));
@@ -448,6 +445,62 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
              ];
           }
 
+          // Initialization for Card Group
+          if (type === 'card') {
+            children = [
+                {
+                    id: `${newId}-img`,
+                    type: 'image',
+                    name: 'Card Image',
+                    props: {
+                        src: 'https://via.placeholder.com/400x200',
+                        alt: 'Card Image',
+                        className: 'w-full h-48 object-cover'
+                    }
+                },
+                {
+                    id: `${newId}-body`,
+                    type: 'container',
+                    name: 'Card Body',
+                    props: {
+                        className: 'p-5 flex flex-col flex-1'
+                    },
+                    children: [
+                        {
+                            id: `${newId}-heading`,
+                            type: 'heading',
+                            name: 'Card Title',
+                            props: {
+                                level: 3 as any,
+                                content: 'Card Title',
+                                className: 'text-xl font-bold mb-2'
+                            }
+                        },
+                        {
+                            id: `${newId}-text`,
+                            type: 'text',
+                            name: 'Card Description',
+                            props: {
+                                content: 'This is a description for the card element. You can edit this text.',
+                                className: 'text-gray-600 mb-4 flex-1 text-sm'
+                            }
+                        },
+                        {
+                            id: `${newId}-btn`,
+                            type: 'button',
+                            name: 'Action',
+                            props: {
+                                content: 'Read More',
+                                buttonAction: 'link',
+                                className: 'self-start text-indigo-600 font-medium text-sm',
+                                style: { backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0 }
+                            }
+                        }
+                    ]
+                }
+            ];
+          }
+
           newElement = {
             id: newId,
             type,
@@ -456,9 +509,12 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 content: type === 'text' ? 'New Text' : type === 'button' ? 'Click Me' : type === 'heading' ? 'Heading' : undefined,
                 style: { 
                     padding: type === 'section' || type === 'container' ? '2rem' : '0.5rem',
-                    height: type === 'slider' ? '400px' : undefined
+                    height: type === 'slider' ? '400px' : undefined,
+                    backgroundColor: type === 'card' ? '#ffffff' : undefined
                 },
-                className: type === 'columns' ? 'grid grid-cols-2 gap-4' : type === 'slider' ? 'relative w-full' : undefined,
+                className: type === 'columns' ? 'grid grid-cols-2 gap-4' : 
+                           type === 'slider' ? 'relative w-full' : 
+                           type === 'card' ? 'flex flex-col rounded-lg shadow-md overflow-hidden h-full transition-all hover:shadow-lg' : undefined,
                 level: type === 'heading' ? 2 : undefined,
                 listType: type === 'list' ? 'ul' : undefined,
                 items: type === 'list' ? ['Item 1', 'Item 2', 'Item 3'] : undefined,
@@ -504,13 +560,8 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                     { id: 't2', content: "Amazing support and incredible features. Worth every penny.", author: "Mike Chen", role: "Developer", rating: 4, avatarSrc: "https://i.pravatar.cc/150?u=2" },
                     { id: 't3', content: "Simple, intuitive, and powerful. Just what I needed.", author: "Emily Davis", role: "Designer", rating: 5, avatarSrc: "https://i.pravatar.cc/150?u=3" }
                 ] : undefined,
-                // Card defaults
-                cardImageType: type === 'card' ? 'image' : undefined,
-                cardLayout: type === 'card' ? 'vertical' : undefined,
+                // Card defaults (Wrapper settings)
                 cardHoverEffect: type === 'card' ? 'lift' : undefined,
-                cardButtonText: type === 'card' ? 'Read More' : undefined,
-                cardTitle: type === 'card' ? 'Card Title' : undefined,
-                cardText: type === 'card' ? 'Some example text to build on the card title and make up the bulk of the card\'s content.' : undefined
             },
             children
           };

@@ -1,6 +1,7 @@
 
 
-import React, { MouseEvent, DragEvent, useState, useEffect } from 'react';
+
+import React, { MouseEvent, DragEvent, useState, useEffect, useRef } from 'react';
 import { PageElement, SavedTemplate } from '../types';
 import { Icons } from './Icons';
 import { ElementRenderer } from './elements/ElementRenderer';
@@ -31,8 +32,51 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   isLocked
 }) => {
   const [dropPosition, setDropPosition] = useState<'inside' | 'top' | 'bottom' | null>(null);
+  const elementRef = useRef<HTMLElement>(null);
+  const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0, visible: false });
+  
   const isSelected = selectedId === element.id && !isPreview;
   const isGlobal = element.type === 'global';
+
+  // Position Tracking Logic for Toolbar
+  useEffect(() => {
+    if (isSelected && elementRef.current) {
+        const updatePosition = () => {
+            if (elementRef.current) {
+                const rect = elementRef.current.getBoundingClientRect();
+                setToolbarPos({
+                    top: rect.top,
+                    left: rect.left,
+                    visible: true
+                });
+            }
+        };
+
+        // Initial update
+        updatePosition();
+        
+        // We need to listen to the iframe window for scroll/resize, not the main window
+        // elementRef.current.ownerDocument gives us the document inside the iframe
+        const iframeWin = elementRef.current.ownerDocument.defaultView;
+
+        if (iframeWin) {
+            iframeWin.addEventListener('scroll', updatePosition);
+            iframeWin.addEventListener('resize', updatePosition);
+            // Also listen to main window resize just in case sidebar toggling affects layout
+            window.addEventListener('resize', updatePosition);
+        }
+
+        return () => {
+            if (iframeWin) {
+                iframeWin.removeEventListener('scroll', updatePosition);
+                iframeWin.removeEventListener('resize', updatePosition);
+            }
+            window.removeEventListener('resize', updatePosition);
+        };
+    } else {
+        setToolbarPos(prev => ({ ...prev, visible: false }));
+    }
+  }, [isSelected, element.props.style, element.children?.length]); // Update on selection or layout shifts
 
   const handleClick = (e: MouseEvent) => {
     // In preview mode, we want clicks to propagate to children (links, buttons) 
@@ -68,7 +112,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const height = rect.height;
-    const isContainer = ['section', 'container', 'columns', 'navbar', 'slider'].includes(element.type);
+    const isContainer = ['section', 'container', 'columns', 'navbar', 'slider', 'card'].includes(element.type);
     
     if (isContainer) {
         if (y < 15) {
@@ -105,7 +149,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     if (dropPosition === 'top') finalPosition = 'before';
     if (dropPosition === 'bottom') finalPosition = 'after';
     
-    const isContainer = ['section', 'container', 'columns', 'navbar'].includes(element.type);
+    const isContainer = ['section', 'container', 'columns', 'navbar', 'card'].includes(element.type);
     if (!isContainer && finalPosition === 'inside') {
         finalPosition = 'after';
     }
@@ -152,29 +196,25 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     ...renderedElement.props.style,
   };
 
-  const containerClasses = ['section', 'container', 'columns', 'navbar', 'slider'].includes(renderedElement.type) 
-    ? 'relative overflow-hidden' 
-    : 'relative';
+  // Standard overflow handling for containers
+  const shouldClip = ['section', 'container', 'slider', 'card'].includes(renderedElement.type);
+  const containerClasses = shouldClip ? 'relative overflow-hidden' : 'relative';
 
   const selectionClass = isSelected 
-    ? 'ring-2 ring-indigo-500 ring-offset-2 z-10 cursor-pointer' 
+    ? 'ring-2 ring-indigo-500 ring-offset-2 z-[100] cursor-pointer' 
     : isPreview || isLocked ? '' : 'hover:ring-1 hover:ring-indigo-300 cursor-pointer';
   
   const dropIndicatorClass = dropPosition === 'inside' ? 'ring-2 ring-dashed ring-blue-500 bg-blue-50/50' : '';
   const globalClass = isGlobal ? 'ring-1 ring-amber-300 hover:ring-amber-500' : '';
 
-  // For buttons, we apply the custom classname to the inner element (in ElementRenderer) 
-  // instead of the wrapper to ensure styles like borders/bg apply correctly to the clickable area.
   const classNameToApply = renderedElement.type === 'button' ? '' : (renderedElement.props.className || '');
   const baseClasses = `${classNameToApply} ${selectionClass} ${dropIndicatorClass} ${globalClass} ${containerClasses} transition-all duration-200`;
 
   const renderBackground = () => {
-    if (!['section', 'container', 'columns', 'navbar'].includes(renderedElement.type)) return null;
+    if (!['section', 'container', 'columns', 'navbar', 'card'].includes(renderedElement.type)) return null;
     const { backgroundImage, backgroundVideo, parallax } = renderedElement.props || {};
     const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = renderedElement.props.style || {};
     
-    // Prefer props.style but fallback to props if structured that way in newer logic, 
-    // though here we mostly use style prop. 
     const finalBgImage = styleBgImage || backgroundImage;
     const finalBgVideo = styleBgVideo || backgroundVideo;
 
@@ -216,7 +256,23 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       return <Icons.ChevronDown className={direction === 'prev' ? 'rotate-90' : '-rotate-90'} />;
   };
 
-  const Tag = renderedElement.type === 'section' ? 'section' : 'div';
+  const Tag = (renderedElement.type === 'section' ? 'section' : 'div') as any;
+
+  // Link wrapper handling for Card
+  const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
+    if (renderedElement.type === 'card' && renderedElement.props.cardLink) {
+        return (
+             <a 
+                href={renderedElement.props.cardLink} 
+                className="block h-full no-underline text-inherit"
+                onClick={e => !isPreview && e.preventDefault()}
+            >
+                {children}
+            </a>
+        );
+    }
+    return <>{children}</>;
+  };
 
   const renderChildren = () => {
       if (renderedElement.type === 'slider' && renderedElement.children) {
@@ -250,7 +306,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
                             onClick={(e) => {
                                 e.stopPropagation();
                                 const prev = (activeIndex - 1 + renderedElement.children!.length) % renderedElement.children!.length;
-                                onUpdateProps(element.id, { sliderActiveIndex: prev }); // Note: Updating props on the INSTANCE
+                                onUpdateProps(element.id, { sliderActiveIndex: prev }); 
                             }}
                           >
                              {renderNavIcon('prev')}
@@ -314,10 +370,23 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       );
   }
 
+  // Hover effects for Card wrapper
+  const getCardHoverClass = () => {
+    if (renderedElement.type !== 'card') return '';
+    const { cardHoverEffect } = renderedElement.props;
+    let classes = ' transition-all duration-300';
+    if (cardHoverEffect === 'lift') classes += ' hover:-translate-y-1 hover:shadow-xl';
+    if (cardHoverEffect === 'zoom') classes += ' hover:scale-[1.02] hover:shadow-xl';
+    if (cardHoverEffect === 'glow') classes += ' hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
+    if (cardHoverEffect === 'border') classes += ' hover:border-indigo-500 border border-transparent';
+    return classes;
+  };
+
   return (
     <Tag 
+      ref={elementRef}
       id={element.id}
-      className={baseClasses}
+      className={baseClasses + getCardHoverClass()}
       style={commonStyle}
       onClick={!isPreview ? handleClick : undefined}
       onDragOver={handleDragOver}
@@ -326,33 +395,6 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       draggable={isSelected && !isLocked}
       onDragStart={handleDragStart}
     >
-      {isSelected && (
-        <div className="absolute -top-7 left-0 flex items-center gap-1 z-20">
-             {parentId && (
-                 <button 
-                    className="bg-indigo-500 text-white p-0.5 px-1.5 hover:bg-indigo-600 transition-colors rounded-l flex items-center gap-1 text-[10px] font-bold border-r border-indigo-400"
-                    onClick={(e) => { e.stopPropagation(); onSelect(parentId, e); }}
-                    title="Select Parent"
-                 >
-                    <div className="rotate-90"><Icons.ArrowLeft /></div> Parent
-                 </button>
-             )}
-             <span className={`flex items-center gap-1 bg-indigo-500 text-white text-xs px-2 py-0.5 font-mono ${parentId ? '' : 'rounded-l'}`}>
-                {isGlobal && <Icons.Globe width={12} height={12} />}
-                {renderedElement.name}
-             </span>
-             <button 
-                className="bg-indigo-500 text-white p-0.5 hover:bg-indigo-600 transition-colors"
-                onClick={(e) => { e.stopPropagation(); onDuplicate(element.id); }}
-                title="Duplicate"
-             >
-                <Icons.Copy />
-             </button>
-             <div className="bg-indigo-500 text-white p-0.5 rounded-r cursor-grab active:cursor-grabbing" title="Drag to move">
-                <Icons.GripVertical />
-             </div>
-        </div>
-      )}
       
       {dropPosition === 'top' && (
           <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 z-50 pointer-events-none" />
@@ -366,7 +408,44 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       
       {renderBackground()}
       
-      {renderChildren()}
+      <LinkWrapper>
+          {renderChildren()}
+      </LinkWrapper>
+
+      {/* Selection Controls - Rendered using Fixed positioning to escape overflow:hidden */}
+      {isSelected && toolbarPos.visible && (
+        <div 
+            className="fixed flex items-center gap-0 z-[1000] h-7 shadow-sm"
+            style={{ 
+                top: `${toolbarPos.top - 28}px`, 
+                left: `${toolbarPos.left}px` 
+            }}
+        >
+             {parentId && (
+                 <button 
+                    className="bg-indigo-500 text-white px-2 hover:bg-indigo-600 transition-colors rounded-l flex items-center gap-1 text-xs font-bold border-r border-indigo-400 h-full"
+                    onClick={(e) => { e.stopPropagation(); onSelect(parentId, e); }}
+                    title="Select Parent"
+                 >
+                    <div className="rotate-90"><Icons.ArrowLeft width={12} height={12} /></div> Parent
+                 </button>
+             )}
+             <span className={`flex items-center gap-1 bg-indigo-500 text-white text-xs px-2 font-mono h-full cursor-default ${parentId ? '' : 'rounded-l'}`}>
+                {isGlobal && <Icons.Globe width={12} height={12} />}
+                {renderedElement.name}
+             </span>
+             <button 
+                className="bg-indigo-500 text-white px-2 hover:bg-indigo-600 transition-colors border-l border-indigo-400 h-full flex items-center justify-center"
+                onClick={(e) => { e.stopPropagation(); onDuplicate(element.id); }}
+                title="Duplicate"
+             >
+                <Icons.Copy width={14} height={14} />
+             </button>
+             <div className="bg-indigo-500 text-white px-2 rounded-r cursor-grab active:cursor-grabbing border-l border-indigo-400 h-full flex items-center justify-center" title="Drag to move">
+                <Icons.GripVertical width={14} height={14} />
+             </div>
+        </div>
+      )}
 
     </Tag>
   );

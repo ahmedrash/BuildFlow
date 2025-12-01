@@ -9,6 +9,8 @@
 
 
 
+
+
 import React, { useRef, useState } from 'react';
 import { PageElement, FormField, SavedTemplate } from '../../types';
 import { Icons } from '../Icons';
@@ -659,123 +661,13 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                             <div className="space-y-4">
                                 <h3 className={sectionTitleClass}>Card Configuration</h3>
                                 
-                                {/* Layout & Media Type */}
-                                <div className="grid grid-cols-2 gap-3">
-                                     <div>
-                                        <label className={labelClass}>Layout</label>
-                                        <select 
-                                            className={inputClass}
-                                            value={displayElement.props.cardLayout || 'vertical'}
-                                            onChange={(e) => onUpdateProps(selectedElement.id, { cardLayout: e.target.value })}
-                                        >
-                                            <option value="vertical">Vertical</option>
-                                            <option value="horizontal">Horizontal</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className={labelClass}>Media</label>
-                                        <select 
-                                            className={inputClass}
-                                            value={displayElement.props.cardImageType || 'image'}
-                                            onChange={(e) => onUpdateProps(selectedElement.id, { cardImageType: e.target.value })}
-                                        >
-                                            <option value="image">Image</option>
-                                            <option value="icon">Icon</option>
-                                        </select>
-                                    </div>
+                                <div className="bg-blue-50 p-3 rounded-md text-xs text-blue-700 mb-2">
+                                    <p>Select the individual elements (Image, Title, Text, Button) inside the card to edit their content.</p>
                                 </div>
-
-                                {/* Icon Picker */}
-                                {displayElement.props.cardImageType === 'icon' && (
-                                    <div className="space-y-3 bg-gray-50 p-3 rounded border border-gray-100">
-                                        <div>
-                                            <label className={labelClass}>Icon</label>
-                                            <select 
-                                                className={inputClass}
-                                                value={displayElement.props.cardIcon || 'Box'}
-                                                onChange={(e) => onUpdateProps(selectedElement.id, { cardIcon: e.target.value })}
-                                            >
-                                                {Object.keys(Icons).map(iconName => (
-                                                    <option key={iconName} value={iconName}>{iconName}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className={labelClass}>Color</label>
-                                                <ColorPicker 
-                                                    value={displayElement.props.cardIconColor || '#4f46e5'}
-                                                    onChange={(val) => onUpdateProps(selectedElement.id, { cardIconColor: val })}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>Size Class</label>
-                                                <input 
-                                                    className={inputClass}
-                                                    value={displayElement.props.cardIconSize || 'w-12 h-12'}
-                                                    placeholder="w-12 h-12"
-                                                    onChange={(e) => onUpdateProps(selectedElement.id, { cardIconSize: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Image Picker */}
-                                {(displayElement.props.cardImageType === 'image' || !displayElement.props.cardImageType) && (
-                                    <div className="space-y-3 bg-gray-50 p-3 rounded border border-gray-100">
-                                        <label className={labelClass}>Card Image</label>
-                                        <input 
-                                            type="text"
-                                            className={inputClass}
-                                            value={displayElement.props.src || ''}
-                                            placeholder="Image URL"
-                                            onChange={(e) => onUpdateProps(selectedElement.id, { src: e.target.value })}
-                                        />
-                                        <input 
-                                            type="file" 
-                                            accept="image/*"
-                                            className={fileInputClass}
-                                            onChange={async (e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    const base64 = await onFileUpload(file);
-                                                    onUpdateProps(selectedElement.id, { src: base64 });
-                                                }
-                                            }}
-                                        />
-                                    </div>
-                                )}
                                 
                                 {/* Content */}
                                 <div className="space-y-3">
-                                    <h4 className="text-[10px] font-bold text-gray-400">Content</h4>
-                                    <div>
-                                        <label className={labelClass}>Title</label>
-                                        <input 
-                                            className={inputClass}
-                                            value={displayElement.props.cardTitle || ''}
-                                            onChange={(e) => onUpdateProps(selectedElement.id, { cardTitle: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className={labelClass}>Description</label>
-                                        <textarea 
-                                            className={inputClass}
-                                            rows={3}
-                                            value={displayElement.props.cardText || ''}
-                                            onChange={(e) => onUpdateProps(selectedElement.id, { cardText: e.target.value })}
-                                        />
-                                    </div>
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className={labelClass}>Button Text</label>
-                                            <input 
-                                                className={inputClass}
-                                                value={displayElement.props.cardButtonText || ''}
-                                                onChange={(e) => onUpdateProps(selectedElement.id, { cardButtonText: e.target.value })}
-                                            />
-                                        </div>
                                         <div>
                                             <label className={labelClass}>Badge</label>
                                             <input 
@@ -787,7 +679,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                         </div>
                                     </div>
                                     <div>
-                                        <label className={labelClass}>Link URL</label>
+                                        <label className={labelClass}>Link URL (Wrapper)</label>
                                         <input 
                                             className={inputClass}
                                             value={displayElement.props.cardLink || ''}
@@ -908,7 +800,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                             <div className="space-y-3">
                                 <span className={labelClass}>Background</span>
                                 
-                                {['section', 'container', 'columns', 'navbar'].includes(displayElement.type) ? (
+                                {['section', 'container', 'columns', 'navbar', 'card'].includes(displayElement.type) ? (
                                     <div className="space-y-3">
                                         <div>
                                             <label className="text-[10px] text-gray-400 block mb-1">Color</label>

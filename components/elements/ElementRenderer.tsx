@@ -7,6 +7,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useContext } from 'react';
 import { PageElement, TestimonialItem } from '../../types';
 import { Icons } from '../Icons';
@@ -591,76 +593,64 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
         );
   
     case 'card': {
-        const {
-            cardImageType = 'image',
-            cardIcon,
-            cardIconColor = '#4f46e5',
-            cardIconSize = 'w-12 h-12',
-            cardLayout = 'vertical',
-            cardHoverEffect = 'lift',
-            cardBadge,
-            cardTitle = 'Card Title',
-            cardText = 'Card description text goes here.',
-            cardButtonText = 'Read More',
-            src = 'https://via.placeholder.com/400x200',
-            href
-        } = element.props;
+        // If content children exist, we let EditorCanvas render them recursively.
+        // We only need to render the badge here if present, positioned absolutely.
+        const { cardBadge } = element.props;
 
-        const isHorizontal = cardLayout === 'horizontal';
-        
-        // Hover effects
-        let hoverClasses = 'transition-all duration-300';
-        if (cardHoverEffect === 'lift') hoverClasses += ' hover:-translate-y-1 hover:shadow-lg';
-        if (cardHoverEffect === 'zoom') hoverClasses += ' hover:scale-[1.02] hover:shadow-lg';
-        if (cardHoverEffect === 'glow') hoverClasses += ' hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
-        if (cardHoverEffect === 'border') hoverClasses += ' hover:border-indigo-500';
-
-        const IconComp = cardIcon ? (Icons[cardIcon as keyof typeof Icons] || Icons.Box) : Icons.Box;
-
-        const content = (
-            <div className={`bg-white rounded-lg shadow-md overflow-hidden h-full flex relative border border-transparent ${isHorizontal ? 'flex-row' : 'flex-col'} ${hoverClasses} ${pointerClass}`} style={{ backgroundColor: element.props.style?.backgroundColor }}>
-                {cardBadge && (
-                    <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm">
-                        {cardBadge}
-                    </div>
-                )}
-                
-                {/* Media Section */}
-                <div className={`${isHorizontal ? 'w-1/3 min-w-[120px]' : 'w-full h-48'} bg-gray-100 flex items-center justify-center overflow-hidden shrink-0`}>
-                    {cardImageType === 'image' ? (
-                        <img src={src} className="w-full h-full object-cover" alt={cardTitle} />
-                    ) : (
-                        <div className="p-6 flex items-center justify-center w-full h-full">
-                            <div style={{ color: cardIconColor }}>
-                                <IconComp className={cardIconSize} />
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Content Section */}
-                <div className="p-5 flex-1 flex flex-col">
-                    <h3 className="text-xl font-bold mb-2 text-gray-900 leading-tight">{cardTitle}</h3>
-                    <p className="text-gray-600 mb-4 flex-1 text-sm leading-relaxed">{cardText}</p>
-                    <span className="self-start text-indigo-600 font-medium text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
-                        {cardButtonText} <Icons.ArrowRight width={14} height={14} />
-                    </span>
-                </div>
-            </div>
-        );
-
-        if (element.props.cardLink) {
+        if (cardBadge) {
              return (
-                 <a 
-                    href={element.props.cardLink} 
-                    className="block h-full" 
-                    onClick={e => !isPreview && e.preventDefault()}
-                 >
-                     {content}
-                 </a>
-             )
+                <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm pointer-events-none">
+                    {cardBadge}
+                </div>
+             );
         }
-        return content;
+
+        // Legacy Support: If no children, render the old monolithic card structure.
+        if (!element.children || element.children.length === 0) {
+            const {
+                cardImageType = 'image',
+                cardIcon,
+                cardIconColor = '#4f46e5',
+                cardIconSize = 'w-12 h-12',
+                cardLayout = 'vertical',
+                cardTitle = 'Card Title',
+                cardText = 'Card description text goes here.',
+                cardButtonText = 'Read More',
+                src = 'https://via.placeholder.com/400x200',
+            } = element.props;
+            
+            const isHorizontal = cardLayout === 'horizontal';
+            const IconComp = cardIcon ? (Icons[cardIcon as keyof typeof Icons] || Icons.Box) : Icons.Box;
+
+            return (
+                <div className={`h-full flex ${isHorizontal ? 'flex-row' : 'flex-col'}`}>
+                    {/* Media Section */}
+                    <div className={`${isHorizontal ? 'w-1/3 min-w-[120px]' : 'w-full h-48'} bg-gray-100 flex items-center justify-center overflow-hidden shrink-0`}>
+                        {cardImageType === 'image' ? (
+                            <img src={src} className="w-full h-full object-cover" alt={cardTitle} />
+                        ) : (
+                            <div className="p-6 flex items-center justify-center w-full h-full">
+                                <div style={{ color: cardIconColor }}>
+                                    <IconComp className={cardIconSize} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="p-5 flex-1 flex flex-col">
+                        <h3 className="text-xl font-bold mb-2 text-gray-900 leading-tight">{cardTitle}</h3>
+                        <p className="text-gray-600 mb-4 flex-1 text-sm leading-relaxed">{cardText}</p>
+                        <span className="self-start text-indigo-600 font-medium text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
+                            {cardButtonText} <Icons.ArrowRight width={14} height={14} />
+                        </span>
+                    </div>
+                </div>
+            );
+        }
+
+        // If children exist, return null to let parent render them
+        return null;
     }
 
     default:
