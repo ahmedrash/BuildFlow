@@ -49,7 +49,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                 id: 'btn-group', type: 'container', name: 'Button Group', 
                 props: { className: 'flex gap-4' },
                 children: [
-                    { id: 'btn-1', type: 'button', name: 'Primary CTA', props: { content: 'Get Started Free', className: 'bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-bold transition-all hover:scale-105' } },
+                    { id: 'btn-1', type: 'button', name: 'Primary CTA', props: { content: 'Join Waitlist', buttonAction: 'popup', popupTargetId: 'waitlist-popup', className: 'bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-bold transition-all hover:scale-105' } },
                     { id: 'btn-2', type: 'button', name: 'Secondary CTA', props: { content: 'View Demo', className: 'bg-transparent border border-slate-600 hover:bg-slate-800 text-white px-8 py-4 rounded-full font-bold transition-all' } }
                 ]
             }
@@ -207,6 +207,27 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                 ]
             }
         ]
+      },
+      // Popup Content (Hidden in preview/export until triggered)
+      {
+          id: 'waitlist-popup',
+          type: 'container',
+          name: 'Waitlist Popup',
+          props: {
+              className: 'bg-white p-8 rounded-xl max-w-md w-full mx-auto relative flex flex-col gap-4',
+              style: { backgroundColor: '#ffffff' } 
+          },
+          children: [
+            { id: 'pp-h', type: 'heading', name: 'Title', props: { level: 3, content: 'Join the Waitlist', className: 'text-2xl font-bold mb-2 text-center text-gray-900' } },
+            { id: 'pp-t', type: 'text', name: 'Text', props: { content: 'Get early access to BuildFlow. We will notify you when we launch!', className: 'text-gray-500 mb-6 text-center text-sm' } },
+            {
+               id: 'pp-form', type: 'form', name: 'Popup Form', props: { formSubmitButtonText: 'Join Now', className: 'flex flex-col gap-4' },
+               children: [
+                  { id: 'pp-email', type: 'input', name: 'Email', props: { inputType: 'email', fieldName: 'email', fieldLabel: 'Email Address', fieldPlaceholder: 'Enter your email', fieldRequired: true } },
+                  { id: 'pp-sub', type: 'button', name: 'Submit', props: { buttonAction: 'submit', content: 'Join Now', className: 'w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition' } }
+               ]
+            }
+          ]
       }
     ]
   },

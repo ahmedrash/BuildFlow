@@ -18,7 +18,7 @@ BuildFlow comes with a diverse set of pre-built components:
 *   **Media**: 
     *   **Images & Videos**: Support for external URLs and file uploads.
     *   **Sliders**: Advanced carousel with autoplay, custom interval, navigation styles (Arrows, Chevrons, Carets), and pagination controls.
-    *   **Galleries**: Grid, Masonry, and Flex layouts with custom aspect ratios.
+    *   **Galleries**: Create stunning image displays with **Grid**, **Masonry**, or **Justified (Flex)** layouts. Customize aspect ratios, gutter spacing, and column counts.
     *   **Maps**: Google Maps integration with address resolution, zoom control, and map type (Roadmap/Satellite).
 *   **Forms**: 
     *   **Granular Builder**: Drag and drop individual form elements (Input, Textarea, Select, Radio, Checkbox, Button).
@@ -26,7 +26,9 @@ BuildFlow comes with a diverse set of pre-built components:
     *   **Container Settings**: Configure Form Action URL, Success Messages, and toggle Google reCAPTCHA.
 *   **Marketing**: Pricing Cards, Feature Cards with composed editable children (Image, Title, Text, Button).
 *   **Navigation**: Sticky Navbars with logo management and mobile menu configuration (Dropdown, Slide Left/Right).
-*   **Interaction**: Buttons, Links, Testimonial Carousels.
+*   **Interaction**: 
+    *   **Popups & Modals**: Turn any container into a popup and trigger it via button clicks.
+    *   **Testimonials**: Display reviews in **Grid** or **Slider** formats with customizable avatar shapes, sizes, and bubble styling.
 
 ### 📦 Advanced Template Engine
 *   **Global Components**: Define "Master" components (like Headers/Footers). Changes to a master template automatically sync to all instances across the page.
@@ -35,6 +37,7 @@ BuildFlow comes with a diverse set of pre-built components:
 
 ### 📤 Export
 *   **One-Click Export**: Generate a standalone, production-ready `index.html` file containing all styles, scripts, and content.
+*   **React Runtime**: The exported HTML includes a lightweight React runtime to handle interactive features like Popups and Sliders without requiring a build step.
 
 ## 💻 Component API
 
@@ -106,11 +109,14 @@ import { BuildFlowRenderer } from './components/BuildFlowRenderer';
 3.  **Content**: Drop text, images, or cards into the columns.
 4.  **Style**: Click any element to edit its properties. Use the Color Picker for backgrounds/text, and sliders/inputs for spacing.
 
-### 3. Forms
-1.  Drag a **Form** container onto the canvas.
-2.  Drop **Input**, **Select**, **Textarea**, or **Button** elements inside the form container.
-3.  Select the Form container to configure the Action URL and reCAPTCHA settings.
-4.  Select individual inputs to configure names, labels, and validation.
+### 3. Forms & Popups
+1.  **Forms**: Drag a **Form** container onto the canvas, then drop inputs inside. Configure the Action URL in the properties panel.
+2.  **Popups**: 
+    *   Create a Container/Section with your popup content (e.g., a newsletter form).
+    *   Give it a unique **ID** (e.g., `popup-1`) in the Properties Panel.
+    *   Select a **Button** elsewhere on the page.
+    *   Set Action to **"Open Popup"** and enter the Target ID (`popup-1`).
+    *   The popup content will be hidden automatically in Preview/Export and shown only when triggered.
 
 ### 4. Global Components (e.g., Navbar)
 1.  Select the Navbar element.
