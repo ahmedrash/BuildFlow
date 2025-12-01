@@ -248,3 +248,4 @@ export const exportHtml = (
     </script>
 </body>
 </html>`;
+}
