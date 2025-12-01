@@ -1,6 +1,6 @@
 
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';
 import { Icons } from './Icons';
@@ -24,7 +24,19 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     googleMapsApiKey,
     recaptchaSiteKey
 }) => {
-  const [elements, setElements] = useState<PageElement[]>(initialData);
+  // History State
+  const [history, setHistory] = useState<{
+      past: PageElement[][];
+      present: PageElement[];
+      future: PageElement[][];
+  }>({
+      past: [],
+      present: initialData,
+      future: []
+  });
+
+  const elements = history.present;
+  
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isPreview, setIsPreview] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
@@ -183,9 +195,69 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
               return t;
           }));
       } else {
-          setElements(updater);
+          // Push to history
+          setHistory(curr => {
+              const newPresent = updater(curr.present);
+              if (newPresent === curr.present) return curr;
+              return {
+                  past: [...curr.past, curr.present],
+                  present: newPresent,
+                  future: []
+              };
+          });
       }
   };
+
+  // History Actions
+  const handleUndo = useCallback(() => {
+    if (editingTemplateId) return; // Disable undo for template editing context for simplicity
+    setHistory(curr => {
+        if (curr.past.length === 0) return curr;
+        const previous = curr.past[curr.past.length - 1];
+        const newPast = curr.past.slice(0, -1);
+        return {
+            past: newPast,
+            present: previous,
+            future: [curr.present, ...curr.future]
+        };
+    });
+  }, [editingTemplateId]);
+
+  const handleRedo = useCallback(() => {
+    if (editingTemplateId) return;
+    setHistory(curr => {
+        if (curr.future.length === 0) return curr;
+        const next = curr.future[0];
+        const newFuture = curr.future.slice(1);
+        return {
+            past: [...curr.past, curr.present],
+            present: next,
+            future: newFuture
+        };
+    });
+  }, [editingTemplateId]);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+          if ((e.metaKey || e.ctrlKey) && !isPreview) {
+              if (e.key === 'z') {
+                  e.preventDefault();
+                  if (e.shiftKey) {
+                      handleRedo();
+                  } else {
+                      handleUndo();
+                  }
+              } else if (e.key === 'y') {
+                  e.preventDefault();
+                  handleRedo();
+              }
+          }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo, isPreview]);
 
   const handleSelect = (id: string, e?: React.MouseEvent) => {
     if(e) e.stopPropagation();
@@ -616,6 +688,10 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
             onOpenSettings={() => setIsSettingsModalOpen(true)}
             onSave={() => onSave ? onSave(elements) : null}
             onExportHtml={handleExport}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            canUndo={history.past.length > 0 && !editingTemplateId}
+            canRedo={history.future.length > 0 && !editingTemplateId}
         />
         
         {editingTemplateId && (
@@ -765,7 +841,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                     {templatesTab === 'presets' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {TEMPLATES.map(t => (
-                                <button key={t.name} onClick={() => { setElements(t.elements); setIsTemplatesModalOpen(false); }} className="bg-white p-4 rounded-xl border border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all text-left group">
+                                <button key={t.name} onClick={() => { setActiveElements(() => t.elements); setIsTemplatesModalOpen(false); }} className="bg-white p-4 rounded-xl border border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all text-left group">
                                     <div className="h-32 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-300 group-hover:bg-indigo-50 group-hover:text-indigo-300 transition-colors"><Icons.Layout /></div>
                                     <h4 className="font-bold text-gray-800">{t.name}</h4>
                                     <p className="text-xs text-gray-500 mt-1">Professional layout.</p>

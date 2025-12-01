@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Icons } from './Icons';
 
@@ -10,11 +11,16 @@ interface TopbarProps {
     onOpenSettings: () => void;
     onSave: () => void;
     onExportHtml: () => void;
+    onUndo: () => void;
+    onRedo: () => void;
+    canUndo: boolean;
+    canRedo: boolean;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ 
     viewMode, setViewMode, isPreview, setIsPreview, 
-    onOpenTemplates, onOpenSettings, onSave, onExportHtml
+    onOpenTemplates, onOpenSettings, onSave, onExportHtml,
+    onUndo, onRedo, canUndo, canRedo
 }) => {
   return (
     <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 z-30 relative shadow-sm">
@@ -37,6 +43,25 @@ export const Topbar: React.FC<TopbarProps> = ({
              </button>
              <button onClick={() => setViewMode('mobile')} className={`p-1.5 rounded ${viewMode === 'mobile' ? 'bg-white shadow text-indigo-600' : 'text-gray-500 hover:text-gray-900'}`} title="Mobile">
                 <Icons.Smartphone />
+             </button>
+          </div>
+
+          <div className="flex items-center gap-1 ml-2">
+             <button 
+                onClick={onUndo} 
+                disabled={!canUndo}
+                className={`p-2 rounded-lg transition-colors ${!canUndo ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`} 
+                title="Undo (Ctrl+Z)"
+             >
+                <Icons.RotateCcw width={16} height={16} />
+             </button>
+             <button 
+                onClick={onRedo} 
+                disabled={!canRedo}
+                className={`p-2 rounded-lg transition-colors ${!canRedo ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`} 
+                title="Redo (Ctrl+Y)"
+             >
+                <Icons.RotateCw width={16} height={16} />
              </button>
           </div>
         </div>
