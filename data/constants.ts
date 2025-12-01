@@ -177,14 +177,30 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                             { 
                                 id: 'sub-form', type: 'form', name: 'Newsletter Form',
                                 props: {
-                                    formFields: [
-                                        { id: 'f1', type: 'email', label: 'Email Address', name: 'email', placeholder: 'you@example.com', required: true }
-                                    ],
-                                    formSubmitButtonText: 'Subscribe Now',
-                                    formInputBackgroundColor: '#ffffff',
-                                    formButtonBackgroundColor: '#000000',
+                                    className: 'flex flex-col gap-4',
                                     formSuccessMessage: "Thanks for subscribing!"
-                                }
+                                },
+                                children: [
+                                    {
+                                        id: 'f-input-email', type: 'input', name: 'Email Field',
+                                        props: {
+                                            inputType: 'email',
+                                            fieldLabel: 'Email Address',
+                                            fieldName: 'email',
+                                            fieldPlaceholder: 'you@example.com',
+                                            fieldRequired: true
+                                        }
+                                    },
+                                    {
+                                        id: 'f-btn-sub', type: 'button', name: 'Submit Button',
+                                        props: {
+                                            buttonAction: 'submit',
+                                            content: 'Subscribe Now',
+                                            className: 'w-full bg-black text-white px-6 py-2 rounded hover:opacity-90 transition font-medium',
+                                            style: { backgroundColor: '#000000', color: '#ffffff' }
+                                        }
+                                    }
+                                ]
                             }
                         ]
                     }
@@ -369,13 +385,39 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                    {
                        id: 'c-form', type: 'form', name: 'Contact Form',
                        props: {
-                           className: 'max-w-lg mx-auto text-left',
-                           formFields: [
-                               { id: 'name', type: 'text', label: 'Name', name: 'name', required: true },
-                               { id: 'msg', type: 'textarea', label: 'Message', name: 'message', required: true }
-                           ],
+                           className: 'max-w-lg mx-auto text-left flex flex-col gap-4 p-6 border border-gray-100 rounded-lg shadow-sm',
                            formSubmitButtonText: 'Send Message'
-                       }
+                       },
+                       children: [
+                            {
+                                id: 'f-name', type: 'input', name: 'Name',
+                                props: {
+                                    inputType: 'text',
+                                    fieldLabel: 'Name',
+                                    fieldName: 'name',
+                                    fieldRequired: true,
+                                    fieldPlaceholder: 'Your Name'
+                                }
+                            },
+                            {
+                                id: 'f-msg', type: 'textarea', name: 'Message',
+                                props: {
+                                    fieldLabel: 'Message',
+                                    fieldName: 'message',
+                                    fieldRequired: true,
+                                    fieldRows: 4,
+                                    fieldPlaceholder: 'How can we help?'
+                                }
+                            },
+                            {
+                                id: 'f-submit', type: 'button', name: 'Submit Button',
+                                props: {
+                                    buttonAction: 'submit',
+                                    content: 'Send Message',
+                                    className: 'bg-indigo-600 text-white px-6 py-3 rounded font-bold hover:bg-indigo-700 transition w-full'
+                                }
+                            }
+                       ]
                    }
               ]
           }

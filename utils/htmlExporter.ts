@@ -1,7 +1,5 @@
 
 
-
-
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (
@@ -12,8 +10,9 @@ export const exportHtml = (
     googleMapsApiKey?: string,
     recaptchaSiteKey?: string
 ): string => {
-  const elementsJson = JSON.stringify(elements);
-  const templatesJson = JSON.stringify(templates);
+  // Safe JSON serialization to prevent script injection issues
+  const elementsJson = JSON.stringify(elements).replace(/<\/script>/g, '<\\/script>');
+  const templatesJson = JSON.stringify(templates).replace(/<\/script>/g, '<\\/script>');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -122,6 +121,39 @@ export const exportHtml = (
                     const ListTag = element.props.listType || 'ul';
                     return <ListTag className="pl-5" style={{ listStyleType: element.props.listStyleType || 'disc' }}>{element.props.items?.map((item, i) => <li key={i} style={{ marginBottom: i === element.props.items.length-1 ? 0 : element.props.itemSpacing }}>{item}</li>)}</ListTag>;
                 }
+                case 'input': return (
+                    <div className={"w-full " + (element.props.fieldHidden ? 'hidden' : '')}>
+                        {element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
+                        <input type={element.props.inputType || 'text'} name={element.props.fieldName} placeholder={element.props.fieldPlaceholder} required={element.props.fieldRequired} defaultValue={element.props.fieldDefaultValue} className="w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 rounded-md bg-white" />
+                    </div>
+                );
+                case 'textarea': return (
+                    <div className={"w-full " + (element.props.fieldHidden ? 'hidden' : '')}>
+                         {element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
+                         <textarea name={element.props.fieldName} placeholder={element.props.fieldPlaceholder} required={element.props.fieldRequired} defaultValue={element.props.fieldDefaultValue} rows={element.props.fieldRows || 4} className="w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 rounded-md bg-white" />
+                    </div>
+                );
+                case 'select': return (
+                    <div className="w-full">
+                        {element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
+                        <select name={element.props.fieldName} required={element.props.fieldRequired} defaultValue={element.props.fieldDefaultValue || ""} multiple={element.props.fieldMultiple} className="w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 rounded-md bg-white">
+                            {!element.props.fieldMultiple && <option value="" disabled>Select an option...</option>}
+                            {element.props.fieldOptions?.map((opt, i) => <option key={i} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                    </div>
+                );
+                case 'radio': return (
+                    <div className="flex items-center gap-2">
+                        <input type="radio" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} defaultChecked={element.props.checked} required={element.props.fieldRequired} className="text-indigo-600 focus:ring-indigo-500 h-4 w-4" />
+                        {element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
+                    </div>
+                );
+                case 'checkbox': return (
+                    <div className="flex items-center gap-2">
+                        <input type="checkbox" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} defaultChecked={element.props.checked} required={element.props.fieldRequired} className="text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded border-gray-300" />
+                        {element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
+                    </div>
+                );
                 case 'form': return (
                      <form className="space-y-4 p-4 border border-gray-200 rounded bg-white w-full">
                         {element.props.formFields?.map((field, i) => (
@@ -353,8 +385,8 @@ export const exportHtml = (
                     if (template) renderedElement = template.element;
                 }
                 const { type, children, id, props } = renderedElement;
-                const Tag = type === 'section' ? 'section' : 'div';
-                const containerClasses = ['section', 'container', 'columns', 'navbar', 'slider', 'card'].includes(type) ? 'relative overflow-hidden' : 'relative';
+                const Tag = type === 'section' ? 'section' : type === 'form' ? 'form' : 'div';
+                const containerClasses = ['section', 'container', 'columns', 'navbar', 'slider', 'card', 'form'].includes(type) ? 'relative overflow-hidden' : 'relative';
                 
                 // Background
                 const bgStyle = {};
@@ -383,12 +415,25 @@ export const exportHtml = (
                     else if (cardHoverEffect === 'border') extraClasses = ' transition-all duration-300 hover:border-indigo-500 border border-transparent';
                 }
 
+                // Form Specifics
+                const formProps = type === 'form' ? {
+                    action: props.formActionUrl || undefined,
+                    method: 'POST',
+                } : {};
+
                 return (
-                    <Tag key={id} className={containerClasses + ' ' + classNameToApply + extraClasses} style={{...props.style, ...bgStyle}}>
+                    <Tag key={id} className={containerClasses + ' ' + classNameToApply + extraClasses} style={{...props.style, ...bgStyle}} {...formProps}>
                          {/* Background Image logic simplified for export */}
                          {(props.backgroundImage || props.style?.backgroundImage) && <div className="absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none" style={{ backgroundImage: props.style?.backgroundImage || props.backgroundImage }} />}
                          
                          <LinkWrapper>
+                            {/* ReCAPTCHA for Forms */}
+                            {type === 'form' && props.formEnableRecaptcha && recaptchaSiteKey && (
+                                <div className="mb-4">
+                                     <div className="g-recaptcha" data-sitekey={recaptchaSiteKey}></div>
+                                </div>
+                            )}
+
                             {children && children.length > 0 ? children.map(child => renderElement(child)) : <ElementRenderer element={renderedElement} />}
                          </LinkWrapper>
                     </Tag>
@@ -446,3 +491,4 @@ export const exportHtml = (
     </script>
 </body>
 </html>`;
+}

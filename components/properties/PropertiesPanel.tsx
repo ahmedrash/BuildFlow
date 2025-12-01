@@ -11,6 +11,9 @@
 
 
 
+
+
+
 import React, { useRef, useState } from 'react';
 import { PageElement, FormField, SavedTemplate } from '../../types';
 import { Icons } from '../Icons';
@@ -71,7 +74,10 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [suggestionList, setSuggestionList] = useState<string[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const [activeTestimonialIndex, setActiveTestimonialIndex] = useState<number | null>(null);
+    
+    // Select Option Helpers
+    const [newOptionLabel, setNewOptionLabel] = useState('');
+    const [newOptionValue, setNewOptionValue] = useState('');
 
     // Resolve element for display if global
     let displayElement = selectedElement;
@@ -87,32 +93,23 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         }
     }
 
-    // Form Field Helpers
-    const handleAddFormField = () => {
-        if (!selectedElement) return;
-        const currentFields = selectedElement.props.formFields || [];
-        const newField: FormField = {
-            id: `field-${Date.now()}`,
-            type: 'text',
-            label: 'New Field',
-            name: 'field_name',
-            placeholder: '',
-            required: false
-        };
-        onUpdateProps(selectedElement.id, { formFields: [...currentFields, newField] });
+    // New Option Helper (For Select)
+    const handleAddOption = () => {
+        if (!selectedElement || !newOptionLabel) return;
+        const currentOptions = selectedElement.props.fieldOptions || [];
+        onUpdateProps(selectedElement.id, { 
+            fieldOptions: [...currentOptions, { label: newOptionLabel, value: newOptionValue || newOptionLabel }] 
+        });
+        setNewOptionLabel('');
+        setNewOptionValue('');
     };
 
-    const handleUpdateFormField = (index: number, key: keyof FormField, value: any) => {
+    const handleRemoveOption = (index: number) => {
         if (!selectedElement) return;
-        const currentFields = [...(selectedElement.props.formFields || [])];
-        currentFields[index] = { ...currentFields[index], [key]: value };
-        onUpdateProps(selectedElement.id, { formFields: currentFields });
-    };
-
-    const handleRemoveFormField = (index: number) => {
-        if (!selectedElement) return;
-        const currentFields = (selectedElement.props.formFields || []).filter((_, i) => i !== index);
-        onUpdateProps(selectedElement.id, { formFields: currentFields });
+        const currentOptions = selectedElement.props.fieldOptions || [];
+        onUpdateProps(selectedElement.id, { 
+            fieldOptions: currentOptions.filter((_, i) => i !== index) 
+        });
     };
 
     const handleClassNameChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -140,7 +137,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     };
 
     const handleBlur = () => {
-        // Delay hiding suggestions to allow click event on suggestion to fire first
         setTimeout(() => setShowSuggestions(false), 200);
     };
 
@@ -260,6 +256,333 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                         >
                             <Icons.Download width={14} height={14} /> Save as Template
                         </button>
+
+                        {/* === INDIVIDUAL FORM ELEMENTS === */}
+                        
+                        {/* INPUT & TEXTAREA */}
+                        {(displayElement.type === 'input' || displayElement.type === 'textarea') && (
+                            <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>Field Settings</h3>
+                                
+                                <div>
+                                    <label className={labelClass}>Field Name (name)</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.fieldName || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { fieldName: e.target.value })}
+                                        placeholder="user_email"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className={labelClass}>Label</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.fieldLabel || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { fieldLabel: e.target.value })}
+                                    />
+                                </div>
+                                
+                                {displayElement.type === 'input' && (
+                                    <div>
+                                        <label className={labelClass}>Input Type</label>
+                                        <select 
+                                            className={inputClass}
+                                            value={displayElement.props.inputType || 'text'}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { inputType: e.target.value })}
+                                        >
+                                            <option value="text">Text</option>
+                                            <option value="email">Email</option>
+                                            <option value="password">Password</option>
+                                            <option value="number">Number</option>
+                                            <option value="tel">Telephone</option>
+                                            <option value="url">URL</option>
+                                            <option value="date">Date</option>
+                                            <option value="hidden">Hidden</option>
+                                        </select>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className={labelClass}>Placeholder</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.fieldPlaceholder || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { fieldPlaceholder: e.target.value })}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={labelClass}>Default Value</label>
+                                    {displayElement.type === 'textarea' ? (
+                                        <textarea
+                                            className={inputClass}
+                                            rows={2}
+                                            value={displayElement.props.fieldDefaultValue || ''}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { fieldDefaultValue: e.target.value })}
+                                        />
+                                    ) : (
+                                        <input 
+                                            className={inputClass}
+                                            value={displayElement.props.fieldDefaultValue || ''}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { fieldDefaultValue: e.target.value })}
+                                        />
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 pt-2">
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Required</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.fieldRequired || false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { fieldRequired: e.target.checked })}
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Hidden</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.fieldHidden || false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { fieldHidden: e.target.checked })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SELECT */}
+                        {displayElement.type === 'select' && (
+                             <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>Select Settings</h3>
+                                
+                                <div>
+                                    <label className={labelClass}>Field Name</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.fieldName || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { fieldName: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Label</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.fieldLabel || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { fieldLabel: e.target.value })}
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className={labelClass}>Default Value</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.fieldDefaultValue || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { fieldDefaultValue: e.target.value })}
+                                        placeholder="Matches Option Value"
+                                    />
+                                </div>
+
+                                <div className="pt-2 border-t border-gray-100">
+                                    <label className={labelClass}>Options</label>
+                                    <div className="space-y-2 mb-3">
+                                        {displayElement.props.fieldOptions?.map((opt, i) => (
+                                            <div key={i} className="flex gap-1 items-center bg-gray-50 p-1.5 rounded border border-gray-200">
+                                                <div className="flex-1 grid grid-cols-2 gap-1 text-xs">
+                                                    <span className="font-medium truncate" title={opt.label}>{opt.label}</span>
+                                                    <span className="text-gray-500 truncate font-mono" title={opt.value}>{opt.value}</span>
+                                                </div>
+                                                <button onClick={() => handleRemoveOption(i)} className="p-1 text-gray-400 hover:text-red-500"><Icons.Trash width={12} height={12} /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 mb-2">
+                                        <input 
+                                            className={inputClass}
+                                            placeholder="Label"
+                                            value={newOptionLabel}
+                                            onChange={(e) => setNewOptionLabel(e.target.value)}
+                                        />
+                                        <input 
+                                            className={inputClass}
+                                            placeholder="Value"
+                                            value={newOptionValue}
+                                            onChange={(e) => setNewOptionValue(e.target.value)}
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={handleAddOption}
+                                        disabled={!newOptionLabel}
+                                        className="w-full py-1.5 bg-indigo-50 text-indigo-600 rounded border border-indigo-200 text-xs font-bold hover:bg-indigo-100 disabled:opacity-50"
+                                    >
+                                        Add Option
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 pt-2">
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Required</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.fieldRequired || false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { fieldRequired: e.target.checked })}
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Multiple</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.fieldMultiple || false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { fieldMultiple: e.target.checked })}
+                                        />
+                                    </div>
+                                </div>
+                             </div>
+                        )}
+
+                        {/* CHECKBOX & RADIO */}
+                        {(displayElement.type === 'checkbox' || displayElement.type === 'radio') && (
+                             <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>{displayElement.type === 'radio' ? 'Radio Button' : 'Checkbox'} Settings</h3>
+                                
+                                <div>
+                                    <label className={labelClass}>Field Name (Group)</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.fieldName || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { fieldName: e.target.value })}
+                                        placeholder="option_group"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1">Elements with same name act as a group.</p>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Label Text</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.fieldLabel || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { fieldLabel: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Value Attribute</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.fieldValue || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { fieldValue: e.target.value })}
+                                        placeholder="yes"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 pt-2">
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Required</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.fieldRequired || false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { fieldRequired: e.target.checked })}
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">{displayElement.type === 'radio' ? 'Selected' : 'Checked'}</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.checked || false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { checked: e.target.checked })}
+                                        />
+                                    </div>
+                                </div>
+                             </div>
+                        )}
+                        
+                        {/* FORM CONTAINER CONFIGURATION */}
+                        {displayElement.type === 'form' && (
+                            <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>Form Container</h3>
+                                
+                                <div className="bg-blue-50 p-3 rounded-md text-xs text-blue-700 mb-2">
+                                    <p>Add inputs, buttons, and other elements inside this form container.</p>
+                                </div>
+
+                                <div>
+                                    <label className={labelClass}>Action URL</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.formActionUrl || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { formActionUrl: e.target.value })}
+                                        placeholder="https://formspree.io/f/..."
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className={labelClass}>Thank You URL (Optional)</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.formThankYouUrl || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { formThankYouUrl: e.target.value })}
+                                        placeholder="/thank-you"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className={labelClass}>Success Message (Text)</label>
+                                    <input 
+                                        className={inputClass}
+                                        value={displayElement.props.formSuccessMessage || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { formSuccessMessage: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-3 pt-2 border-t border-gray-100">
+                                    <h4 className="text-[10px] font-bold text-gray-400">Layout & Features</h4>
+                                    
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Enable reCAPTCHA</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.formEnableRecaptcha || false}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { formEnableRecaptcha: e.target.checked })}
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                        <label className="text-[10px] text-gray-600 font-bold">Horizontal Layout</label>
+                                        <input 
+                                            type="checkbox"
+                                            className="accent-indigo-600 w-3 h-3"
+                                            checked={displayElement.props.formLabelLayout === 'horizontal'}
+                                            onChange={(e) => {
+                                                const isHorizontal = e.target.checked;
+                                                // When toggling layout, we update className to reflect flex direction
+                                                let currentClass = displayElement.props.className || '';
+                                                if (isHorizontal) {
+                                                    currentClass = currentClass.replace('flex-col', 'flex-row items-end flex-wrap');
+                                                    if (!currentClass.includes('flex-row')) currentClass += ' flex-row items-end flex-wrap';
+                                                } else {
+                                                    currentClass = currentClass.replace('flex-row', 'flex-col');
+                                                    currentClass = currentClass.replace('items-end', '');
+                                                    currentClass = currentClass.replace('flex-wrap', '');
+                                                    if (!currentClass.includes('flex-col')) currentClass += ' flex-col';
+                                                }
+                                                // Cleanup extra spaces
+                                                currentClass = currentClass.replace(/\s+/g, ' ').trim();
+                                                
+                                                onUpdateProps(selectedElement.id, { 
+                                                    formLabelLayout: isHorizontal ? 'horizontal' : 'top',
+                                                    className: currentClass
+                                                });
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         
                         {/* NAVBAR CONFIGURATION */}
                         {displayElement.type === 'navbar' && (
@@ -563,98 +886,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                 </div>
                             </div>
                         )}
-
-                        {/* FORM CONFIGURATION */}
-                        {displayElement.type === 'form' && (
-                            <div className="space-y-4">
-                                <h3 className={sectionTitleClass}>Form Builder</h3>
-                                
-                                <div className="flex items-center justify-between">
-                                    <label className="text-sm font-medium text-gray-700">Fields</label>
-                                    <button onClick={handleAddFormField} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 font-bold">+ Add</button>
-                                </div>
-                                
-                                <div className="space-y-3">
-                                    {displayElement.props.formFields?.map((field, i) => (
-                                        <div key={i} className="bg-gray-50 p-2 rounded border border-gray-200 relative group">
-                                            <button onClick={() => handleRemoveFormField(i)} className="absolute top-1 right-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Trash width={12} height={12} /></button>
-                                            <div className="grid grid-cols-2 gap-2 mb-2">
-                                                <input 
-                                                    className={inputClass} 
-                                                    value={field.label}
-                                                    onChange={(e) => handleUpdateFormField(i, 'label', e.target.value)}
-                                                    placeholder="Label"
-                                                />
-                                                <select 
-                                                    className={inputClass}
-                                                    value={field.type}
-                                                    onChange={(e) => handleUpdateFormField(i, 'type', e.target.value)}
-                                                >
-                                                    <option value="text">Text</option>
-                                                    <option value="email">Email</option>
-                                                    <option value="textarea">Textarea</option>
-                                                    <option value="number">Number</option>
-                                                    <option value="checkbox">Checkbox</option>
-                                                </select>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <input 
-                                                    className={`${inputClass} flex-1`}
-                                                    value={field.placeholder || ''}
-                                                    onChange={(e) => handleUpdateFormField(i, 'placeholder', e.target.value)}
-                                                    placeholder="Placeholder"
-                                                />
-                                                <label className="flex items-center gap-1 text-[10px] text-gray-500 cursor-pointer">
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={field.required}
-                                                        onChange={(e) => handleUpdateFormField(i, 'required', e.target.checked)}
-                                                    /> Req
-                                                </label>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                <div className="space-y-3 pt-2 border-t border-gray-100">
-                                     <h4 className="text-[10px] font-bold text-gray-400">Submission Settings</h4>
-                                     <div>
-                                        <label className={labelClass}>Button Text</label>
-                                        <input 
-                                            className={inputClass}
-                                            value={displayElement.props.formSubmitButtonText || ''}
-                                            onChange={(e) => onUpdateProps(selectedElement.id, { formSubmitButtonText: e.target.value })}
-                                        />
-                                     </div>
-                                     <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
-                                        <label className="text-[10px] text-gray-600 font-bold">Enable reCAPTCHA</label>
-                                        <input 
-                                            type="checkbox"
-                                            className="accent-indigo-600 w-3 h-3"
-                                            checked={displayElement.props.formEnableRecaptcha || false}
-                                            onChange={(e) => onUpdateProps(selectedElement.id, { formEnableRecaptcha: e.target.checked })}
-                                        />
-                                     </div>
-                                     <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
-                                        <label className="text-[10px] text-gray-600 font-bold">Horizontal Layout</label>
-                                        <input 
-                                            type="checkbox"
-                                            className="accent-indigo-600 w-3 h-3"
-                                            checked={displayElement.props.formLabelLayout === 'horizontal'}
-                                            onChange={(e) => onUpdateProps(selectedElement.id, { formLabelLayout: e.target.checked ? 'horizontal' : 'top' })}
-                                        />
-                                     </div>
-                                     <div>
-                                        <label className={labelClass}>Success Message</label>
-                                        <input 
-                                            className={inputClass}
-                                            value={displayElement.props.formSuccessMessage || ''}
-                                            onChange={(e) => onUpdateProps(selectedElement.id, { formSuccessMessage: e.target.value })}
-                                        />
-                                     </div>
-                                </div>
-                            </div>
-                        )}
                         
                         {/* Card Configuration */}
                         {displayElement.type === 'card' && (
@@ -800,7 +1031,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                             <div className="space-y-3">
                                 <span className={labelClass}>Background</span>
                                 
-                                {['section', 'container', 'columns', 'navbar', 'card'].includes(displayElement.type) ? (
+                                {['section', 'container', 'columns', 'navbar', 'card', 'form'].includes(displayElement.type) ? (
                                     <div className="space-y-3">
                                         <div>
                                             <label className="text-[10px] text-gray-400 block mb-1">Color</label>

@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef } from 'react';
 import { PageElement, SavedTemplate } from '../types';
 import { Icons } from './Icons';
@@ -112,7 +114,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const height = rect.height;
-    const isContainer = ['section', 'container', 'columns', 'navbar', 'slider', 'card'].includes(element.type);
+    const isContainer = ['section', 'container', 'columns', 'navbar', 'slider', 'card', 'form'].includes(element.type);
     
     if (isContainer) {
         if (y < 15) {
@@ -149,7 +151,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     if (dropPosition === 'top') finalPosition = 'before';
     if (dropPosition === 'bottom') finalPosition = 'after';
     
-    const isContainer = ['section', 'container', 'columns', 'navbar', 'card'].includes(element.type);
+    const isContainer = ['section', 'container', 'columns', 'navbar', 'card', 'form'].includes(element.type);
     if (!isContainer && finalPosition === 'inside') {
         finalPosition = 'after';
     }
@@ -256,7 +258,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       return <Icons.ChevronDown className={direction === 'prev' ? 'rotate-90' : '-rotate-90'} />;
   };
 
-  const Tag = (renderedElement.type === 'section' ? 'section' : 'div') as any;
+  // Determine Tag type
+  const Tag = (renderedElement.type === 'section' ? 'section' : renderedElement.type === 'form' ? 'form' : 'div') as any;
 
   // Link wrapper handling for Card
   const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
@@ -363,7 +366,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       return (
           <>
             <ElementRenderer element={renderedElement} isPreview={isPreview} />
-            {!isPreview && ['container', 'section', 'columns'].includes(renderedElement.type) && (!renderedElement.children || renderedElement.children.length === 0) && (
+            {!isPreview && ['container', 'section', 'columns', 'form'].includes(renderedElement.type) && (!renderedElement.children || renderedElement.children.length === 0) && (
                  <div className="p-4 text-center text-gray-300 italic border-2 border-dashed border-gray-200 rounded select-none pointer-events-none bg-white/50">Empty {renderedElement.name}</div>
             )}
           </>

@@ -493,12 +493,40 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                                 content: 'Read More',
                                 buttonAction: 'link',
                                 className: 'self-start text-indigo-600 font-medium text-sm',
-                                style: { backgroundColor: 'transparent', paddingLeft: 0, paddingRight: 0 }
+                                style: { backgroundColor: 'transparent', paddingLeft: '0', paddingRight: '0' }
                             }
                         }
                     ]
                 }
             ];
+          }
+
+          // Initialization for Form Group
+          if (type === 'form') {
+              children = [
+                  {
+                      id: `${newId}-in`,
+                      type: 'input',
+                      name: 'Email Input',
+                      props: {
+                          fieldLabel: 'Email Address',
+                          fieldName: 'email',
+                          inputType: 'email',
+                          fieldPlaceholder: 'you@example.com',
+                          fieldRequired: true
+                      }
+                  },
+                  {
+                      id: `${newId}-btn`,
+                      type: 'button',
+                      name: 'Submit Button',
+                      props: {
+                          content: 'Submit',
+                          buttonAction: 'submit',
+                          className: 'bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition w-full'
+                      }
+                  }
+              ];
           }
 
           newElement = {
@@ -514,7 +542,8 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 },
                 className: type === 'columns' ? 'grid grid-cols-2 gap-4' : 
                            type === 'slider' ? 'relative w-full' : 
-                           type === 'card' ? 'flex flex-col rounded-lg shadow-md overflow-hidden h-full transition-all hover:shadow-lg' : undefined,
+                           type === 'card' ? 'flex flex-col rounded-lg shadow-md overflow-hidden h-full transition-all hover:shadow-lg' :
+                           type === 'form' ? 'flex flex-col gap-4 p-4 border border-dashed border-gray-200 rounded' : undefined,
                 level: type === 'heading' ? 2 : undefined,
                 listType: type === 'list' ? 'ul' : undefined,
                 items: type === 'list' ? ['Item 1', 'Item 2', 'Item 3'] : undefined,
@@ -532,13 +561,9 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 sliderShowPagination: true,
                 sliderActiveIndex: 0,
                 // Form defaults
-                formFields: type === 'form' ? [
-                    { id: 'f1', type: 'text', label: 'Name', name: 'name', placeholder: 'Your Name', required: true },
-                    { id: 'f2', type: 'email', label: 'Email', name: 'email', placeholder: 'your@email.com', required: true },
-                    { id: 'f3', type: 'textarea', label: 'Message', name: 'message', placeholder: 'How can we help?', required: false }
-                ] : undefined,
                 formSubmitButtonText: type === 'form' ? 'Submit' : undefined,
                 formLabelLayout: type === 'form' ? 'top' : undefined,
+                formSuccessMessage: type === 'form' ? 'Thank you for your submission!' : undefined,
                 // Gallery defaults
                 galleryLayout: type === 'gallery' ? 'grid' : undefined,
                 galleryColumnCount: type === 'gallery' ? 3 : undefined,

@@ -13,6 +13,11 @@ export type ElementType =
   | 'map' 
   | 'customCode' 
   | 'form' 
+  | 'input'     // New
+  | 'textarea'  // New
+  | 'select'    // New
+  | 'radio'     // New
+  | 'checkbox'  // New
   | 'gallery' 
   | 'navbar' 
   | 'testimonial' 
@@ -137,18 +142,35 @@ export interface PageElement {
     testimonialAutoplay?: boolean;
     testimonialInterval?: number;
 
-    // Form Specific
-    formFields?: FormField[];
-    formSubmitUrl?: string;
-    formEmailTo?: string;
+    // Form Container Specific
+    formActionUrl?: string;     // New
+    formThankYouUrl?: string;   // New
     formSuccessMessage?: string;
     formEnableRecaptcha?: boolean;
+    formLabelLayout?: 'top' | 'horizontal'; // Maps to flex-col vs flex-row
+    
+    // Legacy Monolithic Form (Deprecated for new forms but kept for types)
+    formFields?: FormField[];
+    formEmailTo?: string;
     formSubmitButtonText?: string;
-    formLabelLayout?: 'top' | 'horizontal';
     formInputBorderRadius?: string;
     formInputBackgroundColor?: string;
     formButtonBackgroundColor?: string;
     formButtonTextColor?: string;
+
+    // New Individual Form Elements
+    fieldName?: string;
+    fieldLabel?: string;
+    fieldPlaceholder?: string;
+    fieldRequired?: boolean;
+    fieldDefaultValue?: string;
+    fieldHidden?: boolean;
+    fieldValue?: string;
+    fieldMultiple?: boolean;
+    inputType?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'date' | 'hidden';
+    fieldOptions?: { label: string; value: string }[];
+    fieldRows?: number;
+    checked?: boolean;
 
     // Navbar Specific
     navLinks?: { label: string, href: string }[]; 

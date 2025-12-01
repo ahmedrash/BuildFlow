@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { ElementType, PageElement } from '../types';
 import { Icons } from './Icons';
@@ -36,6 +37,11 @@ const getIconForType = (type: ElementType) => {
         case 'list': return Icons.List;
         case 'map': return Icons.Map;
         case 'form': return Icons.Form;
+        case 'input': return Icons.Input;
+        case 'select': return Icons.Select;
+        case 'textarea': return Icons.Textarea;
+        case 'radio': return Icons.Radio;
+        case 'checkbox': return Icons.Checkbox;
         case 'gallery': return Icons.Grid;
         case 'navbar': return Icons.Menu;
         case 'testimonial': return Icons.MessageSquare;
@@ -154,6 +160,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ onDragStart, elements, selecte
                 </div>
 
                 <div>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Forms</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                    <SidebarItem type="input" icon={Icons.Input} label="Input" onDragStart={onDragStart} />
+                    <SidebarItem type="textarea" icon={Icons.Textarea} label="Textarea" onDragStart={onDragStart} />
+                    <SidebarItem type="select" icon={Icons.Select} label="Select" onDragStart={onDragStart} />
+                    <SidebarItem type="checkbox" icon={Icons.Checkbox} label="Checkbox" onDragStart={onDragStart} />
+                    <SidebarItem type="radio" icon={Icons.Radio} label="Radio" onDragStart={onDragStart} />
+                    </div>
+                </div>
+
+                <div>
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Media</h3>
                     <div className="grid grid-cols-3 gap-2">
                     <SidebarItem type="image" icon={Icons.Image} label="Image" onDragStart={onDragStart} />
@@ -167,7 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onDragStart, elements, selecte
                 <div>
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Advanced</h3>
                     <div className="grid grid-cols-3 gap-2">
-                    <SidebarItem type="form" icon={Icons.Form} label="Form" onDragStart={onDragStart} />
+                    <SidebarItem type="form" icon={Icons.Form} label="Smart Form" onDragStart={onDragStart} />
                     <SidebarItem type="navbar" icon={Icons.Menu} label="Navbar" onDragStart={onDragStart} />
                     <SidebarItem type="testimonial" icon={Icons.MessageSquare} label="Testimonial" onDragStart={onDragStart} />
                     <SidebarItem type="customCode" icon={Icons.Code} label="Code" onDragStart={onDragStart} />
