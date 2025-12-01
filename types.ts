@@ -124,6 +124,10 @@ export interface PageElement {
     address?: string;
     zoom?: number;
     mapType?: 'roadmap' | 'satellite';
+
+    // Image Specific
+    imageObjectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
+    imageHeight?: string;
     
     // Gallery Specific
     galleryImages?: GalleryImage[];

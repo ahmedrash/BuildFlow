@@ -90,8 +90,12 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
         <img 
           src={element.props.src || 'https://via.placeholder.com/300'} 
           alt={element.props.alt || 'Placeholder'} 
-          className={`w-full h-auto object-cover ${pointerClass}`}
-          style={{ borderRadius: element.props.style?.borderRadius }}
+          className={`w-full ${pointerClass}`}
+          style={{ 
+              borderRadius: element.props.style?.borderRadius,
+              objectFit: (element.props.imageObjectFit || 'cover') as any,
+              height: element.props.imageHeight || 'auto'
+          }}
         />
       );
 
@@ -566,7 +570,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                        e.preventDefault();
                                        return;
                                    }
-                                   // Prevent same-tab navigation if empty or not anchor
+                                   // Prevent navigation in editor
                                    const isEmpty = !link.href || link.href === '#';
                                    const isAnchor = link.href && link.href.startsWith('#');
                                    if (isEmpty || !isAnchor) {

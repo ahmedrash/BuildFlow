@@ -79,7 +79,8 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                                 src: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
                                 alt: 'Visual Editing',
                                 className: 'w-16 h-16 object-contain m-6 mb-0 opacity-80',
-                                style: { borderRadius: '0' }
+                                style: { borderRadius: '0' },
+                                imageObjectFit: 'contain'
                             }
                         },
                         {
@@ -106,7 +107,8 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                                 src: 'https://cdn-icons-png.flaticon.com/512/2103/2103633.png',
                                 alt: 'Fast Performance',
                                 className: 'w-16 h-16 object-contain m-6 mb-0 opacity-80',
-                                style: { borderRadius: '0' }
+                                style: { borderRadius: '0' },
+                                imageObjectFit: 'contain'
                             }
                         },
                         {
@@ -133,7 +135,8 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                                 src: 'https://cdn-icons-png.flaticon.com/512/1055/1055666.png',
                                 alt: 'Responsive',
                                 className: 'w-16 h-16 object-contain m-6 mb-0 opacity-80',
-                                style: { borderRadius: '0' }
+                                style: { borderRadius: '0' },
+                                imageObjectFit: 'contain'
                             }
                         },
                         {
@@ -221,7 +224,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
             { id: 'pp-h', type: 'heading', name: 'Title', props: { level: 3, content: 'Join the Waitlist', className: 'text-2xl font-bold mb-2 text-center text-gray-900' } },
             { id: 'pp-t', type: 'text', name: 'Text', props: { content: 'Get early access to BuildFlow. We will notify you when we launch!', className: 'text-gray-500 mb-6 text-center text-sm' } },
             {
-               id: 'pp-form', type: 'form', name: 'Popup Form', props: { formSubmitButtonText: 'Join Now', className: 'flex flex-col gap-4' },
+               id: 'pp-form', type: 'form', name: 'Popup Form', props: { className: 'flex flex-col gap-4' },
                children: [
                   { id: 'pp-email', type: 'input', name: 'Email', props: { inputType: 'email', fieldName: 'email', fieldLabel: 'Email Address', fieldPlaceholder: 'Enter your email', fieldRequired: true } },
                   { id: 'pp-sub', type: 'button', name: 'Submit', props: { buttonAction: 'submit', content: 'Join Now', className: 'w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition' } }
@@ -355,7 +358,9 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                                       props: {
                                           src: 'https://picsum.photos/400/300?random=20',
                                           className: 'w-full sm:w-1/3 object-cover min-h-[200px] sm:min-h-full',
-                                          alt: 'Consulting'
+                                          alt: 'Consulting',
+                                          imageObjectFit: 'cover',
+                                          imageHeight: '100%'
                                       }
                                   },
                                   {
@@ -381,7 +386,9 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                                       props: {
                                           src: 'https://picsum.photos/400/300?random=21',
                                           className: 'w-full sm:w-1/3 object-cover min-h-[200px] sm:min-h-full',
-                                          alt: 'Development'
+                                          alt: 'Development',
+                                          imageObjectFit: 'cover',
+                                          imageHeight: '100%'
                                       }
                                   },
                                   {
@@ -406,8 +413,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                    {
                        id: 'c-form', type: 'form', name: 'Contact Form',
                        props: {
-                           className: 'max-w-lg mx-auto text-left flex flex-col gap-4 p-6 border border-gray-100 rounded-lg shadow-sm',
-                           formSubmitButtonText: 'Send Message'
+                           className: 'max-w-lg mx-auto text-left flex flex-col gap-4 p-6 border border-gray-100 rounded-lg shadow-sm'
                        },
                        children: [
                             {

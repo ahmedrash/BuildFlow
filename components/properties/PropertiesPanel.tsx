@@ -1410,6 +1410,31 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                         }}
                                     />
                                 </div>
+                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                    <div>
+                                        <label className={labelClass}>Object Fit</label>
+                                        <select 
+                                            className={inputClass}
+                                            value={displayElement.props.imageObjectFit || 'cover'}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { imageObjectFit: e.target.value })}
+                                        >
+                                            <option value="cover">Cover</option>
+                                            <option value="contain">Contain</option>
+                                            <option value="fill">Fill</option>
+                                            <option value="none">None</option>
+                                            <option value="scale-down">Scale Down</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>Height</label>
+                                        <input 
+                                            className={inputClass}
+                                            value={displayElement.props.imageHeight || ''}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { imageHeight: e.target.value })}
+                                            placeholder="auto, 200px..."
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         )}
 

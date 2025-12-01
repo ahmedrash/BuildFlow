@@ -1,3 +1,5 @@
+
+
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (
@@ -108,7 +110,7 @@ export const exportHtml = (
             switch (element.type) {
                 case 'text': return <>{element.props.content}</>;
                 case 'heading': { const Tag = 'h' + (element.props.level || 2); return <Tag>{element.props.content}</Tag>; }
-                case 'image': return <img src={element.props.src} alt={element.props.alt} className="w-full h-auto object-cover" style={{ borderRadius: element.props.style?.borderRadius }} />;
+                case 'image': return <img src={element.props.src} alt={element.props.alt} className="w-full" style={{ borderRadius: element.props.style?.borderRadius, objectFit: element.props.imageObjectFit || 'cover', height: element.props.imageHeight || 'auto' }} />;
                 case 'button': {
                     const action = element.props.buttonAction || 'link';
                     if (action === 'popup') {
