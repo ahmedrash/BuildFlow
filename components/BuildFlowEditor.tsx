@@ -1,3 +1,5 @@
+
+
 import React, { useState, useCallback, useMemo } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';
@@ -630,6 +632,10 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 elements={activeElements}
                 selectedId={selectedId}
                 onSelect={(id) => handleSelect(id)}
+                onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
+                onUpdateProps={handleUpdateProps}
+                onDropElement={handleDropElement}
             />
             )}
 

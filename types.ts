@@ -98,6 +98,9 @@ export interface PageElement {
   type: ElementType;
   name: string;
   props: {
+    // Visibility
+    isHidden?: boolean;
+
     // Content
     content?: string;
     src?: string;

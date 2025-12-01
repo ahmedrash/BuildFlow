@@ -9,6 +9,11 @@ interface SidebarProps {
     elements: PageElement[];
     selectedId: string | null;
     onSelect: (id: string) => void;
+    // Layer actions
+    onDelete: (id: string) => void;
+    onDuplicate: (id: string) => void;
+    onUpdateProps: (id: string, props: any) => void;
+    onDropElement: (targetId: string, position: 'inside' | 'after' | 'before', data: any) => void;
 }
 
 const SidebarItem = ({ type, icon: Icon, label, onDragStart }: { type: ElementType, icon: any, label: string, onDragStart: (e: React.DragEvent, type: ElementType) => void }) => (
@@ -57,45 +62,159 @@ interface LayerNodeProps {
     depth: number;
     selectedId: string | null;
     onSelect: (id: string) => void;
+    onDelete: (id: string) => void;
+    onDuplicate: (id: string) => void;
+    onUpdateProps: (id: string, props: any) => void;
+    onDropElement: (targetId: string, position: 'inside' | 'after' | 'before', data: any) => void;
 }
 
 const LayerNode: React.FC<LayerNodeProps> = ({ 
     element, 
     depth, 
     selectedId, 
-    onSelect 
+    onSelect,
+    onDelete,
+    onDuplicate,
+    onUpdateProps,
+    onDropElement
 }) => {
     const Icon = getIconForType(element.type);
     const isSelected = selectedId === element.id;
     const hasChildren = element.children && element.children.length > 0;
     const [isExpanded, setIsExpanded] = useState(true);
+    const [dropPosition, setDropPosition] = useState<'inside' | 'top' | 'bottom' | null>(null);
+
+    const isHidden = element.props.isHidden;
+
+    const handleDragStart = (e: React.DragEvent) => {
+        e.stopPropagation();
+        e.dataTransfer.setData('type', 'move');
+        e.dataTransfer.setData('id', element.id);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const rect = e.currentTarget.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const height = rect.height;
+        
+        // Logic similar to EditorCanvas but adapted for Tree items
+        // Top 25% = before, Bottom 25% = after, Middle = inside (if container)
+        const isContainer = ['section', 'container', 'columns', 'navbar', 'slider', 'card', 'form'].includes(element.type);
+        
+        if (y < height * 0.25) {
+            setDropPosition('top');
+        } else if (y > height * 0.75) {
+            setDropPosition('bottom');
+        } else {
+            setDropPosition(isContainer ? 'inside' : 'bottom'); // If not container, middle defaults to bottom (after)
+        }
+        
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setDropPosition(null);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDropPosition(null);
+
+        const type = e.dataTransfer.getData('type');
+        const draggedId = e.dataTransfer.getData('id');
+        
+        if (type === 'move' && draggedId === element.id) return;
+
+        let position: 'inside' | 'before' | 'after' = 'inside';
+        if (dropPosition === 'top') position = 'before';
+        if (dropPosition === 'bottom') position = 'after';
+
+        // Prepare data
+        let data: any = {};
+        if (type === 'new') data = { elementType: e.dataTransfer.getData('elementType') };
+        else if (type === 'move') data = { id: draggedId };
+
+        onDropElement(element.id, position, { type, ...data });
+    };
 
     return (
         <div className="select-none">
             <div 
-                className={`flex items-center gap-2 py-1.5 px-2 text-xs cursor-pointer border-b border-gray-50 transition-colors ${isSelected ? 'bg-indigo-50 text-indigo-700 font-medium' : 'hover:bg-gray-50 text-gray-600'}`}
+                draggable
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`relative group flex items-center justify-between py-1.5 px-2 text-xs cursor-pointer border-b border-gray-50 transition-colors ${isSelected ? 'bg-indigo-50 text-indigo-700 font-medium' : 'hover:bg-gray-50 text-gray-600'} ${isHidden ? 'opacity-50' : ''}`}
                 style={{ paddingLeft: `${depth * 12 + 8}px` }}
                 onClick={(e) => {
                     e.stopPropagation();
                     onSelect(element.id);
                 }}
             >
-                <div 
-                    className={`w-4 h-4 flex items-center justify-center text-gray-400 transition-transform ${hasChildren ? 'hover:text-gray-600' : 'opacity-0'}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setIsExpanded(!isExpanded);
-                    }}
-                >
-                    {hasChildren && (
-                        <div className={isExpanded ? '' : '-rotate-90'}>
-                             <Icons.ChevronDown width={12} height={12} />
-                        </div>
-                    )}
+                {/* Drop Indicators */}
+                {dropPosition === 'top' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
+                {dropPosition === 'bottom' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
+                {dropPosition === 'inside' && <div className="absolute inset-0 border-2 border-blue-500 bg-blue-50/20 z-10 rounded-sm pointer-events-none" />}
+
+                <div className="flex items-center gap-2 overflow-hidden">
+                    <div 
+                        className={`w-4 h-4 flex items-center justify-center text-gray-400 transition-transform ${hasChildren ? 'hover:text-gray-600' : 'opacity-0 pointer-events-none'}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsExpanded(!isExpanded);
+                        }}
+                    >
+                        {hasChildren && (
+                            <div className={isExpanded ? '' : '-rotate-90'}>
+                                <Icons.ChevronDown width={12} height={12} />
+                            </div>
+                        )}
+                    </div>
+                    
+                    <Icon width={14} height={14} className={isSelected ? 'text-indigo-600 shrink-0' : 'text-gray-400 shrink-0'} />
+                    <span className="truncate">{element.name}</span>
                 </div>
-                
-                <Icon width={14} height={14} className={isSelected ? 'text-indigo-600' : 'text-gray-400'} />
-                <span className="truncate">{element.name}</span>
+
+                {/* Layer Actions */}
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white border border-gray-100 shadow-sm rounded px-1 z-20">
+                    <button 
+                        className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded"
+                        title={isHidden ? "Show" : "Hide"}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateProps(element.id, { isHidden: !isHidden });
+                        }}
+                    >
+                        {isHidden ? <Icons.EyeOff width={12} height={12} /> : <Icons.Eye width={12} height={12} />}
+                    </button>
+                    <button 
+                        className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-gray-200 rounded"
+                        title="Duplicate"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDuplicate(element.id);
+                        }}
+                    >
+                        <Icons.Copy width={12} height={12} />
+                    </button>
+                    <button 
+                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-gray-200 rounded"
+                        title="Delete"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(element.id);
+                        }}
+                    >
+                        <Icons.Trash width={12} height={12} />
+                    </button>
+                </div>
             </div>
             
             {hasChildren && isExpanded && (
@@ -107,6 +226,10 @@ const LayerNode: React.FC<LayerNodeProps> = ({
                             depth={depth + 1} 
                             selectedId={selectedId}
                             onSelect={onSelect}
+                            onDelete={onDelete}
+                            onDuplicate={onDuplicate}
+                            onUpdateProps={onUpdateProps}
+                            onDropElement={onDropElement}
                         />
                     ))}
                 </div>
@@ -115,7 +238,16 @@ const LayerNode: React.FC<LayerNodeProps> = ({
     );
 };
 
-export const Sidebar: React.FC<SidebarProps> = ({ onDragStart, elements, selectedId, onSelect }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+    onDragStart, 
+    elements, 
+    selectedId, 
+    onSelect,
+    onDelete,
+    onDuplicate,
+    onUpdateProps,
+    onDropElement
+}) => {
   const [activeTab, setActiveTab] = useState<'elements' | 'layers'>('elements');
 
   return (
@@ -205,6 +337,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onDragStart, elements, selecte
                             depth={0} 
                             selectedId={selectedId}
                             onSelect={onSelect}
+                            onDelete={onDelete}
+                            onDuplicate={onDuplicate}
+                            onUpdateProps={onUpdateProps}
+                            onDropElement={onDropElement}
                         />
                     ))
                 )}

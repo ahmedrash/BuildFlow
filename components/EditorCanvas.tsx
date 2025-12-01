@@ -1,3 +1,5 @@
+
+
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -41,9 +43,22 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const isSelected = selectedId === element.id && !isPreview;
   const isGlobal = element.type === 'global';
   const isPopupTarget = popupTargets?.has(element.id);
+  const isHidden = element.props.isHidden;
 
-  // If this element is a popup target AND we are in preview AND it is NOT inside the modal, hide it.
-  const shouldHide = isPreview && isPopupTarget && !isPopupContent;
+  // Hiding logic:
+  // 1. If hidden prop is true:
+  //    - In Preview: Completely hide (display: none via 'hidden' class)
+  //    - In Editor: Show with opacity (so it can be edited)
+  // 2. If is popup target:
+  //    - In Preview: Hide unless it is actively being shown in popup modal
+  let shouldHideClass = '';
+  
+  if (isHidden) {
+      if (isPreview) shouldHideClass = 'hidden';
+      else shouldHideClass = 'opacity-40 grayscale filter border border-dashed border-gray-300';
+  } else if (isPreview && isPopupTarget && !isPopupContent) {
+      shouldHideClass = 'hidden';
+  }
 
   // Position Tracking Logic for Toolbar
   useLayoutEffect(() => {
@@ -171,8 +186,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     : isPreview || isLocked ? '' : 'hover:ring-1 hover:ring-indigo-300 cursor-pointer';
   const dropIndicatorClass = dropPosition === 'inside' ? 'ring-2 ring-dashed ring-blue-500 bg-blue-50/50' : '';
   const globalClass = isGlobal ? 'ring-1 ring-amber-300 hover:ring-amber-500' : '';
-  const hiddenClass = shouldHide ? 'hidden' : '';
-
+  
   const getCardHoverClass = () => {
     if (isSelected) return '';
     if (renderedElement.type !== 'card') return '';
@@ -186,7 +200,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   };
 
   const classNameToApply = renderedElement.type === 'button' ? '' : (renderedElement.props.className || '');
-  const baseClasses = `${classNameToApply} ${selectionClass} ${dropIndicatorClass} ${globalClass} ${containerClasses} ${hiddenClass} transition-all duration-200`;
+  const baseClasses = `${classNameToApply} ${selectionClass} ${dropIndicatorClass} ${globalClass} ${containerClasses} ${shouldHideClass} transition-all duration-200`;
 
   const renderBackground = () => {
     if (!['section', 'container', 'columns', 'navbar', 'card'].includes(renderedElement.type)) return null;
@@ -287,6 +301,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       {isLocked && !isPreview && <div className="absolute inset-0 z-10 bg-transparent cursor-pointer" onClick={handleClick}></div>}
       
       {!isPreview && isPopupTarget && <div className="absolute top-0 right-0 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">POPUP CONTENT</div>}
+      {!isPreview && isHidden && <div className="absolute top-0 left-0 bg-gray-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-br pointer-events-none"><Icons.EyeOff width={10} height={10} className="inline mr-1"/>HIDDEN</div>}
 
       {renderBackground()}
       <LinkWrapper>{renderChildren()}</LinkWrapper>
