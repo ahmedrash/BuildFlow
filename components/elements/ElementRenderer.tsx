@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { PageElement, TestimonialItem } from '../../types';
 import { Icons } from '../Icons';
-import { EditorConfigContext } from '../EditorConfigContext';
+import { EditorConfigContext, PopupContext } from '../EditorConfigContext';
 
 interface ElementRendererProps {
   element: PageElement;
@@ -70,6 +70,7 @@ const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string
 
 export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPreview }) => {
   const { googleMapsApiKey, recaptchaSiteKey } = useContext(EditorConfigContext);
+  const { openPopup } = useContext(PopupContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   // Helper to disable pointer events only in editor mode
@@ -113,6 +114,25 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                >
                   {element.props.content || 'Button'}
                </a>
+          )
+      }
+      
+      // Handle Popup Action
+      if (action === 'popup') {
+          return (
+            <button 
+                type="button"
+                className={`px-4 py-2 rounded transition ${pointerClass} ${customClass}`}
+                style={element.props.style}
+                onClick={(e) => {
+                    if (!isPreview) e.preventDefault();
+                    if (element.props.popupTargetId) {
+                        openPopup(element.props.popupTargetId);
+                    }
+                }}
+            >
+                {element.props.content || 'Button'}
+            </button>
           )
       }
       

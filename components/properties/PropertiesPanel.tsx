@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useState } from 'react';
 import { PageElement, FormField, SavedTemplate, TestimonialItem } from '../../types';
 import { Icons } from '../Icons';
@@ -273,6 +274,61 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                         >
                             <Icons.Download width={14} height={14} /> Save as Template
                         </button>
+                        
+                        {/* === BUTTON CONFIGURATION === */}
+                        {displayElement.type === 'button' && (
+                            <div className="space-y-4">
+                                <h3 className={sectionTitleClass}>Button Settings</h3>
+                                <div>
+                                    <label className={labelClass}>Action</label>
+                                    <select
+                                        className={inputClass}
+                                        value={displayElement.props.buttonAction || 'link'}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { buttonAction: e.target.value })}
+                                    >
+                                        <option value="link">Open Link</option>
+                                        <option value="submit">Submit Form</option>
+                                        <option value="popup">Open Popup</option>
+                                    </select>
+                                </div>
+
+                                {displayElement.props.buttonAction === 'link' && (
+                                     <div>
+                                        <label className={labelClass}>URL / Anchor</label>
+                                        <input
+                                            className={inputClass}
+                                            value={displayElement.props.href || ''}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { href: e.target.value })}
+                                            placeholder="https://... or #section-id"
+                                        />
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <input 
+                                                type="checkbox" 
+                                                className="accent-indigo-600 w-3 h-3"
+                                                checked={displayElement.props.target === '_blank'}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { target: e.target.checked ? '_blank' : '_self' })}
+                                            />
+                                            <label className="text-xs text-gray-600">Open in new tab</label>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {displayElement.props.buttonAction === 'popup' && (
+                                     <div>
+                                        <label className={labelClass}>Target Element ID</label>
+                                        <input
+                                            className={inputClass}
+                                            value={displayElement.props.popupTargetId || ''}
+                                            onChange={(e) => onUpdateProps(selectedElement.id, { popupTargetId: e.target.value })}
+                                            placeholder="e.g. section-123"
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-1 leading-tight">
+                                            Enter the ID of the element you want to show in the popup.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* === INDIVIDUAL FORM ELEMENTS === */}
                         
@@ -1298,8 +1354,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                             </div>
                         )}
                         
-                        {/* Text/Button Props */}
-                        {(displayElement.type === 'text' || displayElement.type === 'button') && (
+                        {/* Text Props */}
+                        {(displayElement.type === 'text') && (
                             <div className="space-y-3">
                                 <h3 className={sectionTitleClass}>Content</h3>
                                 <div>
@@ -1307,6 +1363,21 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                     <textarea 
                                         className={inputClass}
                                         rows={3}
+                                        value={displayElement.props.content || ''}
+                                        onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Button Text Content (Special case to not duplicate Action) */}
+                        {displayElement.type === 'button' && (
+                            <div className="space-y-3">
+                                <h3 className={sectionTitleClass}>Label</h3>
+                                <div>
+                                    <label className={labelClass}>Button Text</label>
+                                    <input 
+                                        className={inputClass}
                                         value={displayElement.props.content || ''}
                                         onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })}
                                     />

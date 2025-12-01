@@ -204,6 +204,7 @@ export interface PageElement {
     
     // Button Specific
     buttonAction?: 'link' | 'submit' | 'popup';
+    popupTargetId?: string; // New: Target element ID for popups
     target?: '_self' | '_blank';
 
     // Slider Specific

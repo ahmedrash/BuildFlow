@@ -1,6 +1,6 @@
 
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';
 import { Icons } from './Icons';
@@ -590,6 +590,9 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 ] : undefined,
                 // Card defaults (Wrapper settings)
                 cardHoverEffect: type === 'card' ? 'lift' : undefined,
+                // Button defaults
+                buttonAction: type === 'button' ? 'link' : undefined,
+                target: type === 'button' ? '_self' : undefined
             },
             children
           };
@@ -656,6 +659,21 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     URL.revokeObjectURL(url);
     showToast("Website exported to index.html");
   };
+  
+  // Calculate Popup Targets to show badge in Editor
+  const popupTargets = useMemo(() => {
+    const targets = new Set<string>();
+    const scan = (els: PageElement[]) => {
+        els.forEach(el => {
+             if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) {
+                 targets.add(el.props.popupTargetId);
+             }
+             if (el.children) scan(el.children);
+        });
+    };
+    scan(getActiveElements());
+    return targets;
+  }, [elements, editingTemplateId]); // Re-calc when elements change
 
   const activeElements = getActiveElements();
   const selectedElement = selectedId ? findElement(selectedId, activeElements) : null;
@@ -751,6 +769,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                         onDuplicate={handleDuplicate}
                         onUpdateProps={handleUpdateProps}
                         getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
+                        popupTargets={popupTargets}
                     />
                     ))}
                     

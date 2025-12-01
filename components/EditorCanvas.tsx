@@ -17,6 +17,7 @@ interface EditorCanvasProps {
   parentId?: string;
   getTemplate?: (id: string) => SavedTemplate | undefined;
   isLocked?: boolean; // If true, prevent selection of children and force parent selection
+  popupTargets?: Set<string>; // IDs of elements that are targets of popups
 }
 
 export const EditorCanvas: React.FC<EditorCanvasProps> = ({ 
@@ -29,7 +30,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   onUpdateProps,
   parentId,
   getTemplate,
-  isLocked
+  isLocked,
+  popupTargets
 }) => {
   const [dropPosition, setDropPosition] = useState<'inside' | 'top' | 'bottom' | null>(null);
   const elementRef = useRef<HTMLElement>(null);
@@ -38,6 +40,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   
   const isSelected = selectedId === element.id && !isPreview;
   const isGlobal = element.type === 'global';
+  const isPopupTarget = popupTargets?.has(element.id);
 
   // Position Tracking Logic for Toolbar
   useLayoutEffect(() => {
@@ -209,6 +212,19 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const dropIndicatorClass = dropPosition === 'inside' ? 'ring-2 ring-dashed ring-blue-500 bg-blue-50/50' : '';
   const globalClass = isGlobal ? 'ring-1 ring-amber-300 hover:ring-amber-500' : '';
 
+  // Disable Card hover effects when selected to prevent toolbar jumping
+  const getCardHoverClass = () => {
+    if (isSelected) return '';
+    if (renderedElement.type !== 'card') return '';
+    const { cardHoverEffect } = renderedElement.props;
+    let classes = ' transition-all duration-300';
+    if (cardHoverEffect === 'lift') classes += ' hover:-translate-y-1 hover:shadow-xl';
+    if (cardHoverEffect === 'zoom') classes += ' hover:scale-[1.02] hover:shadow-xl';
+    if (cardHoverEffect === 'glow') classes += ' hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
+    if (cardHoverEffect === 'border') classes += ' hover:border-indigo-500 border border-transparent';
+    return classes;
+  };
+
   const classNameToApply = renderedElement.type === 'button' ? '' : (renderedElement.props.className || '');
   const baseClasses = `${classNameToApply} ${selectionClass} ${dropIndicatorClass} ${globalClass} ${containerClasses} transition-all duration-200`;
 
@@ -298,6 +314,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
                              parentId={isGlobal ? element.id : renderedElement.id} // If Global, parent is the global instance wrapper
                              getTemplate={getTemplate}
                              isLocked={isGlobal || isLocked}
+                             popupTargets={popupTargets}
                          />
                       </div>
                   ))}
@@ -359,6 +376,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
               parentId={isGlobal ? element.id : renderedElement.id} // Maintain hierarchy
               getTemplate={getTemplate}
               isLocked={isGlobal || isLocked}
+              popupTargets={popupTargets}
             />
           ));
       }
@@ -372,21 +390,6 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
           </>
       );
   }
-
-  // Hover effects for Card wrapper
-  const getCardHoverClass = () => {
-    // Disable hover effects when selected to prevent toolbar detachment/hiding
-    if (isSelected) return '';
-
-    if (renderedElement.type !== 'card') return '';
-    const { cardHoverEffect } = renderedElement.props;
-    let classes = ' transition-all duration-300';
-    if (cardHoverEffect === 'lift') classes += ' hover:-translate-y-1 hover:shadow-xl';
-    if (cardHoverEffect === 'zoom') classes += ' hover:scale-[1.02] hover:shadow-xl';
-    if (cardHoverEffect === 'glow') classes += ' hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
-    if (cardHoverEffect === 'border') classes += ' hover:border-indigo-500 border border-transparent';
-    return classes;
-  };
 
   return (
     <Tag 
@@ -412,6 +415,13 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       {/* Locked Overlay to Capture Clicks for Global Elements - Only active in editor */}
       {isLocked && !isPreview && <div className="absolute inset-0 z-10 bg-transparent cursor-pointer" onClick={handleClick}></div>}
       
+      {/* Popup Target Indicator */}
+      {!isPreview && isPopupTarget && (
+        <div className="absolute top-0 right-0 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">
+          POPUP CONTENT
+        </div>
+      )}
+
       {renderBackground()}
       
       <LinkWrapper>
@@ -440,6 +450,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
              )}
              <span className={`flex items-center gap-1 bg-indigo-500 text-white text-xs px-2 font-mono h-full cursor-default ${parentId ? '' : 'rounded-l'}`}>
                 {isGlobal && <Icons.Globe width={12} height={12} />}
+                {isPopupTarget && <span className="bg-pink-600 px-1 rounded-sm text-[8px] mr-1">POPUP</span>}
                 {renderedElement.name}
              </span>
              <button 
