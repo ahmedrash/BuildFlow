@@ -232,7 +232,7 @@ export const exportHtml = (
                     {activePopupId && popupElement && ReactDOM.createPortal(
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
                             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActivePopupId(null)} />
-                            <div className="relative shadow-2xl overflow-hidden w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
+                            <div className="relative shadow-2xl overflow-hidden w-auto max-w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
                                 <button className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors" onClick={() => setActivePopupId(null)}><Icons.X /></button>
                                 {renderElement(popupElement, true)}
                             </div>

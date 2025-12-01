@@ -175,63 +175,20 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
                 />
                 
                 {/* Modal Content */}
-                <div className="relative shadow-2xl overflow-hidden w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
+                <div className="relative shadow-2xl overflow-hidden w-auto max-w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
                     <button 
                         className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors"
                         onClick={() => setActivePopupId(null)}
                     >
                         <Icons.X />
                     </button>
-                    {/* Render the target element inside the modal. 
-                        We must ensure it renders visible even if it's marked hidden in flow. 
-                        The 'renderElement' function uses 'popupTargets' to add 'hidden' class.
-                        Since we are reusing renderElement, we need to bypass that check or use a modified render.
-                        However, the simplest way for this specific case is to just clone the element structure 
-                        and override the className to ensure visibility if we were using 'renderElement'.
-                        
-                        Better: We wrap the content in a div that might override display:none, or we assume 
-                        renderElement logic handles uniqueness.
-                        Problem: renderElement logic adds 'hidden' if ID matches popupTargets.
-                        Fix: We need to render the content *without* the hidden check inside the modal.
-                        
-                        Let's use a specialized renderer for the modal content or pass a flag.
-                        Since we can't easily change the signature of renderElement recursively without prop drilling,
-                        we will manually strip the 'hidden' class via a wrapper or assume the 'modal' context makes it visible.
-                        Actually, renderElement adds `hiddenClass` based on `isHiddenTarget`.
-                        Inside the modal, we are calling `renderElement`? No, we need to call it.
-                        
-                        Let's duplicate the logic slightly or use a hack: 
-                        We can modify the ID of the root element in the modal so it doesn't match the target set?
-                        No, styles/props might rely on ID.
-                        
-                        Alternative: Force display block via style override on the root of the popup.
-                    */}
+                    {/* Render the target element inside the modal. */}
                     <div className="popup-content-wrapper">
-                         {/* We modify the props of the root element to ensure it is visible */}
                          {(() => {
-                             // Clone the element to avoid mutating the original reference
                              const modalEl = { ...activePopupElement };
-                             // We don't change ID, but we need to ensure renderElement doesn't hide it.
-                             // But renderElement checks `popupTargets.has(id)`.
-                             // We can temporarily remove the ID from the set in the context? No, context is global.
-                             
-                             // Solution: Render a custom version of the root element here
-                             // that explicitly renders children using the standard renderElement, 
-                             // effectively bypassing the "hidden" check for the root node.
-                             
-                             const { type, children, props } = modalEl;
-                             // Background logic duplicated from renderElement
-                             // To avoid duplication, we can accept that the root element inside modal 
-                             // will have 'hidden' class, but we force it visible with !important via style.
-                             
                              return (
                                  <div className="!block [&_.hidden]:!block"> 
-                                     {/* 
-                                        The [&_.hidden]:!block is risky if the user intentionally hid internal elements.
-                                        Ideally we only force the root.
-                                     */}
                                      <div style={{ display: 'block !important' }}>
-                                         {/* We actually need to manually render the root tag here to bypass the check */}
                                           <PopupRootRenderer 
                                             element={modalEl} 
                                             renderChild={renderElement} 
