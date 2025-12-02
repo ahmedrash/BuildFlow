@@ -120,8 +120,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
              const containerAlignment = placement === 'left' ? 'mr-auto' : placement === 'right' ? 'ml-auto' : 'mx-auto';
 
              megaMenuContent = (
-                 <div className="absolute top-full left-0 w-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
-                     <div className="bg-white shadow-xl border-t border-gray-100 max-h-[80vh] overflow-y-auto">
+                 <div className="absolute top-full left-0 w-full opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
+                     <div className="max-h-[80vh] overflow-y-auto">
                         <div className={`container ${containerAlignment}`}>
                             <ElementRenderer element={targetElement} isPreview={isPreview} />
                         </div>
