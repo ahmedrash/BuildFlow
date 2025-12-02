@@ -117,9 +117,21 @@ const NavTreeItem: React.FC<{
                             <label className={labelClass}>Target Element ID</label>
                             <input className={inputClass} value={link.targetId || ''} onChange={e => onUpdate({ ...link, targetId: e.target.value })} placeholder="e.g. section-123" />
                             {link.type === 'mega-menu' && (
-                                <p className="text-[10px] text-gray-400 mt-1">
-                                    The element with this ID will be rendered inside the menu.
-                                </p>
+                                <div className="mt-2">
+                                    <label className={labelClass}>Placement</label>
+                                    <select 
+                                        className={inputClass} 
+                                        value={link.megaMenuPlacement || 'center'} 
+                                        onChange={e => onUpdate({ ...link, megaMenuPlacement: e.target.value as any })}
+                                    >
+                                        <option value="left">Left</option>
+                                        <option value="center">Center</option>
+                                        <option value="right">Right</option>
+                                    </select>
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                        The mega menu will span the full width of the navbar. This setting aligns the content container.
+                                    </p>
+                                </div>
                             )}
                         </div>
                     )}
@@ -734,19 +746,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                             </div>
                                         </div>
                                     )}
-
-                                    {/* Rest of the components (Form Elements, Gallery, Testimonial, Map, Slider, Card, etc) 
-                                       are preserved but omitted from this specific XML block for brevity 
-                                       as they were not changed. Assuming they exist in context. 
-                                       Re-adding essential logic below for a complete file replacement context 
-                                       if required by prompt constraints. 
-                                    */}
-
-                                    {/* [Original logic for other elements continues...] */}
-                                    {/* Skipping verbose repetition of unchanged blocks for brevity in diff, 
-                                       but ensuring the file ends correctly. 
-                                       In a real update, I'd include the whole file content. 
-                                       I'll paste the remaining blocks now. */}
 
                                     {/* === INDIVIDUAL FORM ELEMENTS === */}
                                     {(displayElement.type === 'input' || displayElement.type === 'textarea') && (

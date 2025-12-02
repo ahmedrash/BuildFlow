@@ -1,4 +1,5 @@
 
+
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (
@@ -149,10 +150,12 @@ export const exportHtml = (
              if (isMegaMenu && link.targetId) {
                  const targetElement = findElement(link.targetId);
                  if (targetElement) {
+                     const placement = link.megaMenuPlacement || 'center';
+                     const containerAlignment = placement === 'left' ? 'mr-auto' : placement === 'right' ? 'ml-auto' : 'mx-auto';
                      megaMenuContent = (
                          <div className="absolute top-full left-0 w-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
                              <div className="bg-white shadow-xl border-t border-gray-100 max-h-[80vh] overflow-y-auto">
-                                <div className="container mx-auto">
+                                <div className={"container " + containerAlignment}>
                                     <ElementRenderer element={targetElement} />
                                 </div>
                              </div>
@@ -273,7 +276,31 @@ export const exportHtml = (
             const innerStyle = element.props.elementStyle || {};
             const innerClass = element.props.elementClassName || '';
 
+            const renderBackground = () => {
+                if (!['section', 'container', 'columns'].includes(element.type)) return null;
+                const { backgroundImage, backgroundVideo, parallax } = element.props || {};
+                const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = element.props.style || {};
+                const finalBgImage = styleBgImage || backgroundImage;
+                const finalBgVideo = styleBgVideo || backgroundVideo;
+                if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
+                if (finalBgImage) {
+                    const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
+                    return <div className={"absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none " + (parallax ? 'bg-fixed' : '')} style={{ backgroundImage: 'url(' + url + ')' }} />;
+                }
+                return null;
+            };
+
             switch (element.type) {
+                case 'section':
+                case 'container':
+                case 'columns':
+                    return (
+                        <div id={element.id} className={(element.props.className || '') + ' relative'} style={element.props.style}>
+                            {renderBackground()}
+                            {element.children?.map(child => <ElementRenderer key={child.id} element={child} />)}
+                        </div>
+                    );
+
                 case 'text': return <div style={innerStyle} className={innerClass}>{element.props.content}</div>;
                 case 'heading': { const Tag = 'h' + (element.props.level || 2); return <Tag style={innerStyle} className={innerClass}>{element.props.content}</Tag>; }
                 case 'image': return <img src={element.props.src} alt={element.props.alt} className={"w-full " + innerClass} style={{ borderRadius: element.props.style?.borderRadius, objectFit: element.props.imageObjectFit || 'cover', height: element.props.imageHeight || 'auto', ...innerStyle }} />;
@@ -300,7 +327,11 @@ export const exportHtml = (
                 case 'select': return <div className="w-full">{element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}<select name={element.props.fieldName} required={element.props.fieldRequired} defaultValue={element.props.fieldDefaultValue || ""} multiple={element.props.fieldMultiple} className={"w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 rounded-md bg-white " + innerClass} style={innerStyle}>{!element.props.fieldMultiple && <option value="" disabled>Select an option...</option>}{element.props.fieldOptions?.map((opt, i) => <option key={i} value={opt.value}>{opt.label}</option>)}</select></div>;
                 case 'radio': return <div className="flex items-center gap-2"><input type="radio" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} defaultChecked={element.props.checked} required={element.props.fieldRequired} className={"text-indigo-600 focus:ring-indigo-500 h-4 w-4 " + innerClass} style={innerStyle} />{element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}</div>;
                 case 'checkbox': return <div className="flex items-center gap-2"><input type="checkbox" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} defaultChecked={element.props.checked} required={element.props.fieldRequired} className={"text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded border-gray-300 " + innerClass} style={innerStyle} />{element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}</div>;
-                case 'form': return <form className="space-y-4 p-4 border border-gray-200 rounded bg-white w-full">{element.props.formFields?.map((field, i) => (<div key={i} className="flex flex-col gap-1"><label className="text-sm font-medium text-gray-700">{field.label}</label><input type={field.type} className="w-full border-gray-300 shadow-sm p-2 border rounded" placeholder={field.placeholder} /></div>))}{element.props.formEnableRecaptcha && (<div className="flex justify-end">{recaptchaSiteKey ? (<div className="g-recaptcha" data-sitekey={recaptchaSiteKey}></div>) : (<div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-700">reCAPTCHA (Dev Mode)</div>)}</div>)}<button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 w-full sm:w-auto">{element.props.formSubmitButtonText}</button></form>;
+                case 'form': 
+                    if (element.children && element.children.length > 0) {
+                        return <form className={(element.props.className || '') + " relative"} style={element.props.style}>{element.children.map(child => <ElementRenderer key={child.id} element={child} />)}</form>;
+                    }
+                    return <form className="space-y-4 p-4 border border-gray-200 rounded bg-white w-full">{element.props.formFields?.map((field, i) => (<div key={i} className="flex flex-col gap-1"><label className="text-sm font-medium text-gray-700">{field.label}</label><input type={field.type} className="w-full border-gray-300 shadow-sm p-2 border rounded" placeholder={field.placeholder} /></div>))}{element.props.formEnableRecaptcha && (<div className="flex justify-end">{recaptchaSiteKey ? (<div className="g-recaptcha" data-sitekey={recaptchaSiteKey}></div>) : (<div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-700">reCAPTCHA (Dev Mode)</div>)}</div>)}<button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 w-full sm:w-auto">{element.props.formSubmitButtonText}</button></form>;
                 case 'logo': {
                     const logoType = element.props.logoType || 'text';
                     const logoHref = element.props.href;
@@ -381,7 +412,19 @@ export const exportHtml = (
                 case 'map': { const address = element.props.address || 'San Francisco'; const zoom = element.props.zoom || 13; const mapType = element.props.mapType || 'roadmap'; if (!googleMapsApiKey) return (<div className="w-full h-64 bg-gray-100 rounded overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-gray-300 text-gray-500 gap-2"><Icons.Map width={32} height={32} className="opacity-50" /><div className="font-bold text-sm">Development Mode: Map</div><div className="text-xs text-center px-4">Address: {address}<br/>Zoom: {zoom} | Type: {mapType}</div></div>); return (<div className={"w-full h-64 bg-gray-100 rounded overflow-hidden " + innerClass} style={innerStyle}><iframe width="100%" height="100%" frameBorder="0" scrolling="no" marginHeight="0" marginWidth="0" src={"https://www.google.com/maps/embed/v1/place?key=" + googleMapsApiKey + "&q=" + encodeURIComponent(address) + "&zoom=" + zoom + "&maptype=" + mapType}></iframe></div>); }
                 case 'gallery': { const layout = element.props.galleryLayout || 'grid'; const cols = element.props.galleryColumnCount || 3; const gap = element.props.galleryGap || '1rem'; const images = element.props.galleryImages || []; const gapStyle = { gap, ...innerStyle }; if (layout === 'masonry') return (<div className={'space-y-4 columns-' + cols + ' ' + innerClass} style={{ columnGap: gap, ...gapStyle }}>{images.map(img => <div key={img.id} className="break-inside-avoid mb-4"><img src={img.src} alt={img.alt} className="w-full rounded block" /></div>)}</div>); if (layout === 'flex') return <div className={"flex flex-wrap " + innerClass} style={gapStyle}>{images.map(img => <div key={img.id} className="flex-grow basis-64 min-w-[200px] relative"><img src={img.src} alt={img.alt} className="w-full h-full rounded object-cover" /></div>)}</div>; return (<div className={'grid grid-cols-' + cols + ' ' + innerClass} style={gapStyle}>{images.map(img => <div key={img.id} className={'relative overflow-hidden rounded ' + (element.props.galleryAspectRatio || 'aspect-square')}><img src={img.src} alt={img.alt} className={"w-full h-full block object-" + (element.props.galleryObjectFit || 'cover')} /></div>)}</div>); }
                 case 'testimonial': { const { testimonialItems = [], testimonialLayout = 'grid', testimonialAvatarSize = 'md', testimonialAvatarShape = 'circle', testimonialBubbleColor = '#f9fafb' } = element.props; const sizeClass = { 'sm': 'w-8 h-8', 'md': 'w-12 h-12', 'lg': 'w-16 h-16', 'xl': 'w-24 h-24' }[testimonialAvatarSize] || 'w-12 h-12'; const shapeClass = { 'circle': 'rounded-full', 'rounded': 'rounded-lg', 'square': 'rounded-none' }[testimonialAvatarShape] || 'rounded-full'; if (testimonialLayout === 'slider') return <TestimonialSlider items={testimonialItems} avatarSize={sizeClass} avatarShape={shapeClass} bubbleColor={testimonialBubbleColor} />; return (<div className={"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 " + innerClass} style={innerStyle}>{testimonialItems.map(item => (<div key={item.id} className="flex flex-col h-full"><div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}><div className="absolute top-full left-8 -mt-2 border-8 border-transparent" style={{ borderTopColor: testimonialBubbleColor }}></div><p className="text-gray-700 italic relative z-10">"{item.content}"</p></div><div className="flex items-center gap-3 px-2">{item.avatarSrc && <img src={item.avatarSrc} className={sizeClass + ' ' + shapeClass + ' object-cover bg-gray-200 border border-white shadow-sm'} />}<div><h4 className="font-bold text-sm text-gray-900">{item.author}</h4><p className="text-xs text-gray-500">{item.role}</p><div className="flex text-yellow-400 text-xs mt-0.5">{[...Array(5)].map((_, i) => (<span key={i} className={i < item.rating ? 'opacity-100' : 'opacity-30'}>★</span>))}</div></div></div></div>))}</div>); }
-                case 'card': { if (!element.children || element.children.length === 0) { const { cardImageType = 'image', cardIcon, cardLayout = 'vertical', cardTitle = 'Card Title', cardText = 'Text', cardButtonText = 'Read', src = 'https://via.placeholder.com/400x200' } = element.props; const isHorizontal = cardLayout === 'horizontal'; return (<div className={'bg-white rounded-lg shadow-md overflow-hidden h-full flex transition-all hover:shadow-lg ' + (isHorizontal ? 'flex-row' : 'flex-col')}><div className={(isHorizontal ? 'w-1/3 min-w-[120px]' : 'w-full h-48') + ' bg-gray-100 flex items-center justify-center overflow-hidden shrink-0'}>{cardImageType === 'image' ? <img src={src} className="w-full h-full object-cover" /> : <div className="text-indigo-600 text-4xl">★</div>}</div><div className="p-5 flex-1 flex flex-col"><h3 className="text-xl font-bold mb-2">{cardTitle}</h3><p className="text-gray-600 mb-4 flex-1">{cardText}</p><span className="text-indigo-600 font-medium text-sm flex items-center gap-1">{cardButtonText} →</span></div></div>); } if (element.props.cardBadge) return (<div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm pointer-events-none">{element.props.cardBadge}</div>); return null; }
+                case 'card': { if (!element.children || element.children.length === 0) { const { cardImageType = 'image', cardIcon, cardLayout = 'vertical', cardTitle = 'Card Title', cardText = 'Text', cardButtonText = 'Read', src = 'https://via.placeholder.com/400x200' } = element.props; const isHorizontal = cardLayout === 'horizontal'; return (<div className={'bg-white rounded-lg shadow-md overflow-hidden h-full flex transition-all hover:shadow-lg ' + (isHorizontal ? 'flex-row' : 'flex-col')}><div className={(isHorizontal ? 'w-1/3 min-w-[120px]' : 'w-full h-48') + ' bg-gray-100 flex items-center justify-center overflow-hidden shrink-0'}>{cardImageType === 'image' ? <img src={src} className="w-full h-full object-cover" /> : <div className="text-indigo-600 text-4xl">★</div>}</div><div className="p-5 flex-1 flex flex-col"><h3 className="text-xl font-bold mb-2">{cardTitle}</h3><p className="text-gray-600 mb-4 flex-1">{cardText}</p><span className="text-indigo-600 font-medium text-sm flex items-center gap-1">{cardButtonText} →</span></div></div>); } if (element.props.cardBadge) return (<div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm pointer-events-none">{element.props.cardBadge}</div>); return <div className={(element.props.className || '') + " relative"} style={element.props.style}>{element.children.map(child => <ElementRenderer key={child.id} element={child} />)}</div>; }
+                case 'slider': {
+                     return (
+                        <div className={(element.props.className || '') + " relative"} style={element.props.style}>
+                            {renderBackground()}
+                            {element.children?.map((child, i) => (
+                                <div key={child.id} className={i === 0 ? 'relative' : 'hidden'}>
+                                    <ElementRenderer element={child} />
+                                </div>
+                            ))}
+                        </div>
+                    );
+                }
                 case 'customCode': return <div className={"min-h-[50px] " + innerClass} style={innerStyle} dangerouslySetInnerHTML={{ __html: element.props.code }} />;
                 default: return null;
             }
@@ -549,4 +592,4 @@ export const exportHtml = (
     </script>
 </body>
 </html>`;
-};
+}

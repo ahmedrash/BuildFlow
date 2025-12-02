@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';
@@ -665,7 +664,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     showToast("Website exported to index.html");
   };
   
-  // Calculate Popup Targets
+  // Compute Popup Targets (Buttons & Standard Popup Links)
   const popupTargets = useMemo(() => {
     const targets = new Set<string>();
     const scan = (els: PageElement[]) => {
@@ -674,11 +673,11 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
              if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) {
                  targets.add(el.props.popupTargetId);
              }
-             // Nav Link Triggers (Popup & Mega Menu)
+             // Nav Link Triggers (Standard Popup)
              if (el.type === 'navbar' && el.props.navLinks) {
                  const scanLinks = (links: any[]) => {
                      links.forEach(l => {
-                         if ((l.type === 'popup' || l.type === 'mega-menu') && l.targetId) {
+                         if (l.type === 'popup' && l.targetId) {
                              targets.add(l.targetId);
                          }
                          if (l.children) scanLinks(l.children);
@@ -694,6 +693,36 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     return targets;
   }, [elements, editingTemplateId, savedTemplates]);
 
+  // Compute Mega Menu Targets
+  const megaMenuTargets = useMemo(() => {
+    const targets = new Set<string>();
+    const scan = (els: PageElement[]) => {
+        els.forEach(el => {
+             if (el.type === 'navbar' && el.props.navLinks) {
+                 const scanLinks = (links: any[]) => {
+                     links.forEach(l => {
+                         if (l.type === 'mega-menu' && l.targetId) {
+                             targets.add(l.targetId);
+                         }
+                         if (l.children) scanLinks(l.children);
+                     });
+                 }
+                 scanLinks(el.props.navLinks);
+             }
+             if (el.children) scan(el.children);
+        });
+    };
+    scan(getActiveElements());
+    return targets;
+  }, [elements, editingTemplateId, savedTemplates]);
+
+  // Combined Hidden Targets
+  const hiddenTargets = useMemo(() => {
+     const combined = new Set(popupTargets);
+     megaMenuTargets.forEach(t => combined.add(t));
+     return combined;
+  }, [popupTargets, megaMenuTargets]);
+
   const openPopup = (id: string) => {
       // Only open popups in preview mode or if we want to test
       if (isPreview) setActivePopupId(id);
@@ -704,7 +733,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
 
   return (
     <EditorConfigContext.Provider value={{ googleMapsApiKey, recaptchaSiteKey }}>
-        <PopupContext.Provider value={{ openPopup, popupTargets }}>
+        <PopupContext.Provider value={{ openPopup, popupTargets: hiddenTargets }}>
             <PageContext.Provider value={{ findElement: findElementInActive }}>
             <div className="flex flex-col h-full bg-white font-sans text-slate-900">
             
@@ -791,6 +820,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                                 onUpdateProps={handleUpdateProps}
                                 getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
                                 popupTargets={popupTargets}
+                                megaMenuTargets={megaMenuTargets}
                             />
                         ))}
                         
@@ -828,7 +858,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                                                     onDuplicate={() => {}}
                                                     onUpdateProps={() => {}}
                                                     getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
-                                                    popupTargets={popupTargets}
+                                                    popupTargets={hiddenTargets}
                                                     isPopupContent={true} // Force visibility
                                                 />
                                             )

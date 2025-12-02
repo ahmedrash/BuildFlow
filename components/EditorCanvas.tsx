@@ -1,5 +1,4 @@
 
-
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -17,7 +16,8 @@ interface EditorCanvasProps {
   parentId?: string;
   getTemplate?: (id: string) => SavedTemplate | undefined;
   isLocked?: boolean; 
-  popupTargets?: Set<string>; 
+  popupTargets?: Set<string>;
+  megaMenuTargets?: Set<string>;
   isPopupContent?: boolean;
 }
 
@@ -33,6 +33,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   getTemplate,
   isLocked,
   popupTargets,
+  megaMenuTargets,
   isPopupContent
 }) => {
   const [dropPosition, setDropPosition] = useState<'inside' | 'top' | 'bottom' | null>(null);
@@ -43,20 +44,26 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const isSelected = selectedId === element.id && !isPreview;
   const isGlobal = element.type === 'global';
   const isPopupTarget = popupTargets?.has(element.id);
+  const isMegaMenuTarget = megaMenuTargets?.has(element.id);
+  
+  // An element is "hidden" from flow if it's a popup target OR a mega menu target
+  // UNLESS we are explicitly rendering it as content (isPopupContent)
+  const isTargetHidden = (isPopupTarget || isMegaMenuTarget) && !isPopupContent;
+  
   const isHidden = element.props.isHidden;
 
   // Hiding logic:
   // 1. If hidden prop is true:
   //    - In Preview: Completely hide (display: none via 'hidden' class)
   //    - In Editor: Show with opacity (so it can be edited)
-  // 2. If is popup target:
-  //    - In Preview: Hide unless it is actively being shown in popup modal
+  // 2. If is target (popup/mega):
+  //    - In Preview: Hide unless it is actively being shown
   let shouldHideClass = '';
   
   if (isHidden) {
       if (isPreview) shouldHideClass = 'hidden';
       else shouldHideClass = 'opacity-40 grayscale filter border border-dashed border-gray-300';
-  } else if (isPreview && isPopupTarget && !isPopupContent) {
+  } else if (isPreview && isTargetHidden) {
       shouldHideClass = 'hidden';
   }
 
@@ -283,7 +290,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
               <>
                   {renderedElement.children.map((child, index) => (
                       <div key={child.id} className={`w-full h-full top-0 left-0 transition-opacity duration-500 ease-in-out ${index === activeIndex ? 'relative opacity-100 z-10' : 'absolute opacity-0 -z-10 pointer-events-none'}`}>
-                         <EditorCanvas element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} />
+                         <EditorCanvas element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} megaMenuTargets={megaMenuTargets} />
                       </div>
                   ))}
                   {renderedElement.children.length > 1 && (
@@ -304,7 +311,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       }
       if (renderedElement.children && renderedElement.children.length > 0) {
           return renderedElement.children.map(child => (
-            <EditorCanvas key={child.id} element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} />
+            <EditorCanvas key={child.id} element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} megaMenuTargets={megaMenuTargets} />
           ));
       }
       return (
@@ -334,7 +341,9 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       {dropPosition === 'bottom' && <div className="absolute bottom-0 left-0 w-full h-1 bg-blue-500 z-50 pointer-events-none" />}
       {isLocked && !isPreview && <div className="absolute inset-0 z-10 bg-transparent cursor-pointer" onClick={handleClick}></div>}
       
-      {!isPreview && isPopupTarget && <div className="absolute top-0 right-0 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">POPUP CONTENT</div>}
+      {!isPreview && isPopupTarget && !isMegaMenuTarget && <div className="absolute top-0 right-0 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">POPUP CONTENT</div>}
+      {!isPreview && isMegaMenuTarget && <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">MEGA MENU CONTENT</div>}
+
       {!isPreview && isHidden && <div className="absolute top-0 left-0 bg-gray-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-br pointer-events-none"><Icons.EyeOff width={10} height={10} className="inline mr-1"/>HIDDEN</div>}
 
       {renderBackground()}

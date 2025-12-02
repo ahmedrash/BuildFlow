@@ -94,6 +94,7 @@ export interface NavLinkItem {
     target?: '_self' | '_blank';
     type?: 'link' | 'dropdown' | 'popup' | 'mega-menu';
     targetId?: string; // For popup or mega-menu
+    megaMenuPlacement?: 'left' | 'center' | 'right'; // New
     triggerType?: 'click' | 'hover'; // For mega-menu
     children?: NavLinkItem[];
 }
