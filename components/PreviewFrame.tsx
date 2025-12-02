@@ -72,6 +72,7 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                 const styleEl = doc.createElement('style');
                 styleEl.id = 'base-styles';
                 styleEl.innerHTML = `
+                    html { scroll-behavior: smooth; }
                     body { font-family: 'Inter', sans-serif; background-color: white; overflow-x: hidden; }
                     /* Custom scrollbar for webkit */
                     ::-webkit-scrollbar { width: 6px; height: 6px; }
