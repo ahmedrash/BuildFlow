@@ -129,6 +129,19 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                       const isAnchor = href && href.startsWith('#');
                       const isNewTab = target === '_blank';
 
+                      if (isAnchor) {
+                          e.preventDefault();
+                          const id = href.substring(1);
+                          const doc = (e.target as HTMLElement).ownerDocument;
+                          if (!id) {
+                              doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+                          } else {
+                              const el = doc.getElementById(id);
+                              if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          }
+                          return;
+                      }
+
                       // In preview: disable if empty OR (opens in same tab AND not anchor)
                       // We allow anchors (like #features) to work in preview as they don't reload page
                       if (isEmpty || (!isNewTab && !isAnchor)) {
@@ -582,9 +595,24 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                        e.preventDefault();
                                        return;
                                    }
-                                   // Prevent navigation in editor
+                                   
                                    const isEmpty = !link.href || link.href === '#';
                                    const isAnchor = link.href && link.href.startsWith('#');
+
+                                   if (isAnchor) {
+                                       e.preventDefault();
+                                       const id = link.href.substring(1);
+                                       const doc = (e.target as HTMLElement).ownerDocument;
+                                       if (!id) {
+                                           doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+                                       } else {
+                                           const el = doc.getElementById(id);
+                                           if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                       }
+                                       return;
+                                   }
+
+                                   // Prevent navigation in editor
                                    if (isEmpty || !isAnchor) {
                                        e.preventDefault();
                                    }
@@ -619,6 +647,17 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                            setIsMenuOpen(false);
                                            return;
                                        }
+
+                                       if (isAnchor) {
+                                           e.preventDefault();
+                                           const id = link.href.substring(1);
+                                           const doc = (e.target as HTMLElement).ownerDocument;
+                                           if (!id) doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+                                           else doc.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+                                           setIsMenuOpen(false);
+                                           return;
+                                       }
+
                                        if (isEmpty || !isAnchor) e.preventDefault();
                                        setIsMenuOpen(false);
                                    }}
@@ -656,6 +695,17 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                                setIsMenuOpen(false);
                                                return;
                                            }
+
+                                           if (isAnchor) {
+                                               e.preventDefault();
+                                               const id = link.href.substring(1);
+                                               const doc = (e.target as HTMLElement).ownerDocument;
+                                               if (!id) doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+                                               else doc.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+                                               setIsMenuOpen(false);
+                                               return;
+                                           }
+
                                            if (isEmpty || !isAnchor) e.preventDefault();
                                            setIsMenuOpen(false);
                                        }}

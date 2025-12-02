@@ -62,8 +62,6 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
     const { type, children, id, props } = renderedElement;
     
     // Popup Hiding Logic
-    // If this element is a popup target AND it is not the currently active popup being rendered in the modal
-    // Then hide it from the normal flow.
     const isTarget = popupTargets.has(id);
     const isHiddenTarget = isTarget && isPreview; // Only hide in preview/render mode
     
@@ -103,7 +101,8 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         return null;
     };
 
-    const containerClasses = ['section', 'container', 'columns', 'navbar', 'slider', 'card'].includes(type) 
+    // Only clip Slider and Card to allow Dropdowns (in Navbar/Section) to overflow
+    const containerClasses = ['slider', 'card'].includes(type) 
         ? 'relative overflow-hidden' 
         : 'relative';
 
@@ -226,7 +225,8 @@ const PopupRootRenderer: React.FC<{ element: PageElement, renderChild: (el: Page
         return null;
     };
 
-    const containerClasses = ['section', 'container', 'columns', 'navbar', 'slider', 'card'].includes(type) ? 'relative overflow-hidden' : 'relative';
+    // Keep strict clipping only for elements that absolutely require it for effects
+    const containerClasses = ['slider', 'card'].includes(type) ? 'relative overflow-hidden' : 'relative';
     const classNameToApply = type === 'button' ? '' : (props.className || '');
 
     return (

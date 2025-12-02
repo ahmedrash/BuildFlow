@@ -201,7 +201,7 @@ export const exportHtml = (
                 if (popupTargets.has(id) && !isPopupContent) return null;
 
                 const Tag = type === 'section' ? 'section' : type === 'form' ? 'form' : 'div';
-                const containerClasses = ['section', 'container', 'columns', 'navbar', 'slider', 'card', 'form'].includes(type) ? 'relative overflow-hidden' : 'relative';
+                const containerClasses = ['slider', 'card'].includes(type) ? 'relative overflow-hidden' : 'relative';
                 const bgStyle = {};
                 if(props.style?.backgroundColor) bgStyle.backgroundColor = props.style.backgroundColor;
                 if(type === 'slider' && children) return <SliderRenderer key={id} element={renderedElement} renderChild={renderElement} className={containerClasses + ' ' + (props.className || '')} style={props.style} />;

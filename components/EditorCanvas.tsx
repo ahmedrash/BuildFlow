@@ -94,7 +94,26 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   }, [isSelected, element.props.style, element.children?.length, element.props.className]); 
 
   const handleClick = (e: MouseEvent) => {
-    if (isPreview) return;
+    if (isPreview) {
+        // Handle anchor scrolling in preview
+        const target = e.target as HTMLElement;
+        const link = target.closest('a');
+        if (link) {
+            const href = link.getAttribute('href');
+            if (href && href.startsWith('#')) {
+                e.preventDefault();
+                const id = href.substring(1);
+                const doc = target.ownerDocument;
+                if (!id) {
+                     doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                     const el = doc.getElementById(id);
+                     if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        }
+        return;
+    }
     e.stopPropagation();
     if (isLocked && parentId) {
         onSelect(parentId, e); 
@@ -179,7 +198,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   }
 
   const commonStyle = { ...renderedElement.props.style };
-  const shouldClip = ['section', 'container', 'slider', 'card'].includes(renderedElement.type);
+  // Only clip Slider and Card to allow Dropdowns (in Navbar/Section) to overflow
+  const shouldClip = ['slider', 'card'].includes(renderedElement.type);
   const containerClasses = shouldClip ? 'relative overflow-hidden' : 'relative';
   const selectionClass = isSelected 
     ? 'ring-2 ring-indigo-500 ring-offset-2 z-[100] cursor-pointer' 
@@ -234,8 +254,22 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
             }
             // In Preview: Disable if empty or not anchor (since cards assume _self)
             const href = renderedElement.props.cardLink;
-            const isEmpty = !href || href === '#';
             const isAnchor = href && href.startsWith('#');
+            
+            if (isAnchor) {
+                e.preventDefault();
+                const id = href.substring(1);
+                const doc = (e.target as HTMLElement).ownerDocument;
+                if (!id) {
+                     doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                     const el = doc.getElementById(id);
+                     if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }
+                return;
+            }
+
+            const isEmpty = !href || href === '#';
             if (isEmpty || !isAnchor) e.preventDefault();
         }}>{children}</a>;
     }
