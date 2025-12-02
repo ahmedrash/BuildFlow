@@ -222,8 +222,13 @@ export interface PageElement {
     sliderActiveIndex?: number;
     sliderShowPagination?: boolean;
 
+    // Styles
     style?: ElementStyle;
     className?: string;
+    
+    // Inner Element Styles (Split Design)
+    elementStyle?: ElementStyle;
+    elementClassName?: string;
   };
   children?: PageElement[];
 }

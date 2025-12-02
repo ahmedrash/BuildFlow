@@ -77,24 +77,30 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
   const pointerClass = !isPreview ? 'pointer-events-none' : '';
   const formFieldClass = "w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 rounded-md bg-white";
 
+  // Inner styles from Element Tab
+  const innerStyle = element.props.elementStyle || {};
+  const innerClass = element.props.elementClassName || '';
+
   switch (element.type) {
     case 'text':
-      return <>{element.props.content}</>;
+      // Wrapped in a div to accept styles
+      return <div style={innerStyle} className={innerClass}>{element.props.content}</div>;
 
     case 'heading':
       const Tag = (`h${element.props.level || 2}`) as React.ElementType;
-      return <Tag>{element.props.content || 'Heading'}</Tag>;
+      return <Tag style={innerStyle} className={innerClass}>{element.props.content || 'Heading'}</Tag>;
 
     case 'image':
       return (
         <img 
           src={element.props.src || 'https://via.placeholder.com/300'} 
           alt={element.props.alt || 'Placeholder'} 
-          className={`w-full ${pointerClass}`}
+          className={`w-full ${pointerClass} ${innerClass}`}
           style={{ 
-              borderRadius: element.props.style?.borderRadius,
+              borderRadius: element.props.style?.borderRadius, // Fallback/Merge if needed, but usually innerStyle handles it
               objectFit: (element.props.imageObjectFit || 'cover') as any,
-              height: element.props.imageHeight || 'auto'
+              height: element.props.imageHeight || 'auto',
+              ...innerStyle 
           }}
         />
       );
@@ -110,8 +116,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                <a 
                   href={href || '#'}
                   target={target}
-                  className={`px-4 py-2 rounded transition inline-block ${pointerClass} ${customClass}`}
-                  style={element.props.style}
+                  className={`px-4 py-2 rounded transition inline-block ${pointerClass} ${customClass} ${innerClass}`}
+                  style={{...element.props.style, ...innerStyle}}
                   onClick={(e) => {
                       // Prevent navigation in editor
                       if (!isPreview) {
@@ -140,8 +146,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
           return (
             <button 
                 type="button"
-                className={`px-4 py-2 rounded transition ${pointerClass} ${customClass}`}
-                style={element.props.style}
+                className={`px-4 py-2 rounded transition ${pointerClass} ${customClass} ${innerClass}`}
+                style={{...element.props.style, ...innerStyle}}
                 onClick={(e) => {
                     if (!isPreview) e.preventDefault();
                     if (element.props.popupTargetId) {
@@ -157,8 +163,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       return (
         <button 
           type={action === 'submit' ? 'submit' : 'button'}
-          className={`px-4 py-2 rounded transition ${pointerClass} ${customClass}`}
-          style={element.props.style}
+          className={`px-4 py-2 rounded transition ${pointerClass} ${customClass} ${innerClass}`}
+          style={{...element.props.style, ...innerStyle}}
         >
           {element.props.content || 'Button'}
         </button>
@@ -176,7 +182,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                     placeholder={element.props.fieldPlaceholder}
                     required={element.props.fieldRequired}
                     defaultValue={element.props.fieldDefaultValue}
-                    className={`${formFieldClass} ${pointerClass}`}
+                    className={`${formFieldClass} ${pointerClass} ${innerClass}`}
+                    style={innerStyle}
                     disabled={!isPreview}
                 />
             </div>
@@ -192,7 +199,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                     required={element.props.fieldRequired}
                     defaultValue={element.props.fieldDefaultValue}
                     rows={element.props.fieldRows || 4}
-                    className={`${formFieldClass} ${pointerClass}`}
+                    className={`${formFieldClass} ${pointerClass} ${innerClass}`}
+                    style={innerStyle}
                     disabled={!isPreview}
                 />
             </div>
@@ -207,7 +215,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                     required={element.props.fieldRequired}
                     defaultValue={element.props.fieldDefaultValue || ""}
                     multiple={element.props.fieldMultiple}
-                    className={`${formFieldClass} ${pointerClass}`}
+                    className={`${formFieldClass} ${pointerClass} ${innerClass}`}
+                    style={innerStyle}
                     disabled={!isPreview}
                 >
                     {!element.props.fieldMultiple && <option value="" disabled>Select an option...</option>}
@@ -228,7 +237,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                     value={element.props.fieldValue}
                     defaultChecked={element.props.checked}
                     required={element.props.fieldRequired}
-                    className={`text-indigo-600 focus:ring-indigo-500 h-4 w-4 ${pointerClass}`}
+                    className={`text-indigo-600 focus:ring-indigo-500 h-4 w-4 ${pointerClass} ${innerClass}`}
+                    style={innerStyle}
                     disabled={!isPreview}
                 />
                 {element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
@@ -245,7 +255,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                     value={element.props.fieldValue}
                     required={element.props.fieldRequired}
                     defaultChecked={element.props.checked}
-                    className={`text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded border-gray-300 ${pointerClass}`}
+                    className={`text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded border-gray-300 ${pointerClass} ${innerClass}`}
+                    style={innerStyle}
                     disabled={!isPreview}
                 />
                 {element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
@@ -262,7 +273,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
           : videoSrc;
 
       return (
-        <div className="aspect-video w-full bg-black rounded overflow-hidden relative">
+        <div className={`aspect-video w-full bg-black rounded overflow-hidden relative ${innerClass}`} style={innerStyle}>
           <iframe 
               src={embedUrl} 
               className={`w-full h-full ${pointerClass}`}
@@ -283,7 +294,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       const itemSpacing = element.props.itemSpacing || '0';
       
       return (
-        <ListTag className="pl-5" style={{ listStyleType: listStyle }}>
+        <ListTag className={`pl-5 ${innerClass}`} style={{ listStyleType: listStyle, ...innerStyle }}>
           {(element.props.items || ['Item 1', 'Item 2', 'Item 3']).map((item, i, arr) => (
             <li key={i} style={{ marginBottom: i === arr.length - 1 ? 0 : itemSpacing }}>
                 {item}
@@ -314,7 +325,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       }
 
       return (
-          <div className="w-full h-64 bg-gray-100 rounded overflow-hidden relative">
+          <div className={`w-full h-64 bg-gray-100 rounded overflow-hidden relative ${innerClass}`} style={innerStyle}>
               <iframe 
                   width="100%" 
                   height="100%" 
@@ -332,7 +343,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
     case 'customCode':
       return (
         <div 
-           className="min-h-[50px]"
+           className={`min-h-[50px] ${innerClass}`}
+           style={innerStyle}
            dangerouslySetInnerHTML={{ __html: element.props.code || '<div class="text-gray-400 p-2 border border-dashed">Custom Code Block</div>' }} 
         />
       );
@@ -356,7 +368,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
         };
 
         return (
-            <div className={`space-y-4 w-full ${pointerClass}`}>
+            <div className={`space-y-4 w-full ${pointerClass} ${innerClass}`} style={innerStyle}>
             {fields.map((field, i) => (
                 <div key={i} className={`flex ${isHorizontal ? 'items-center gap-4' : 'flex-col gap-1'}`}>
                 {field.type !== 'checkbox' && (
@@ -455,12 +467,12 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
         6: 'columns-6'
     };
 
-      const gapStyle = { gap: galleryGap };
+      const gapStyle = { gap: galleryGap, ...innerStyle };
       const commonImgClass = `w-full h-full rounded ${pointerClass} object-${galleryObjectFit} block`;
       
       if (galleryLayout === 'masonry') {
          return (
-             <div className={`${masonryCols[galleryColumnCount] || 'columns-3'} space-y-4`} style={{ columnGap: galleryGap }}>
+             <div className={`${masonryCols[galleryColumnCount] || 'columns-3'} space-y-4 ${innerClass}`} style={{ ...gapStyle, columnGap: galleryGap }}>
                  {galleryImages.map(img => (
                      <div key={img.id} className="break-inside-avoid mb-4">
                          <img 
@@ -477,7 +489,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       
       if (galleryLayout === 'flex') {
           return (
-              <div className="flex flex-wrap" style={gapStyle}>
+              <div className={`flex flex-wrap ${innerClass}`} style={gapStyle}>
                    {galleryImages.map(img => (
                      <div key={img.id} className={`flex-grow basis-64 min-w-[200px] ${galleryAspectRatio === 'auto' ? '' : galleryAspectRatio} relative`}>
                          <img 
@@ -492,7 +504,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       }
 
       return (
-        <div className={`grid ${gridCols[galleryColumnCount] || 'grid-cols-3'}`} style={gapStyle}>
+        <div className={`grid ${gridCols[galleryColumnCount] || 'grid-cols-3'} ${innerClass}`} style={gapStyle}>
           {galleryImages.map(img => (
              <div key={img.id} className={`relative overflow-hidden rounded ${galleryAspectRatio}`}>
                   <img 
@@ -526,13 +538,13 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
        const breakpointClass = mobileMenuBreakpoint === 'none' ? 'flex' : `hidden ${mobileMenuBreakpoint}:flex`;
        const mobileToggleClass = mobileMenuBreakpoint === 'none' ? 'hidden' : `flex ${mobileMenuBreakpoint}:hidden`;
        
-       const navClasses = `flex w-full p-4 bg-white transition-all duration-300 relative ${isVertical ? 'flex-col space-y-4 items-start h-full' : 'flex-row justify-between items-center'} ${isSticky ? 'sticky top-0 z-50 shadow-sm' : ''}`;
+       const navClasses = `flex w-full p-4 bg-white transition-all duration-300 relative ${isVertical ? 'flex-col space-y-4 items-start h-full' : 'flex-row justify-between items-center'} ${isSticky ? 'sticky top-0 z-50 shadow-sm' : ''} ${innerClass}`;
        
        const linkStyle = { color: linkColor || 'inherit' };
        const activeStyle = activeLinkColor ? { '--active-color': activeLinkColor } as React.CSSProperties : {};
 
        return (
-           <nav className={navClasses} style={activeStyle}>
+           <nav className={navClasses} style={{...activeStyle, ...innerStyle}}>
                <div className={`font-bold text-lg ${pointerClass} flex items-center justify-between w-full ${isVertical ? '' : 'md:w-auto'}`}>
                    {logoType === 'image' && logoSrc ? (
                        <img 
@@ -687,7 +699,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
 
        // Grid layout
        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 ${innerClass}`} style={innerStyle}>
                 {testimonialItems.map(item => (
                     <div key={item.id} className="flex flex-col h-full">
                          <div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}>
