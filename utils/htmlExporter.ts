@@ -61,6 +61,7 @@ export const exportHtml = (
 
         // Context
         const PopupContext = React.createContext({ openPopup: () => {}, popupTargets: new Set() });
+        const PageContext = React.createContext({ findElement: (id) => null });
 
         // Icons
         const Icons = {
@@ -75,6 +76,8 @@ export const exportHtml = (
              X: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
              Map: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
              Plus: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+             Grid: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+             Dots: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
         };
 
         const TestimonialSlider = ({ items, avatarSize, avatarShape, bubbleColor }) => {
@@ -121,9 +124,151 @@ export const exportHtml = (
             );
         };
 
+        const NavItemRenderer = ({ link, linkStyle, activeLinkColor, openPopup, findElement }) => {
+             const hasChildren = link.children && link.children.length > 0;
+             const isMegaMenu = link.type === 'mega-menu' && link.targetId;
+             const isPopup = link.type === 'popup';
+             
+             const handleLinkClick = (e) => {
+                 if (isPopup && link.targetId) {
+                     e.preventDefault();
+                     openPopup(link.targetId);
+                     return;
+                 }
+                 if (link.href && link.href.startsWith('#')) {
+                     e.preventDefault();
+                     const id = link.href.substring(1);
+                     const el = document.getElementById(id);
+                     if(el) el.scrollIntoView({ behavior: 'smooth' });
+                 }
+             };
+        
+             const baseClasses = "transition-colors hover:opacity-80 font-medium flex items-center gap-1 cursor-pointer " + (activeLinkColor ? 'hover:text-[var(--active-color)]' : '');
+             
+             let megaMenuContent = null;
+             if (isMegaMenu && link.targetId) {
+                 const targetElement = findElement(link.targetId);
+                 if (targetElement) {
+                     megaMenuContent = (
+                         <div className="absolute top-full left-0 w-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
+                             <div className="bg-white shadow-xl border-t border-gray-100 max-h-[80vh] overflow-y-auto">
+                                <div className="container mx-auto">
+                                    <ElementRenderer element={targetElement} />
+                                </div>
+                             </div>
+                         </div>
+                     );
+                 }
+             }
+        
+             return (
+                 <li className={"relative group " + (isMegaMenu ? 'static' : '')}> 
+                     {link.href || isPopup ? (
+                         <a href={link.href || '#'} className={baseClasses} style={linkStyle} onClick={handleLinkClick} target={link.target}>
+                             {link.label}
+                             {(hasChildren || isMegaMenu) && <Icons.ChevronDown width={12} height={12} />}
+                         </a>
+                     ) : (
+                         <div className={baseClasses} style={linkStyle}>
+                             {link.label}
+                             {(hasChildren || isMegaMenu) && <Icons.ChevronDown width={12} height={12} />}
+                         </div>
+                     )}
+        
+                     {hasChildren && !isMegaMenu && (
+                         <div className="absolute top-full left-0 pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                             <div className="bg-white rounded shadow-lg border border-gray-100 py-2 flex flex-col">
+                                 {link.children.map((child, i) => (
+                                     <a 
+                                        key={i} 
+                                        href={child.href || '#'}
+                                        className="px-4 py-2 hover:bg-gray-50 text-sm text-gray-700 block transition-colors"
+                                        onClick={(e) => {
+                                            if(child.type === 'popup' && child.targetId) {
+                                                e.preventDefault();
+                                                openPopup(child.targetId);
+                                            }
+                                        }}
+                                    >
+                                         {child.label}
+                                     </a>
+                                 ))}
+                             </div>
+                         </div>
+                     )}
+                     {megaMenuContent}
+                 </li>
+             );
+        };
+
+        const MobileNavItemRenderer = ({ link, linkStyle, activeLinkColor, openPopup, setIsMenuOpen, findElement }) => {
+              const [isExpanded, setIsExpanded] = React.useState(false);
+              const hasChildren = (link.children && link.children.length > 0) || (link.type === 'mega-menu' && link.targetId);
+              
+              const handleLinkClick = (e) => {
+                if (hasChildren && !link.href && link.type !== 'popup') {
+                    setIsExpanded(!isExpanded);
+                    return;
+                }
+                if (link.type === 'popup' && link.targetId) {
+                     e.preventDefault();
+                     openPopup(link.targetId);
+                     setIsMenuOpen(false);
+                     return;
+                }
+                if (link.href && link.href.startsWith('#')) {
+                    setIsMenuOpen(false);
+                }
+              };
+        
+              return (
+                  <div className="border-b border-gray-100 last:border-0">
+                       <div className="flex items-center justify-between py-3 px-2">
+                           {link.href || link.type === 'popup' ? (
+                               <a href={link.href || '#'} style={linkStyle} onClick={handleLinkClick} className="font-medium text-lg block flex-1">
+                                   {link.label}
+                               </a>
+                           ) : (
+                               <span style={linkStyle} className="font-medium text-lg block flex-1 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{link.label}</span>
+                           )}
+                           {hasChildren && (
+                               <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 text-gray-400">
+                                   <div className={"transition-transform duration-200 " + (isExpanded ? 'rotate-180' : '')}>
+                                       <Icons.ChevronDown />
+                                   </div>
+                               </button>
+                           )}
+                       </div>
+                       
+                       {isExpanded && hasChildren && (
+                           <div className="bg-gray-50 p-4 space-y-3">
+                               {link.children?.map((child, i) => (
+                                   <a key={i} href={child.href || '#'} className="block text-gray-600 hover:text-indigo-600 pl-2" onClick={(e) => {
+                                       if(child.type === 'popup' && child.targetId) { e.preventDefault(); openPopup(child.targetId); setIsMenuOpen(false); }
+                                   }}>
+                                       {child.label}
+                                   </a>
+                               ))}
+                               
+                               {link.type === 'mega-menu' && link.targetId && (() => {
+                                   const targetElement = findElement(link.targetId);
+                                   if (!targetElement) return null;
+                                   return (
+                                       <div className="border-t border-gray-200 pt-2">
+                                           <ElementRenderer element={targetElement} />
+                                       </div>
+                                   )
+                               })()}
+                           </div>
+                       )}
+                  </div>
+              )
+        };
+
         const ElementRenderer = ({ element }) => {
             const [isMenuOpen, setIsMenuOpen] = React.useState(false);
             const { openPopup } = React.useContext(PopupContext);
+            const { findElement } = React.useContext(PageContext);
             
             const innerStyle = element.props.elementStyle || {};
             const innerClass = element.props.elementClassName || '';
@@ -178,6 +323,7 @@ export const exportHtml = (
                     const isVertical = navOrientation === 'vertical';
                     const breakpoint = element.props.mobileMenuBreakpoint || 'md';
                     const mobileMenuType = element.props.mobileMenuType || 'dropdown';
+                    const mobileMenuIconType = element.props.mobileMenuIconType || 'menu';
                     const breakpointClass = breakpoint === 'none' ? 'flex' : 'hidden ' + breakpoint + ':flex';
                     const mobileToggleClass = breakpoint === 'none' ? 'hidden' : 'flex ' + breakpoint + ':hidden';
                     const activeColor = element.props.activeLinkColor;
@@ -185,7 +331,51 @@ export const exportHtml = (
                     const linkStyle = { color: element.props.linkColor || 'inherit' };
                     const activeStyle = activeColor ? { '--active-color': activeColor } : {};
                     const hoverClass = activeColor ? 'hover:text-[var(--active-color)]' : 'hover:opacity-80';
-                    return <nav className={navClasses} style={{...activeStyle, ...innerStyle}}><div className={"font-bold text-lg flex items-center justify-between w-full " + (isVertical ? '' : 'md:w-auto')}>{element.props.logoType === 'image' && element.props.logoSrc ? (<img src={element.props.logoSrc} alt="Logo" className="object-contain" style={{ width: element.props.logoWidth || 'auto', maxHeight: '40px' }} />) : (<span>{element.props.logoText || 'Logo'}</span>)}{!isVertical && (<button className={mobileToggleClass + " p-2 rounded hover:bg-gray-100"} onClick={() => setIsMenuOpen(!isMenuOpen)} style={{ color: element.props.hamburgerColor || 'inherit' }}><Icons.Menu /></button>)}</div><ul className={breakpointClass + " gap-6 " + (isVertical ? 'flex-col w-full' : 'items-center')}>{element.props.navLinks?.map((link, i) => (<li key={i}>{link.href ? <a href={link.href} className={"transition-colors font-medium " + hoverClass} style={linkStyle}>{link.label}</a> : <span className="transition-colors font-medium" style={linkStyle}>{link.label}</span>}</li>))}</ul>{isMenuOpen && !isVertical && (<>{mobileMenuType === 'dropdown' && (<div className={"absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col p-4 gap-4 animate-fade-in z-40 " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}>{element.props.navLinks?.map((link, i) => (link.href ? <a key={i} href={link.href} className={"text-lg font-medium transition-colors block p-2 rounded hover:bg-gray-50 " + hoverClass} style={linkStyle} onClick={() => setIsMenuOpen(false)}>{link.label}</a> : <span key={i} className="text-lg font-medium block p-2 rounded" style={linkStyle}>{link.label}</span>))}</div>)}{(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (<div className={"fixed inset-0 z-50 " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')}><div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div><div className={"absolute top-0 bottom-0 w-64 bg-white shadow-xl flex flex-col p-6 gap-4 " + (mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}><div className="flex justify-end"><button onClick={() => setIsMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-700"><Icons.X /></button></div>{element.props.navLinks?.map((link, i) => (link.href ? <a key={i} href={link.href} className={"text-lg font-medium transition-colors block p-2 rounded hover:bg-gray-50 " + hoverClass} style={linkStyle} onClick={() => setIsMenuOpen(false)}>{link.label}</a> : <span key={i} className="text-lg font-medium block p-2 rounded" style={linkStyle}>{link.label}</span>))}</div></div>)}</>)}</nav>;
+                    return (
+                        <nav className={navClasses} style={{...activeStyle, ...innerStyle}}>
+                            <div className={"font-bold text-lg flex items-center justify-between w-full " + (isVertical ? '' : 'md:w-auto')}>
+                                {element.props.logoType === 'image' && element.props.logoSrc ? (<img src={element.props.logoSrc} alt="Logo" className="object-contain" style={{ width: element.props.logoWidth || 'auto', maxHeight: '40px' }} />) : (<span>{element.props.logoText || 'Logo'}</span>)}
+                                {!isVertical && (
+                                    <button className={mobileToggleClass + " p-2 rounded hover:bg-gray-100"} onClick={() => setIsMenuOpen(!isMenuOpen)} style={{ color: element.props.hamburgerColor || 'inherit' }}>
+                                        {mobileMenuIconType === 'grid' ? <Icons.Grid /> : mobileMenuIconType === 'dots' ? <Icons.Dots /> : <Icons.Menu />}
+                                    </button>
+                                )}
+                            </div>
+                            
+                            <ul className={breakpointClass + " gap-6 " + (isVertical ? 'flex-col w-full' : 'items-center')}>
+                                {element.props.navLinks?.map((link, i) => (
+                                    <NavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeColor} openPopup={openPopup} findElement={findElement} />
+                                ))}
+                            </ul>
+
+                            {isMenuOpen && !isVertical && (
+                                <>
+                                    {mobileMenuType === 'dropdown' && (
+                                        <div className={"absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col animate-fade-in z-40 max-h-[80vh] overflow-y-auto " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}>
+                                            {element.props.navLinks?.map((link, i) => (
+                                                 <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeColor} openPopup={openPopup} setIsMenuOpen={setIsMenuOpen} findElement={findElement} />
+                                            ))}
+                                        </div>
+                                    )}
+                                    {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
+                                        <div className={"fixed inset-0 z-50 " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')}>
+                                            <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div>
+                                            <div className={"absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto " + (mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}>
+                                                <div className="flex justify-end p-4">
+                                                    <button onClick={() => setIsMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-700"><Icons.X /></button>
+                                                </div>
+                                                <div className="px-4 pb-8">
+                                                    {element.props.navLinks?.map((link, i) => (
+                                                        <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeColor} openPopup={openPopup} setIsMenuOpen={setIsMenuOpen} findElement={findElement} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </nav>
+                    );
                 }
                 case 'video': { const videoSrc = element.props.videoUrl || 'https://www.youtube.com/embed/dQw4w9WgXcQ'; const isYoutube = videoSrc.includes('youtube') || videoSrc.includes('youtu.be'); const embedUrl = isYoutube && !videoSrc.includes('embed') ? videoSrc.replace('watch?v=', 'embed/') : videoSrc; return (<div className={"aspect-video w-full bg-black rounded overflow-hidden relative " + innerClass} style={innerStyle}><iframe src={embedUrl} className="w-full h-full" title="Video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" /></div>); }
                 case 'map': { const address = element.props.address || 'San Francisco'; const zoom = element.props.zoom || 13; const mapType = element.props.mapType || 'roadmap'; if (!googleMapsApiKey) return (<div className="w-full h-64 bg-gray-100 rounded overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-gray-300 text-gray-500 gap-2"><Icons.Map width={32} height={32} className="opacity-50" /><div className="font-bold text-sm">Development Mode: Map</div><div className="text-xs text-center px-4">Address: {address}<br/>Zoom: {zoom} | Type: {mapType}</div></div>); return (<div className={"w-full h-64 bg-gray-100 rounded overflow-hidden " + innerClass} style={innerStyle}><iframe width="100%" height="100%" frameBorder="0" scrolling="no" marginHeight="0" marginWidth="0" src={"https://www.google.com/maps/embed/v1/place?key=" + googleMapsApiKey + "&q=" + encodeURIComponent(address) + "&zoom=" + zoom + "&maptype=" + mapType}></iframe></div>); }
@@ -212,16 +402,27 @@ export const exportHtml = (
                 const targets = new Set();
                 const scan = (els) => els.forEach(el => {
                     if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) targets.add(el.props.popupTargetId);
+                    if (el.type === 'navbar' && el.props.navLinks) {
+                        const scanLinks = (links) => {
+                            links.forEach(l => {
+                                if ((l.type === 'popup' || l.type === 'mega-menu') && l.targetId) {
+                                    targets.add(l.targetId);
+                                }
+                                if (l.children) scanLinks(l.children);
+                            });
+                        }
+                        scanLinks(el.props.navLinks);
+                    }
                     if (el.children) scan(el.children);
                 });
                 scan(elements);
                 return targets;
             }, [elements]);
 
-            const findElement = (id, list) => {
+            const findElementById = (id, list) => {
                 for (const el of list) {
                     if (el.id === id) return el;
-                    if (el.children) { const found = findElement(id, el.children); if (found) return found; }
+                    if (el.children) { const found = findElementById(id, el.children); if (found) return found; }
                 }
                 return null;
             };
@@ -316,27 +517,29 @@ export const exportHtml = (
 
             return (
                 <PopupContext.Provider value={{ openPopup, popupTargets }}>
-                    {elements.map(el => renderElement(el))}
-                    
-                    {activePopupId && (
-                        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
-                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActivePopupId(null)} />
-                            <div className="relative shadow-2xl overflow-hidden w-auto max-w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
-                                <button className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors" onClick={() => setActivePopupId(null)}><Icons.X /></button>
-                                {(() => {
-                                    const modalEl = findElement(activePopupId, elements);
-                                    if(modalEl) return (
-                                        <div className="!block [&_.hidden]:!block">
-                                            <div style={{ display: 'block !important' }}>
-                                                <PopupRootRenderer element={modalEl} renderChild={renderElement} />
+                    <PageContext.Provider value={{ findElement: (id) => findElementById(id, elements) }}>
+                        {elements.map(el => renderElement(el))}
+                        
+                        {activePopupId && (
+                            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
+                                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActivePopupId(null)} />
+                                <div className="relative shadow-2xl overflow-hidden w-auto max-w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
+                                    <button className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors" onClick={() => setActivePopupId(null)}><Icons.X /></button>
+                                    {(() => {
+                                        const modalEl = findElementById(activePopupId, elements);
+                                        if(modalEl) return (
+                                            <div className="!block [&_.hidden]:!block">
+                                                <div style={{ display: 'block !important' }}>
+                                                    <PopupRootRenderer element={modalEl} renderChild={(el) => renderElement(el, true)} />
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                    return null;
-                                })()}
+                                        );
+                                        return null;
+                                    })()}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </PageContext.Provider>
                 </PopupContext.Provider>
             );
         };
