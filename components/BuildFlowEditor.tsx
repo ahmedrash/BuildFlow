@@ -531,7 +531,14 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
             id: newId, type, name: type.charAt(0).toUpperCase() + type.slice(1),
             props: {
                 content: type === 'text' ? 'New Text' : type === 'button' ? 'Click Me' : type === 'heading' ? 'Heading' : undefined,
-                style: { padding: type === 'section' || type === 'container' ? '2rem' : '0.5rem', height: type === 'slider' ? '400px' : undefined, backgroundColor: type === 'card' ? '#ffffff' : undefined },
+                style: { 
+                    padding: type === 'section' || type === 'container' ? '2rem' : '0.5rem', 
+                    height: type === 'slider' ? '400px' : undefined, 
+                    backgroundColor: type === 'card' ? '#ffffff' : undefined,
+                    fontWeight: type === 'logo' ? 'bold' : undefined,
+                    fontSize: type === 'logo' ? '1.5rem' : undefined,
+                    color: type === 'logo' ? 'inherit' : undefined,
+                },
                 className: type === 'columns' ? 'grid grid-cols-2 gap-4' : type === 'slider' ? 'relative w-full' : type === 'button' ? 'bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded transition' : type === 'card' ? 'flex flex-col rounded-lg shadow-md overflow-hidden h-full transition-all hover:shadow-lg' : type === 'form' ? 'flex flex-col gap-4 p-4 border border-dashed border-gray-200 rounded' : undefined,
                 level: type === 'heading' ? 2 : undefined,
                 listType: type === 'list' ? 'ul' : undefined,
@@ -541,7 +548,11 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 mapType: type === 'map' ? 'roadmap' : undefined,
                 videoUrl: type === 'video' ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : undefined,
                 navLinks: type === 'navbar' ? [{ label: 'Home', href: '#' }, { label: 'About', href: '#' }] : undefined,
-                logoText: type === 'navbar' ? 'Logo' : undefined,
+                
+                logoType: type === 'navbar' || type === 'logo' ? 'text' : undefined,
+                logoText: type === 'navbar' || type === 'logo' ? (type === 'logo' ? 'Brand' : 'Logo') : undefined,
+                href: type === 'logo' ? '#' : undefined,
+
                 sliderAutoplay: type === 'slider' ? false : undefined,
                 sliderInterval: type === 'slider' ? 3000 : undefined,
                 sliderNavType: 'chevron',

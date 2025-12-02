@@ -1,3 +1,5 @@
+
+
 import React, { useRef, useState, useEffect } from 'react';
 import { PageElement, FormField, SavedTemplate, TestimonialItem, ElementType } from '../../types';
 import { Icons } from '../Icons';
@@ -276,6 +278,79 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                     >
                                         <Icons.Download width={14} height={14} /> Save as Template
                                     </button>
+
+                                    {/* LOGO CONFIGURATION */}
+                                    {displayElement.type === 'logo' && (
+                                        <div className="space-y-4">
+                                            <h3 className={sectionTitleClass}>Logo Settings</h3>
+                                            
+                                            <div>
+                                                <label className={labelClass}>Logo Type</label>
+                                                <select 
+                                                    className={inputClass}
+                                                    value={displayElement.props.logoType || 'text'}
+                                                    onChange={(e) => onUpdateProps(selectedElement.id, { logoType: e.target.value })}
+                                                >
+                                                    <option value="text">Text</option>
+                                                    <option value="image">Image</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className={labelClass}>Link URL</label>
+                                                <input 
+                                                    className={inputClass}
+                                                    value={displayElement.props.href || ''}
+                                                    onChange={(e) => onUpdateProps(selectedElement.id, { href: e.target.value })}
+                                                    placeholder="https://..."
+                                                />
+                                            </div>
+
+                                            {displayElement.props.logoType === 'text' ? (
+                                                 <div>
+                                                    <label className={labelClass}>Logo Text</label>
+                                                    <input 
+                                                        className={inputClass}
+                                                        value={displayElement.props.logoText || ''}
+                                                        onChange={(e) => onUpdateProps(selectedElement.id, { logoText: e.target.value })}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div>
+                                                        <label className={labelClass}>Image Source</label>
+                                                        <input 
+                                                            className={inputClass}
+                                                            value={displayElement.props.logoSrc || ''}
+                                                            onChange={(e) => onUpdateProps(selectedElement.id, { logoSrc: e.target.value })}
+                                                            placeholder="https://..."
+                                                        />
+                                                         <input 
+                                                            type="file" 
+                                                            accept="image/*"
+                                                            className={fileInputClass}
+                                                            onChange={async (e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (file) {
+                                                                    const base64 = await onFileUpload(file);
+                                                                    onUpdateProps(selectedElement.id, { logoSrc: base64 });
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className={labelClass}>Width</label>
+                                                        <input 
+                                                            className={inputClass}
+                                                            value={displayElement.props.logoWidth || 'auto'}
+                                                            onChange={(e) => onUpdateProps(selectedElement.id, { logoWidth: e.target.value })}
+                                                            placeholder="120px"
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
                                     
                                     {/* === BUTTON CONFIGURATION === */}
                                     {displayElement.type === 'button' && (
@@ -1415,7 +1490,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                     onUpdateStyle={handleElementStyleUpdate}
                                     onUpdateClassName={handleElementClassUpdate}
                                     onFileUpload={onFileUpload}
-                                    isTextElement={['text', 'heading', 'button', 'list'].includes(displayElement.type)}
+                                    isTextElement={['text', 'heading', 'button', 'list', 'logo'].includes(displayElement.type)}
                                 />
                             )}
 

@@ -1,5 +1,4 @@
 
-
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (
@@ -10,7 +9,6 @@ export const exportHtml = (
     googleMapsApiKey?: string,
     recaptchaSiteKey?: string
 ): string => {
-  // Safe JSON serialization
   const elementsJson = JSON.stringify(elements).replace(/<\/script>/g, '<\\/script>');
   const templatesJson = JSON.stringify(templates).replace(/<\/script>/g, '<\\/script>');
 
@@ -75,6 +73,8 @@ export const exportHtml = (
              Layout: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>,
              Menu: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
              X: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+             Map: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>,
+             Plus: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
         };
 
         const TestimonialSlider = ({ items, avatarSize, avatarShape, bubbleColor }) => {
@@ -85,6 +85,7 @@ export const exportHtml = (
                 return () => clearInterval(interval);
             }, [items.length]);
             const currentItem = items[currentIndex];
+            if (!currentItem) return null;
             return (
                 <div className="relative w-full max-w-2xl mx-auto p-4">
                      <div className="flex flex-col items-center text-center animate-fade-in transition-opacity duration-300">
@@ -97,9 +98,25 @@ export const exportHtml = (
                              <div className="text-left">
                                  <h4 className="font-bold text-gray-900">{currentItem.author}</h4>
                                  <p className="text-sm text-gray-500">{currentItem.role}</p>
+                                  <div className="flex text-yellow-400 text-xs mt-0.5">
+                                     {[...Array(5)].map((_, i) => (
+                                         <span key={i} className={i < currentItem.rating ? 'opacity-100' : 'opacity-30'}>★</span>
+                                     ))}
+                                 </div>
                              </div>
                          </div>
                      </div>
+                     {items.length > 1 && (
+                         <div className="flex justify-center gap-2 mt-6">
+                             {items.map((_, idx) => (
+                                 <button 
+                                     key={idx}
+                                     className={"w-2 h-2 rounded-full transition-colors " + (idx === currentIndex ? 'bg-indigo-600' : 'bg-gray-300')}
+                                     onClick={() => setCurrentIndex(idx)}
+                                 />
+                             ))}
+                         </div>
+                     )}
                 </div>
             );
         };
@@ -121,7 +138,12 @@ export const exportHtml = (
                     if (action === 'popup') {
                         return <button onClick={() => openPopup(element.props.popupTargetId)} className={"px-4 py-2 rounded transition " + customClass + ' ' + innerClass} style={{...element.props.style, ...innerStyle}}>{element.props.content}</button>;
                     }
-                    if (action === 'link') return <a href={element.props.href} target={element.props.target} className={"px-4 py-2 rounded transition inline-block " + customClass + ' ' + innerClass} style={{...element.props.style, ...innerStyle}}>{element.props.content}</a>;
+                    if (action === 'link') {
+                        if (element.props.href) {
+                            return <a href={element.props.href} target={element.props.target} className={"px-4 py-2 rounded transition inline-block " + customClass + ' ' + innerClass} style={{...element.props.style, ...innerStyle}}>{element.props.content}</a>;
+                        }
+                        return <div className={"px-4 py-2 rounded transition inline-block cursor-pointer " + customClass + ' ' + innerClass} style={{...element.props.style, ...innerStyle}}>{element.props.content}</div>;
+                    }
                     return <button className={"px-4 py-2 rounded transition " + customClass + ' ' + innerClass} style={{...element.props.style, ...innerStyle}}>{element.props.content}</button>;
                 }
                 case 'list': {
@@ -134,6 +156,22 @@ export const exportHtml = (
                 case 'radio': return <div className="flex items-center gap-2"><input type="radio" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} defaultChecked={element.props.checked} required={element.props.fieldRequired} className={"text-indigo-600 focus:ring-indigo-500 h-4 w-4 " + innerClass} style={innerStyle} />{element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}</div>;
                 case 'checkbox': return <div className="flex items-center gap-2"><input type="checkbox" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} defaultChecked={element.props.checked} required={element.props.fieldRequired} className={"text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded border-gray-300 " + innerClass} style={innerStyle} />{element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}</div>;
                 case 'form': return <form className="space-y-4 p-4 border border-gray-200 rounded bg-white w-full">{element.props.formFields?.map((field, i) => (<div key={i} className="flex flex-col gap-1"><label className="text-sm font-medium text-gray-700">{field.label}</label><input type={field.type} className="w-full border-gray-300 shadow-sm p-2 border rounded" placeholder={field.placeholder} /></div>))}{element.props.formEnableRecaptcha && (<div className="flex justify-end">{recaptchaSiteKey ? (<div className="g-recaptcha" data-sitekey={recaptchaSiteKey}></div>) : (<div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-700">reCAPTCHA (Dev Mode)</div>)}</div>)}<button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 w-full sm:w-auto">{element.props.formSubmitButtonText}</button></form>;
+                case 'logo': {
+                    const logoType = element.props.logoType || 'text';
+                    const logoHref = element.props.href;
+                    const logoContent = logoType === 'image' ? (
+                        <img 
+                            src={element.props.logoSrc || 'https://via.placeholder.com/150x50?text=Logo'} 
+                            alt={element.props.alt || 'Logo'} 
+                            style={{ width: element.props.logoWidth || 'auto', maxHeight: '100%', ...innerStyle }}
+                            className={innerClass}
+                        />
+                    ) : (
+                        <span style={innerStyle} className={innerClass}>{element.props.logoText || 'Logo'}</span>
+                    );
+                    if (logoHref) return <a href={logoHref} className="block">{logoContent}</a>;
+                    return <div className="block">{logoContent}</div>;
+                }
                 case 'navbar': {
                     const navOrientation = element.props.navOrientation || 'horizontal';
                     const isSticky = element.props.isSticky;
@@ -147,13 +185,14 @@ export const exportHtml = (
                     const linkStyle = { color: element.props.linkColor || 'inherit' };
                     const activeStyle = activeColor ? { '--active-color': activeColor } : {};
                     const hoverClass = activeColor ? 'hover:text-[var(--active-color)]' : 'hover:opacity-80';
-                    return <nav className={navClasses} style={{...activeStyle, ...innerStyle}}><div className={"font-bold text-lg flex items-center justify-between w-full " + (isVertical ? '' : 'md:w-auto')}>{element.props.logoType === 'image' && element.props.logoSrc ? (<img src={element.props.logoSrc} alt="Logo" className="object-contain" style={{ width: element.props.logoWidth || 'auto', maxHeight: '40px' }} />) : (<span>{element.props.logoText || 'Logo'}</span>)}{!isVertical && (<button className={mobileToggleClass + " p-2 rounded hover:bg-gray-100"} onClick={() => setIsMenuOpen(!isMenuOpen)} style={{ color: element.props.hamburgerColor || 'inherit' }}><Icons.Menu /></button>)}</div><ul className={breakpointClass + " gap-6 " + (isVertical ? 'flex-col w-full' : 'items-center')}>{element.props.navLinks?.map((link, i) => (<li key={i}><a href={link.href} className={"transition-colors font-medium " + hoverClass} style={linkStyle}>{link.label}</a></li>))}</ul>{isMenuOpen && !isVertical && (<>{mobileMenuType === 'dropdown' && (<div className={"absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col p-4 gap-4 animate-fade-in z-40 " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}>{element.props.navLinks?.map((link, i) => (<a key={i} href={link.href} className={"text-lg font-medium transition-colors block p-2 rounded hover:bg-gray-50 " + hoverClass} style={linkStyle} onClick={() => setIsMenuOpen(false)}>{link.label}</a>))}</div>)}{(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (<div className={"fixed inset-0 z-50 " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')}><div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div><div className={"absolute top-0 bottom-0 w-64 bg-white shadow-xl flex flex-col p-6 gap-4 " + (mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}><div className="flex justify-end"><button onClick={() => setIsMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-700"><Icons.X /></button></div>{element.props.navLinks?.map((link, i) => (<a key={i} href={link.href} className={"text-lg font-medium transition-colors block p-2 rounded hover:bg-gray-50 " + hoverClass} style={linkStyle} onClick={() => setIsMenuOpen(false)}>{link.label}</a>))}</div></div>)}</>)}</nav>;
+                    return <nav className={navClasses} style={{...activeStyle, ...innerStyle}}><div className={"font-bold text-lg flex items-center justify-between w-full " + (isVertical ? '' : 'md:w-auto')}>{element.props.logoType === 'image' && element.props.logoSrc ? (<img src={element.props.logoSrc} alt="Logo" className="object-contain" style={{ width: element.props.logoWidth || 'auto', maxHeight: '40px' }} />) : (<span>{element.props.logoText || 'Logo'}</span>)}{!isVertical && (<button className={mobileToggleClass + " p-2 rounded hover:bg-gray-100"} onClick={() => setIsMenuOpen(!isMenuOpen)} style={{ color: element.props.hamburgerColor || 'inherit' }}><Icons.Menu /></button>)}</div><ul className={breakpointClass + " gap-6 " + (isVertical ? 'flex-col w-full' : 'items-center')}>{element.props.navLinks?.map((link, i) => (<li key={i}>{link.href ? <a href={link.href} className={"transition-colors font-medium " + hoverClass} style={linkStyle}>{link.label}</a> : <span className="transition-colors font-medium" style={linkStyle}>{link.label}</span>}</li>))}</ul>{isMenuOpen && !isVertical && (<>{mobileMenuType === 'dropdown' && (<div className={"absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col p-4 gap-4 animate-fade-in z-40 " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}>{element.props.navLinks?.map((link, i) => (link.href ? <a key={i} href={link.href} className={"text-lg font-medium transition-colors block p-2 rounded hover:bg-gray-50 " + hoverClass} style={linkStyle} onClick={() => setIsMenuOpen(false)}>{link.label}</a> : <span key={i} className="text-lg font-medium block p-2 rounded" style={linkStyle}>{link.label}</span>))}</div>)}{(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (<div className={"fixed inset-0 z-50 " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')}><div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div><div className={"absolute top-0 bottom-0 w-64 bg-white shadow-xl flex flex-col p-6 gap-4 " + (mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}><div className="flex justify-end"><button onClick={() => setIsMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-700"><Icons.X /></button></div>{element.props.navLinks?.map((link, i) => (link.href ? <a key={i} href={link.href} className={"text-lg font-medium transition-colors block p-2 rounded hover:bg-gray-50 " + hoverClass} style={linkStyle} onClick={() => setIsMenuOpen(false)}>{link.label}</a> : <span key={i} className="text-lg font-medium block p-2 rounded" style={linkStyle}>{link.label}</span>))}</div></div>)}</>)}</nav>;
                 }
                 case 'video': { const videoSrc = element.props.videoUrl || 'https://www.youtube.com/embed/dQw4w9WgXcQ'; const isYoutube = videoSrc.includes('youtube') || videoSrc.includes('youtu.be'); const embedUrl = isYoutube && !videoSrc.includes('embed') ? videoSrc.replace('watch?v=', 'embed/') : videoSrc; return (<div className={"aspect-video w-full bg-black rounded overflow-hidden relative " + innerClass} style={innerStyle}><iframe src={embedUrl} className="w-full h-full" title="Video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" /></div>); }
                 case 'map': { const address = element.props.address || 'San Francisco'; const zoom = element.props.zoom || 13; const mapType = element.props.mapType || 'roadmap'; if (!googleMapsApiKey) return (<div className="w-full h-64 bg-gray-100 rounded overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-gray-300 text-gray-500 gap-2"><Icons.Map width={32} height={32} className="opacity-50" /><div className="font-bold text-sm">Development Mode: Map</div><div className="text-xs text-center px-4">Address: {address}<br/>Zoom: {zoom} | Type: {mapType}</div></div>); return (<div className={"w-full h-64 bg-gray-100 rounded overflow-hidden " + innerClass} style={innerStyle}><iframe width="100%" height="100%" frameBorder="0" scrolling="no" marginHeight="0" marginWidth="0" src={"https://www.google.com/maps/embed/v1/place?key=" + googleMapsApiKey + "&q=" + encodeURIComponent(address) + "&zoom=" + zoom + "&maptype=" + mapType}></iframe></div>); }
                 case 'gallery': { const layout = element.props.galleryLayout || 'grid'; const cols = element.props.galleryColumnCount || 3; const gap = element.props.galleryGap || '1rem'; const images = element.props.galleryImages || []; const gapStyle = { gap, ...innerStyle }; if (layout === 'masonry') return (<div className={'space-y-4 columns-' + cols + ' ' + innerClass} style={{ columnGap: gap, ...gapStyle }}>{images.map(img => <div key={img.id} className="break-inside-avoid mb-4"><img src={img.src} alt={img.alt} className="w-full rounded block" /></div>)}</div>); if (layout === 'flex') return <div className={"flex flex-wrap " + innerClass} style={gapStyle}>{images.map(img => <div key={img.id} className="flex-grow basis-64 min-w-[200px] relative"><img src={img.src} alt={img.alt} className="w-full h-full rounded object-cover" /></div>)}</div>; return (<div className={'grid grid-cols-' + cols + ' ' + innerClass} style={gapStyle}>{images.map(img => <div key={img.id} className={'relative overflow-hidden rounded ' + (element.props.galleryAspectRatio || 'aspect-square')}><img src={img.src} alt={img.alt} className={"w-full h-full block object-" + (element.props.galleryObjectFit || 'cover')} /></div>)}</div>); }
-                case 'testimonial': { const { testimonialItems = [], testimonialLayout = 'grid', testimonialAvatarSize = 'md', testimonialAvatarShape = 'circle', testimonialBubbleColor = '#f9fafb' } = element.props; const sizeClass = { 'sm': 'w-8 h-8', 'md': 'w-12 h-12', 'lg': 'w-16 h-16', 'xl': 'w-24 h-24' }[testimonialAvatarSize] || 'w-12 h-12'; const shapeClass = { 'circle': 'rounded-full', 'rounded': 'rounded-lg', 'square': 'rounded-none' }[testimonialAvatarShape] || 'rounded-full'; if (testimonialLayout === 'slider') return <TestimonialSlider items={testimonialItems} avatarSize={sizeClass} avatarShape={shapeClass} bubbleColor={testimonialBubbleColor} />; return (<div className={"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 " + innerClass} style={innerStyle}>{testimonialItems.map(item => (<div key={item.id} className="flex flex-col h-full"><div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}><div className="absolute top-full left-8 -mt-2 border-8 border-transparent" style={{ borderTopColor: testimonialBubbleColor }}></div><p className="text-gray-700 italic relative z-10">"{item.content}"</p></div><div className="flex items-center gap-3 px-2">{item.avatarSrc && <img src={item.avatarSrc} className={sizeClass + ' ' + shapeClass + ' object-cover bg-gray-200 border border-white shadow-sm'} />}<div><h4 className="font-bold text-sm text-gray-900">{item.author}</h4><p className="text-xs text-gray-500">{item.role}</p></div></div></div>))}</div>); }
+                case 'testimonial': { const { testimonialItems = [], testimonialLayout = 'grid', testimonialAvatarSize = 'md', testimonialAvatarShape = 'circle', testimonialBubbleColor = '#f9fafb' } = element.props; const sizeClass = { 'sm': 'w-8 h-8', 'md': 'w-12 h-12', 'lg': 'w-16 h-16', 'xl': 'w-24 h-24' }[testimonialAvatarSize] || 'w-12 h-12'; const shapeClass = { 'circle': 'rounded-full', 'rounded': 'rounded-lg', 'square': 'rounded-none' }[testimonialAvatarShape] || 'rounded-full'; if (testimonialLayout === 'slider') return <TestimonialSlider items={testimonialItems} avatarSize={sizeClass} avatarShape={shapeClass} bubbleColor={testimonialBubbleColor} />; return (<div className={"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 " + innerClass} style={innerStyle}>{testimonialItems.map(item => (<div key={item.id} className="flex flex-col h-full"><div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}><div className="absolute top-full left-8 -mt-2 border-8 border-transparent" style={{ borderTopColor: testimonialBubbleColor }}></div><p className="text-gray-700 italic relative z-10">"{item.content}"</p></div><div className="flex items-center gap-3 px-2">{item.avatarSrc && <img src={item.avatarSrc} className={sizeClass + ' ' + shapeClass + ' object-cover bg-gray-200 border border-white shadow-sm'} />}<div><h4 className="font-bold text-sm text-gray-900">{item.author}</h4><p className="text-xs text-gray-500">{item.role}</p><div className="flex text-yellow-400 text-xs mt-0.5">{[...Array(5)].map((_, i) => (<span key={i} className={i < item.rating ? 'opacity-100' : 'opacity-30'}>★</span>))}</div></div></div></div>))}</div>); }
                 case 'card': { if (!element.children || element.children.length === 0) { const { cardImageType = 'image', cardIcon, cardLayout = 'vertical', cardTitle = 'Card Title', cardText = 'Text', cardButtonText = 'Read', src = 'https://via.placeholder.com/400x200' } = element.props; const isHorizontal = cardLayout === 'horizontal'; return (<div className={'bg-white rounded-lg shadow-md overflow-hidden h-full flex transition-all hover:shadow-lg ' + (isHorizontal ? 'flex-row' : 'flex-col')}><div className={(isHorizontal ? 'w-1/3 min-w-[120px]' : 'w-full h-48') + ' bg-gray-100 flex items-center justify-center overflow-hidden shrink-0'}>{cardImageType === 'image' ? <img src={src} className="w-full h-full object-cover" /> : <div className="text-indigo-600 text-4xl">★</div>}</div><div className="p-5 flex-1 flex flex-col"><h3 className="text-xl font-bold mb-2">{cardTitle}</h3><p className="text-gray-600 mb-4 flex-1">{cardText}</p><span className="text-indigo-600 font-medium text-sm flex items-center gap-1">{cardButtonText} →</span></div></div>); } if (element.props.cardBadge) return (<div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm pointer-events-none">{element.props.cardBadge}</div>); return null; }
+                case 'customCode': return <div className={"min-h-[50px] " + innerClass} style={innerStyle} dangerouslySetInnerHTML={{ __html: element.props.code }} />;
                 default: return null;
             }
         };
@@ -201,50 +240,102 @@ export const exportHtml = (
                 if (popupTargets.has(id) && !isPopupContent) return null;
 
                 const Tag = type === 'section' ? 'section' : type === 'form' ? 'form' : 'div';
-                const containerClasses = ['slider', 'card'].includes(type) ? 'relative overflow-hidden' : 'relative';
-                const bgStyle = {};
-                if(props.style?.backgroundColor) bgStyle.backgroundColor = props.style.backgroundColor;
-                if(type === 'slider' && children) return <SliderRenderer key={id} element={renderedElement} renderChild={renderElement} className={containerClasses + ' ' + (props.className || '')} style={props.style} />;
-
-                const classNameToApply = type === 'button' ? '' : (props.className || '');
-                const LinkWrapper = ({children}) => { if (type === 'card' && props.cardLink) return <a href={props.cardLink} className="block h-full no-underline text-inherit">{children}</a>; return <>{children}</>; };
                 
-                let extraClasses = '';
-                if (type === 'card') {
-                    const { cardHoverEffect } = props;
-                    if (cardHoverEffect === 'lift') extraClasses = ' transition-all duration-300 hover:-translate-y-1 hover:shadow-xl';
-                    else if (cardHoverEffect === 'zoom') extraClasses = ' transition-all duration-300 hover:scale-[1.02] hover:shadow-xl';
-                    else if (cardHoverEffect === 'glow') extraClasses = ' transition-all duration-300 hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
-                    else if (cardHoverEffect === 'border') extraClasses = ' transition-all duration-300 hover:border-indigo-500 border border-transparent';
+                const renderBackground = () => {
+                    if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
+                    const { backgroundImage, backgroundVideo, parallax } = props || {};
+                    const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = props.style || {};
+                    const finalBgImage = styleBgImage || backgroundImage;
+                    const finalBgVideo = styleBgVideo || backgroundVideo;
+                
+                    if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
+                    if (finalBgImage) {
+                        const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
+                        return <div className={"absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none " + (parallax ? 'bg-fixed' : '')} style={{ backgroundImage: 'url(' + url + ')' }} />;
+                    }
+                    return null;
+                };
+
+                const containerClasses = ['slider', 'card'].includes(type) ? 'relative overflow-hidden' : 'relative';
+                const classNameToApply = type === 'button' ? '' : (props.className || '');
+                const cardHoverClass = type === 'card' && props.cardHoverEffect ? {
+                    'lift': ' hover:-translate-y-1 hover:shadow-xl',
+                    'zoom': ' hover:scale-[1.02] hover:shadow-xl',
+                    'glow': ' hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]',
+                    'border': ' hover:border-indigo-500 border border-transparent'
+                }[props.cardHoverEffect] || '' : '';
+
+                const LinkWrapper = ({ children }) => {
+                    if (type === 'card' && props.cardLink) return <a href={props.cardLink} className="block h-full no-underline text-inherit">{children}</a>;
+                    return <>{children}</>;
+                };
+
+                if (type === 'slider' && children) {
+                    return (
+                        <Tag key={id} id={id} className={classNameToApply + " " + containerClasses} style={props.style}>
+                            {renderBackground()}
+                            <SliderRenderer element={renderedElement} renderChild={renderElement} className="w-full h-full" />
+                        </Tag>
+                    );
                 }
 
-                const formProps = type === 'form' ? { action: props.formActionUrl || undefined, method: 'POST', } : {};
-
                 return (
-                    <Tag key={id} id={id} className={containerClasses + ' ' + classNameToApply + extraClasses} style={{...props.style, ...bgStyle}} {...formProps}>
-                         {(props.backgroundImage || props.style?.backgroundImage) && <div className="absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none" style={{ backgroundImage: props.style?.backgroundImage || props.backgroundImage }} />}
-                         <LinkWrapper>
-                            {type === 'form' && props.formEnableRecaptcha && recaptchaSiteKey && (<div className="mb-4"><div className="g-recaptcha" data-sitekey={recaptchaSiteKey}></div></div>)}
-                            {children && children.length > 0 ? children.map(child => renderElement(child, isPopupContent)) : <ElementRenderer element={renderedElement} />}
-                         </LinkWrapper>
+                    <Tag key={id} id={id} className={classNameToApply + " " + containerClasses + cardHoverClass} style={props.style}>
+                        {renderBackground()}
+                        <LinkWrapper>
+                            {children && children.length > 0 ? children.map(child => renderElement(child)) : <ElementRenderer element={renderedElement} />}
+                        </LinkWrapper>
                     </Tag>
                 );
             };
 
-            const popupElement = activePopupId ? findElement(activePopupId, elements) : null;
+            const PopupRootRenderer = ({ element, renderChild }) => {
+                const { type, children, props } = element;
+                const Tag = type === 'section' ? 'section' : 'div';
+                const renderBackground = () => {
+                    const { backgroundImage, backgroundVideo } = props || {};
+                    const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = props.style || {};
+                    const finalBgImage = styleBgImage || backgroundImage;
+                    const finalBgVideo = styleBgVideo || backgroundVideo;
+                    if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
+                    if (finalBgImage) {
+                         const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
+                        return <div className="absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none" style={{ backgroundImage: 'url(' + url + ')' }} />;
+                    }
+                    return null;
+                };
+                const containerClasses = ['slider', 'card'].includes(type) ? 'relative overflow-hidden' : 'relative';
+                const classNameToApply = type === 'button' ? '' : (props.className || '');
+                return (
+                    <Tag className={classNameToApply + " " + containerClasses} style={{ ...props.style, display: 'block' }}>
+                        {renderBackground()}
+                        {children && children.length > 0 ? children.map(child => renderChild(child)) : <ElementRenderer element={element} />}
+                    </Tag>
+                );
+            };
 
             return (
                 <PopupContext.Provider value={{ openPopup, popupTargets }}>
                     {elements.map(el => renderElement(el))}
-                    {activePopupId && popupElement && ReactDOM.createPortal(
+                    
+                    {activePopupId && (
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
                             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActivePopupId(null)} />
                             <div className="relative shadow-2xl overflow-hidden w-auto max-w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
                                 <button className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors" onClick={() => setActivePopupId(null)}><Icons.X /></button>
-                                {renderElement(popupElement, true)}
+                                {(() => {
+                                    const modalEl = findElement(activePopupId, elements);
+                                    if(modalEl) return (
+                                        <div className="!block [&_.hidden]:!block">
+                                            <div style={{ display: 'block !important' }}>
+                                                <PopupRootRenderer element={modalEl} renderChild={renderElement} />
+                                            </div>
+                                        </div>
+                                    );
+                                    return null;
+                                })()}
                             </div>
-                        </div>,
-                        document.body
+                        </div>
                     )}
                 </PopupContext.Provider>
             );
@@ -255,4 +346,4 @@ export const exportHtml = (
     </script>
 </body>
 </html>`;
-}
+};

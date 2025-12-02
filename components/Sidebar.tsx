@@ -53,6 +53,7 @@ const getIconForType = (type: ElementType) => {
         case 'card': return Icons.Square;
         case 'slider': return Icons.Slider;
         case 'customCode': return Icons.Code;
+        case 'logo': return Icons.Star;
         default: return Icons.Box;
     }
 };
@@ -310,6 +311,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <SidebarItem type="slider" icon={Icons.Slider} label="Slider" onDragStart={onDragStart} />
                     <SidebarItem type="map" icon={Icons.Map} label="Map" onDragStart={onDragStart} />
                     <SidebarItem type="gallery" icon={Icons.Grid} label="Gallery" onDragStart={onDragStart} />
+                    <SidebarItem type="logo" icon={Icons.Star} label="Logo" onDragStart={onDragStart} />
                     </div>
                 </div>
 

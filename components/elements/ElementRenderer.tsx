@@ -112,9 +112,21 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       
       if (isLink) {
           const { href, target } = element.props;
+
+          if (!href) {
+             return (
+                 <div 
+                    className={`px-4 py-2 rounded transition inline-block text-center ${pointerClass} ${customClass} ${innerClass}`}
+                    style={{...element.props.style, ...innerStyle}}
+                 >
+                    {element.props.content || 'Button'}
+                 </div>
+             )
+          }
+
           return (
                <a 
-                  href={href || '#'}
+                  href={href}
                   target={target}
                   className={`px-4 py-2 rounded transition inline-block ${pointerClass} ${customClass} ${innerClass}`}
                   style={{...element.props.style, ...innerStyle}}
@@ -125,7 +137,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                           return;
                       }
 
-                      const isEmpty = !href || href === '#';
                       const isAnchor = href && href.startsWith('#');
                       const isNewTab = target === '_blank';
 
@@ -141,11 +152,10 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                           }
                           return;
                       }
-
-                      // In preview: disable if empty OR (opens in same tab AND not anchor)
-                      // We allow anchors (like #features) to work in preview as they don't reload page
-                      if (isEmpty || (!isNewTab && !isAnchor)) {
-                          e.preventDefault();
+                      
+                      if (!isNewTab) {
+                         // Optional: prevent default if it's not a new tab to stay in builder context, 
+                         // but usually we want to allow links to work in preview unless they navigate away from app context violently.
                       }
                   }}
                >
@@ -182,6 +192,59 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
           {element.props.content || 'Button'}
         </button>
       );
+
+    case 'logo':
+        const logoType = element.props.logoType || 'text';
+        const logoHref = element.props.href;
+        const logoContent = logoType === 'image' ? (
+            <img 
+                src={element.props.logoSrc || 'https://via.placeholder.com/150x50?text=Logo'} 
+                alt={element.props.alt || 'Logo'} 
+                style={{ width: element.props.logoWidth || 'auto', maxHeight: '100%', ...innerStyle }}
+                className={innerClass}
+            />
+        ) : (
+            <span style={innerStyle} className={innerClass}>{element.props.logoText || 'Logo'}</span>
+        );
+        
+        if (!logoHref) {
+            return (
+                <div className={`block ${pointerClass} ${innerClass}`}>
+                    {logoContent}
+                </div>
+            )
+        }
+
+        return (
+            <a 
+                href={logoHref} 
+                className={`block ${pointerClass}`}
+                onClick={(e) => {
+                     // Prevent navigation in editor
+                     if (!isPreview) {
+                        e.preventDefault();
+                        return;
+                     }
+                     
+                     const isAnchor = logoHref && logoHref.startsWith('#');
+
+                     if (isAnchor) {
+                         e.preventDefault();
+                         const id = logoHref.substring(1);
+                         const doc = (e.target as HTMLElement).ownerDocument;
+                         if (!id) {
+                             doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+                         } else {
+                             const el = doc.getElementById(id);
+                             if (el) el.scrollIntoView({ behavior: 'smooth' });
+                         }
+                         return;
+                     }
+                }}
+            >
+                {logoContent}
+            </a>
+        );
 
     // --- New Form Elements ---
 
@@ -534,10 +597,10 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
        const { 
           isSticky, 
           navOrientation = 'horizontal', 
-          logoType = 'text', 
-          logoText = 'Logo', 
-          logoSrc,
-          logoWidth,
+          logoType: navLogoType = 'text', 
+          logoText: navLogoText = 'Logo', 
+          logoSrc: navLogoSrc,
+          logoWidth: navLogoWidth,
           navLinks = [],
           linkColor,
           activeLinkColor,
@@ -559,15 +622,15 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
        return (
            <nav className={navClasses} style={{...activeStyle, ...innerStyle}}>
                <div className={`font-bold text-lg ${pointerClass} flex items-center justify-between w-full ${isVertical ? '' : 'md:w-auto'}`}>
-                   {logoType === 'image' && logoSrc ? (
+                   {navLogoType === 'image' && navLogoSrc ? (
                        <img 
-                           src={logoSrc} 
+                           src={navLogoSrc} 
                            alt="Logo" 
                            className="object-contain" 
-                           style={{ width: logoWidth || 'auto', maxHeight: '40px' }}
+                           style={{ width: navLogoWidth || 'auto', maxHeight: '40px' }}
                        />
                    ) : (
-                       <span>{logoText}</span>
+                       <span>{navLogoText}</span>
                    )}
                    
                    {/* Mobile Toggle */}
@@ -586,7 +649,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                <ul className={`${breakpointClass} gap-6 ${pointerClass} ${isVertical ? 'flex-col w-full' : 'items-center'}`}>
                    {navLinks.map((link, i) => (
                        <li key={i}>
-                           <a 
+                           {link.href ? (
+                            <a 
                                href={link.href} 
                                className={`transition-colors hover:opacity-80 font-medium ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
                                style={linkStyle}
@@ -596,7 +660,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                        return;
                                    }
                                    
-                                   const isEmpty = !link.href || link.href === '#';
                                    const isAnchor = link.href && link.href.startsWith('#');
 
                                    if (isAnchor) {
@@ -611,15 +674,18 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                        }
                                        return;
                                    }
-
-                                   // Prevent navigation in editor
-                                   if (isEmpty || !isAnchor) {
-                                       e.preventDefault();
-                                   }
                                }}
                            >
                                {link.label}
                            </a>
+                           ) : (
+                               <span 
+                                   className={`transition-colors font-medium opacity-100`}
+                                   style={linkStyle}
+                               >
+                                   {link.label}
+                               </span>
+                           )}
                        </li>
                    ))}
                </ul>
@@ -633,13 +699,13 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                            style={{ backgroundColor: menuBackgroundColor || 'white' }}
                        >
                            {navLinks.map((link, i) => (
+                               link.href ? (
                                <a 
                                    key={i}
                                    href={link.href} 
                                    className={`text-lg font-medium transition-colors hover:opacity-80 block p-2 rounded hover:bg-gray-50 ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
                                    style={linkStyle}
                                    onClick={(e) => {
-                                       const isEmpty = !link.href || link.href === '#';
                                        const isAnchor = link.href && link.href.startsWith('#');
                                        
                                        if (!isPreview) {
@@ -658,12 +724,14 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                            return;
                                        }
 
-                                       if (isEmpty || !isAnchor) e.preventDefault();
                                        setIsMenuOpen(false);
                                    }}
                                >
                                    {link.label}
                                </a>
+                               ) : (
+                                   <span key={i} className="text-lg font-medium block p-2 rounded" style={linkStyle}>{link.label}</span>
+                               )
                            ))}
                        </div>
                    )}
@@ -681,13 +749,13 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                    </button>
                                </div>
                                {navLinks.map((link, i) => (
+                                   link.href ? (
                                    <a 
                                        key={i}
                                        href={link.href} 
                                        className={`text-lg font-medium transition-colors hover:opacity-80 block p-2 rounded hover:bg-gray-50 ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
                                        style={linkStyle}
                                        onClick={(e) => {
-                                           const isEmpty = !link.href || link.href === '#';
                                            const isAnchor = link.href && link.href.startsWith('#');
 
                                            if (!isPreview) {
@@ -705,13 +773,14 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                                                setIsMenuOpen(false);
                                                return;
                                            }
-
-                                           if (isEmpty || !isAnchor) e.preventDefault();
                                            setIsMenuOpen(false);
                                        }}
                                    >
                                        {link.label}
                                    </a>
+                                   ) : (
+                                       <span key={i} className="text-lg font-medium block p-2 rounded" style={linkStyle}>{link.label}</span>
+                                   )
                                ))}
                            </div>
                        </div>

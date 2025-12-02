@@ -20,6 +20,7 @@ export type ElementType =
   | 'checkbox'  // New
   | 'gallery' 
   | 'navbar' 
+  | 'logo'      // New
   | 'testimonial' 
   | 'card'
   | 'slider'
