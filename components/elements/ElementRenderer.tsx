@@ -132,7 +132,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
      }
 
      return (
-         <li className={`relative group ${isMegaMenu ? 'static' : ''}`}> 
+         <li className={`group ${isMegaMenu ? 'static' : 'relative'}`}> 
              
              {link.href || isPopup ? (
                  <a 
@@ -446,9 +446,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       const inputStyle = { borderRadius: element.props.formInputBorderRadius || '0.375rem', backgroundColor: element.props.formInputBackgroundColor || '#ffffff' };
       const buttonStyle = { backgroundColor: element.props.formButtonBackgroundColor || '#4f46e5', color: element.props.formButtonTextColor || '#ffffff', borderRadius: element.props.formInputBorderRadius || '0.375rem' };
       
-      // If legacy fields exist, render them, otherwise render children via map above if passed
-      // But switch case here handles 'form' type specifically.
-      // If children exist, we should render them. 
       if (element.children && element.children.length > 0) {
          return (
             <form className={`${element.props.className || ''} relative`} style={element.props.style}>
@@ -517,13 +514,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
     }
 
     case 'card': {
-        // If card has no children (legacy), fallback to standard template, else render children
         if (!element.children || element.children.length === 0) {
-             // Fallback for empty/legacy cards
              return <div className="p-4 border border-gray-200 rounded">Empty Card</div>;
         }
-        
-        const isHorizontal = element.props.cardLayout === 'horizontal';
         
         return (
             <div id={element.id} className={`${element.props.className || ''} relative`} style={element.props.style}>
@@ -534,17 +527,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
     }
     
     case 'slider': {
-        // Simple slider wrapper for preview purposes inside ElementRenderer
-        // Note: Full slider logic is in PageRenderer, but we can render basic children stacking here if needed recursively.
-        // For Mega Menu context, slider might be complex. 
-        // We will render children.
         return (
              <div id={element.id} className={`${element.props.className || ''} relative`} style={element.props.style}>
                  {renderBackground()}
-                 {/* Basic render of active slide or all slides stacked? 
-                     ElementRenderer inside Mega Menu is static preview. 
-                     We can just render the first child for simplicity or all.
-                 */}
                 {element.children?.map((child, i) => (
                     <div key={child.id} className={i === 0 ? 'relative' : 'hidden'}>
                          <ElementRenderer element={child} isPreview={isPreview} />
@@ -595,7 +580,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                        <span>{navLogoText}</span>
                    )}
                    
-                   {/* Mobile Toggle */}
                    {!isVertical && (
                        <button 
                             className={`${mobileToggleClass} p-2 rounded hover:bg-gray-100 ${pointerClass}`}
@@ -609,14 +593,12 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                    )}
                </div>
                
-               {/* Desktop Menu */}
                <ul className={`${breakpointClass} gap-6 ${pointerClass} ${isVertical ? 'flex-col w-full' : 'items-center'}`}>
                    {navLinks.map((link, i) => (
                        <NavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} />
                    ))}
                </ul>
                
-               {/* Mobile Menu */}
                {isMenuOpen && !isVertical && (
                    <>
                    {mobileMenuType === 'dropdown' && (

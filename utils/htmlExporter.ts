@@ -165,7 +165,7 @@ export const exportHtml = (
              }
         
              return (
-                 <li className={"relative group " + (isMegaMenu ? 'static' : '')}> 
+                 <li className={"group " + (isMegaMenu ? 'static' : 'relative')}> 
                      {link.href || isPopup ? (
                          <a href={link.href || '#'} className={baseClasses} style={linkStyle} onClick={handleLinkClick} target={link.target}>
                              {link.label}
