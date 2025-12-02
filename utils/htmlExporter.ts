@@ -221,7 +221,7 @@ export const exportHtml = (
                 const formProps = type === 'form' ? { action: props.formActionUrl || undefined, method: 'POST', } : {};
 
                 return (
-                    <Tag key={id} className={containerClasses + ' ' + classNameToApply + extraClasses} style={{...props.style, ...bgStyle}} {...formProps}>
+                    <Tag key={id} id={id} className={containerClasses + ' ' + classNameToApply + extraClasses} style={{...props.style, ...bgStyle}} {...formProps}>
                          {(props.backgroundImage || props.style?.backgroundImage) && <div className="absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none" style={{ backgroundImage: props.style?.backgroundImage || props.backgroundImage }} />}
                          <LinkWrapper>
                             {type === 'form' && props.formEnableRecaptcha && recaptchaSiteKey && (<div className="mb-4"><div className="g-recaptcha" data-sitekey={recaptchaSiteKey}></div></div>)}
