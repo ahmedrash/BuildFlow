@@ -38,7 +38,7 @@ const labelClass = "block text-[10px] font-bold text-gray-500 uppercase tracking
 const fileInputClass = "block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 mt-2 cursor-pointer";
 const sectionTitleClass = "text-xs font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2 mt-2";
 
-const LAYOUT_TYPES: ElementType[] = ['section', 'container', 'columns', 'slider', 'card', 'form'];
+const LAYOUT_TYPES: ElementType[] = ['section', 'container', 'columns', 'slider', 'card', 'form', 'navbar'];
 
 // --- Helper Component for Nav Tree ---
 const NavTreeItem: React.FC<{ 
@@ -409,14 +409,32 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                         <Icons.Download width={14} height={14} /> Save as Template
                                     </button>
                                     
-                                    {/* NAVBAR CONFIGURATION */}
+                                    {/* NAVBAR CONFIGURATION - Container Settings Only */}
                                     {displayElement.type === 'navbar' && (
                                         <div className="space-y-4">
-                                            <h3 className={sectionTitleClass}>Navigation Bar</h3>
+                                            <h3 className={sectionTitleClass}>Navbar Container</h3>
+                                            <div className="bg-blue-50 p-3 rounded-md text-xs text-blue-700 mb-2"><p>This is a flex container. Add Logo and Menu elements inside.</p></div>
                                             
+                                            <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
+                                                <label className="text-[10px] text-gray-600 font-bold">Sticky Header</label>
+                                                <input 
+                                                    type="checkbox"
+                                                    className="accent-indigo-600 w-3 h-3"
+                                                    checked={displayElement.props.isSticky || false}
+                                                    onChange={(e) => onUpdateProps(selectedElement.id, { isSticky: e.target.checked })}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* MENU ELEMENT CONFIGURATION */}
+                                    {displayElement.type === 'menu' && (
+                                        <div className="space-y-4">
+                                            <h3 className={sectionTitleClass}>Menu Settings</h3>
+
                                             {/* Menu Source */}
                                             <div>
-                                                <label className={labelClass}>Menu Source (Preset)</label>
+                                                <label className={labelClass}>Load Preset</label>
                                                 <select 
                                                     className={inputClass}
                                                     onChange={(e) => {
@@ -427,11 +445,11 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                                     }}
                                                     defaultValue=""
                                                 >
-                                                    <option value="" disabled>Select a predefined menu...</option>
-                                                    <option value="simple">Simple (Home, About, Contact)</option>
-                                                    <option value="business">Business (Solutions, Pricing...)</option>
-                                                    <option value="portfolio">Portfolio (Work, Services...)</option>
-                                                    <option value="app">App (Features, Docs...)</option>
+                                                    <option value="" disabled>Select a preset...</option>
+                                                    <option value="simple">Simple</option>
+                                                    <option value="business">Business</option>
+                                                    <option value="portfolio">Portfolio</option>
+                                                    <option value="app">App</option>
                                                 </select>
                                             </div>
 
@@ -458,82 +476,9 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                                 </div>
                                             </div>
 
-                                            {/* Logo Configuration */}
+                                            {/* Style & Mobile */}
                                             <div className="space-y-3 border-t border-gray-100 pt-3">
-                                                <h4 className="text-[10px] font-bold text-gray-400">Logo Integration</h4>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div>
-                                                        <label className={labelClass}>Type</label>
-                                                        <select 
-                                                            className={inputClass}
-                                                            value={displayElement.props.logoType || 'text'}
-                                                            onChange={(e) => onUpdateProps(selectedElement.id, { logoType: e.target.value })}
-                                                        >
-                                                            <option value="text">Text</option>
-                                                            <option value="image">Image</option>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        {displayElement.props.logoType === 'image' ? (
-                                                            <>
-                                                            <label className={labelClass}>Width</label>
-                                                            <input 
-                                                                className={inputClass}
-                                                                value={displayElement.props.logoWidth || 'auto'}
-                                                                placeholder="e.g. 120px"
-                                                                onChange={(e) => onUpdateProps(selectedElement.id, { logoWidth: e.target.value })}
-                                                            />
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                            <label className={labelClass}>Text</label>
-                                                            <input 
-                                                                className={inputClass}
-                                                                value={displayElement.props.logoText || ''}
-                                                                onChange={(e) => onUpdateProps(selectedElement.id, { logoText: e.target.value })}
-                                                            />
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                {displayElement.props.logoType === 'image' && (
-                                                    <div>
-                                                        <label className={labelClass}>Image Source</label>
-                                                        <input 
-                                                            className={inputClass} 
-                                                            value={displayElement.props.logoSrc || ''} 
-                                                            onChange={(e) => onUpdateProps(selectedElement.id, { logoSrc: e.target.value })}
-                                                            placeholder="https://..."
-                                                        />
-                                                        <input 
-                                                            type="file" 
-                                                            accept="image/*"
-                                                            className={fileInputClass}
-                                                            onChange={async (e) => {
-                                                                const file = e.target.files?.[0];
-                                                                if (file) {
-                                                                    const base64 = await onFileUpload(file);
-                                                                    onUpdateProps(selectedElement.id, { logoSrc: base64 });
-                                                                }
-                                                            }}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Layout & Style */}
-                                            <div className="space-y-3 border-t border-gray-100 pt-3">
-                                                <h4 className="text-[10px] font-bold text-gray-400">Layout & Style</h4>
-                                                
-                                                <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
-                                                    <label className="text-[10px] text-gray-600 font-bold">Sticky Header</label>
-                                                    <input 
-                                                        type="checkbox"
-                                                        className="accent-indigo-600 w-3 h-3"
-                                                        checked={displayElement.props.isSticky || false}
-                                                        onChange={(e) => onUpdateProps(selectedElement.id, { isSticky: e.target.checked })}
-                                                    />
-                                                </div>
+                                                <h4 className="text-[10px] font-bold text-gray-400">Mobile & Style</h4>
                                                 
                                                 <div className="grid grid-cols-1 gap-3">
                                                     <div>
@@ -845,7 +790,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                         <div className="space-y-3"><h3 className={sectionTitleClass}>Media Settings</h3><div><label className={labelClass}>Image URL</label><input type="text" className={inputClass} value={displayElement.props.src || ''} onChange={(e) => onUpdateProps(selectedElement.id, { src: e.target.value })}/><input type="file" accept="image/*" className={fileInputClass} onChange={async (e) => { const file = e.target.files?.[0]; if (file) { const base64 = await onFileUpload(file); onUpdateProps(selectedElement.id, { src: base64 }); } }}/></div><div className="grid grid-cols-2 gap-3 mt-3"><div><label className={labelClass}>Object Fit</label><select className={inputClass} value={displayElement.props.imageObjectFit || 'cover'} onChange={(e) => onUpdateProps(selectedElement.id, { imageObjectFit: e.target.value })}><option value="cover">Cover</option><option value="contain">Contain</option><option value="fill">Fill</option><option value="none">None</option><option value="scale-down">Scale Down</option></select></div><div><label className={labelClass}>Height</label><input className={inputClass} value={displayElement.props.imageHeight || ''} onChange={(e) => onUpdateProps(selectedElement.id, { imageHeight: e.target.value })} placeholder="auto, 200px..."/></div></div></div>
                                     )}
                                      {/* Background Settings (If parallax exists) */}
-                                     {['section', 'container', 'columns'].includes(displayElement.type) && (
+                                     {['section', 'container', 'columns', 'navbar'].includes(displayElement.type) && (
                                           <div className="flex items-center justify-between mt-4 border border-gray-100 bg-gray-50 p-2 rounded"><label className="text-[10px] text-gray-600 font-bold">Parallax Effect</label><input type="checkbox" className="accent-indigo-600 w-3 h-3" checked={displayElement.props.parallax || false} onChange={(e) => onUpdateProps(selectedElement.id, { parallax: e.target.checked })}/></div>
                                      )}
                                 </div>

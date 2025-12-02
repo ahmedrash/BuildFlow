@@ -49,6 +49,7 @@ const getIconForType = (type: ElementType) => {
         case 'checkbox': return Icons.Checkbox;
         case 'gallery': return Icons.Grid;
         case 'navbar': return Icons.Menu;
+        case 'menu': return Icons.NavMenu;
         case 'testimonial': return Icons.MessageSquare;
         case 'card': return Icons.Square;
         case 'slider': return Icons.Slider;
@@ -320,6 +321,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <div className="grid grid-cols-3 gap-2">
                     <SidebarItem type="form" icon={Icons.Form} label="Smart Form" onDragStart={onDragStart} />
                     <SidebarItem type="navbar" icon={Icons.Menu} label="Navbar" onDragStart={onDragStart} />
+                    <SidebarItem type="menu" icon={Icons.NavMenu} label="Menu" onDragStart={onDragStart} />
                     <SidebarItem type="testimonial" icon={Icons.MessageSquare} label="Testimonial" onDragStart={onDragStart} />
                     <SidebarItem type="customCode" icon={Icons.Code} label="Code" onDragStart={onDragStart} />
                     </div>

@@ -277,7 +277,7 @@ export const exportHtml = (
             const innerClass = element.props.elementClassName || '';
 
             const renderBackground = () => {
-                if (!['section', 'container', 'columns'].includes(element.type)) return null;
+                if (!['section', 'container', 'columns', 'navbar'].includes(element.type)) return null;
                 const { backgroundImage, backgroundVideo, parallax } = element.props || {};
                 const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = element.props.style || {};
                 const finalBgImage = styleBgImage || backgroundImage;
@@ -296,6 +296,14 @@ export const exportHtml = (
                 case 'columns':
                     return (
                         <div id={element.id} className={(element.props.className || '') + ' relative'} style={element.props.style}>
+                            {renderBackground()}
+                            {element.children?.map(child => <ElementRenderer key={child.id} element={child} />)}
+                        </div>
+                    );
+                case 'navbar': 
+                    const isSticky = element.props.isSticky;
+                    return (
+                        <div id={element.id} className={(element.props.className || '') + ' relative ' + (isSticky ? 'sticky top-0 z-50' : '')} style={element.props.style}>
                             {renderBackground()}
                             {element.children?.map(child => <ElementRenderer key={child.id} element={child} />)}
                         </div>
@@ -348,56 +356,53 @@ export const exportHtml = (
                     if (logoHref) return <a href={logoHref} className="block">{logoContent}</a>;
                     return <div className="block">{logoContent}</div>;
                 }
-                case 'navbar': {
-                    const navOrientation = element.props.navOrientation || 'horizontal';
-                    const isSticky = element.props.isSticky;
-                    const isVertical = navOrientation === 'vertical';
-                    const breakpoint = element.props.mobileMenuBreakpoint || 'md';
-                    const mobileMenuType = element.props.mobileMenuType || 'dropdown';
-                    const mobileMenuIconType = element.props.mobileMenuIconType || 'menu';
-                    const breakpointClass = breakpoint === 'none' ? 'flex' : 'hidden ' + breakpoint + ':flex';
-                    const mobileToggleClass = breakpoint === 'none' ? 'hidden' : 'flex ' + breakpoint + ':hidden';
-                    const activeColor = element.props.activeLinkColor;
-                    const navClasses = "flex w-full p-4 bg-white transition-all duration-300 relative " + (isVertical ? 'flex-col space-y-4 items-start h-full' : 'flex-row justify-between items-center') + " " + (isSticky ? 'sticky top-0 z-50 shadow-sm' : '') + " " + innerClass;
-                    const linkStyle = { color: element.props.linkColor || 'inherit' };
-                    const activeStyle = activeColor ? { '--active-color': activeColor } : {};
-                    const hoverClass = activeColor ? 'hover:text-[var(--active-color)]' : 'hover:opacity-80';
+                case 'menu': {
+                    const { 
+                        navLinks = [],
+                        linkColor,
+                        activeLinkColor,
+                        mobileMenuBreakpoint = 'md',
+                        mobileMenuType = 'dropdown',
+                        hamburgerColor,
+                        menuBackgroundColor,
+                        mobileMenuIconType = 'menu'
+                     } = element.props;
+                    const breakpointClass = mobileMenuBreakpoint === 'none' ? 'flex' : 'hidden ' + mobileMenuBreakpoint + ':flex';
+                    const mobileToggleClass = mobileMenuBreakpoint === 'none' ? 'hidden' : 'flex ' + mobileMenuBreakpoint + ':hidden';
+                    const linkStyle = { color: linkColor || 'inherit' };
+                    const activeStyle = activeLinkColor ? { '--active-color': activeLinkColor } : {};
+                    
                     return (
-                        <nav className={navClasses} style={{...activeStyle, ...innerStyle}}>
-                            <div className={"font-bold text-lg flex items-center justify-between w-full " + (isVertical ? '' : 'md:w-auto')}>
-                                {element.props.logoType === 'image' && element.props.logoSrc ? (<img src={element.props.logoSrc} alt="Logo" className="object-contain" style={{ width: element.props.logoWidth || 'auto', maxHeight: '40px' }} />) : (<span>{element.props.logoText || 'Logo'}</span>)}
-                                {!isVertical && (
-                                    <button className={mobileToggleClass + " p-2 rounded hover:bg-gray-100"} onClick={() => setIsMenuOpen(!isMenuOpen)} style={{ color: element.props.hamburgerColor || 'inherit' }}>
-                                        {mobileMenuIconType === 'grid' ? <Icons.Grid /> : mobileMenuIconType === 'dots' ? <Icons.Dots /> : <Icons.Menu />}
-                                    </button>
-                                )}
-                            </div>
-                            
-                            <ul className={breakpointClass + " gap-6 " + (isVertical ? 'flex-col w-full' : 'items-center')}>
-                                {element.props.navLinks?.map((link, i) => (
-                                    <NavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeColor} openPopup={openPopup} findElement={findElement} />
+                        <div className={"flex items-center " + innerClass} style={{...activeStyle, ...innerStyle}}>
+                            <ul className={breakpointClass + " gap-6 items-center cursor-pointer"}>
+                                {navLinks.map((link, i) => (
+                                    <NavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} openPopup={openPopup} findElement={findElement} />
                                 ))}
                             </ul>
+                            
+                            <button className={mobileToggleClass + " p-2 rounded hover:bg-gray-100"} onClick={() => setIsMenuOpen(!isMenuOpen)} style={{ color: hamburgerColor || 'inherit' }}>
+                                {mobileMenuIconType === 'grid' ? <Icons.Grid /> : mobileMenuIconType === 'dots' ? <Icons.Dots /> : <Icons.Menu />}
+                            </button>
 
-                            {isMenuOpen && !isVertical && (
+                            {isMenuOpen && (
                                 <>
                                     {mobileMenuType === 'dropdown' && (
-                                        <div className={"absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col animate-fade-in z-40 max-h-[80vh] overflow-y-auto " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}>
-                                            {element.props.navLinks?.map((link, i) => (
-                                                 <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeColor} openPopup={openPopup} setIsMenuOpen={setIsMenuOpen} findElement={findElement} />
+                                        <div className={"absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col animate-fade-in z-40 max-h-[80vh] overflow-y-auto " + (mobileMenuBreakpoint === 'none' ? 'hidden' : mobileMenuBreakpoint + ':hidden')} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
+                                            {navLinks.map((link, i) => (
+                                                 <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} openPopup={openPopup} setIsMenuOpen={setIsMenuOpen} findElement={findElement} />
                                             ))}
                                         </div>
                                     )}
                                     {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
-                                        <div className={"fixed inset-0 z-50 " + (breakpoint === 'none' ? 'hidden' : breakpoint + ':hidden')}>
+                                        <div className={"fixed inset-0 z-50 " + (mobileMenuBreakpoint === 'none' ? 'hidden' : mobileMenuBreakpoint + ':hidden')}>
                                             <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div>
-                                            <div className={"absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto " + (mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right')} style={{ backgroundColor: element.props.menuBackgroundColor || 'white' }}>
+                                            <div className={"absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto " + (mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right')} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
                                                 <div className="flex justify-end p-4">
                                                     <button onClick={() => setIsMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-700"><Icons.X /></button>
                                                 </div>
                                                 <div className="px-4 pb-8">
-                                                    {element.props.navLinks?.map((link, i) => (
-                                                        <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeColor} openPopup={openPopup} setIsMenuOpen={setIsMenuOpen} findElement={findElement} />
+                                                    {navLinks.map((link, i) => (
+                                                        <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} openPopup={openPopup} setIsMenuOpen={setIsMenuOpen} findElement={findElement} />
                                                     ))}
                                                 </div>
                                             </div>
@@ -405,7 +410,7 @@ export const exportHtml = (
                                     )}
                                 </>
                             )}
-                        </nav>
+                        </div>
                     );
                 }
                 case 'video': { const videoSrc = element.props.videoUrl || 'https://www.youtube.com/embed/dQw4w9WgXcQ'; const isYoutube = videoSrc.includes('youtube') || videoSrc.includes('youtu.be'); const embedUrl = isYoutube && !videoSrc.includes('embed') ? videoSrc.replace('watch?v=', 'embed/') : videoSrc; return (<div className={"aspect-video w-full bg-black rounded overflow-hidden relative " + innerClass} style={innerStyle}><iframe src={embedUrl} className="w-full h-full" title="Video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" /></div>); }
@@ -521,6 +526,18 @@ export const exportHtml = (
                             <SliderRenderer element={renderedElement} renderChild={renderElement} className="w-full h-full" />
                         </Tag>
                     );
+                }
+                
+                if (type === 'navbar') {
+                     const isSticky = props.isSticky;
+                     return (
+                         <div id={id} className={(props.className || '') + ' relative ' + (isSticky ? 'sticky top-0 z-50' : '')} style={props.style}>
+                            {renderBackground()}
+                            <LinkWrapper>
+                                {children && children.length > 0 ? children.map(child => renderElement(child)) : <ElementRenderer element={renderedElement} />}
+                            </LinkWrapper>
+                        </div>
+                     );
                 }
 
                 return (

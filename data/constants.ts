@@ -1,4 +1,5 @@
 
+
 import { PageElement } from '../types';
 
 export const FONT_FAMILIES = [
@@ -27,12 +28,23 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
            { 
                id: 'navbar', type: 'navbar', name: 'Navbar', 
                props: { 
-                   logoText: 'BuildFlow', 
                    isSticky: true,
-                   navLinks: [{ id: 'nav-1', label: 'Features', href: '#features' }, { id: 'nav-2', label: 'Pricing', href: '#pricing' }, { id: 'nav-3', label: 'Login', href: '#' }],
-                   className: '',
+                   className: 'flex flex-row justify-between items-center p-4 bg-white',
                    elementClassName: ''
-               } 
+               },
+               children: [
+                   {
+                       id: 'nav-logo', type: 'logo', name: 'Logo',
+                       props: { logoText: 'BuildFlow', logoType: 'text', href: '#', className: 'text-xl font-bold' }
+                   },
+                   {
+                       id: 'nav-menu', type: 'menu', name: 'Menu',
+                       props: {
+                           navLinks: [{ id: 'nav-1', label: 'Features', href: '#features' }, { id: 'nav-2', label: 'Pricing', href: '#pricing' }, { id: 'nav-3', label: 'Login', href: '#' }],
+                           mobileMenuBreakpoint: 'md'
+                       }
+                   }
+               ]
            }
         ]
       },
@@ -329,13 +341,14 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
              { 
                  id: 'navbar-p', type: 'navbar', name: 'Navbar', 
                  props: { 
-                     logoText: 'ALEX.DESIGN', 
-                     navLinks: [{ id: 'pnav-1', label: 'Work', href: '#' }, { id: 'pnav-2', label: 'About', href: '#' }, { id: 'pnav-3', label: 'Contact', href: '#' }],
                      isSticky: false,
-                     navOrientation: 'horizontal',
-                     className: '',
+                     className: 'flex flex-row justify-between items-center p-4 bg-white',
                      elementClassName: ''
-                 } 
+                 },
+                 children: [
+                     { id: 'p-logo', type: 'logo', name: 'Logo', props: { logoText: 'ALEX.DESIGN', href: '#', className: 'font-bold tracking-widest' } },
+                     { id: 'p-menu', type: 'menu', name: 'Menu', props: { navLinks: [{ id: 'pnav-1', label: 'Work', href: '#' }, { id: 'pnav-2', label: 'About', href: '#' }, { id: 'pnav-3', label: 'Contact', href: '#' }], mobileMenuBreakpoint: 'md' } }
+                 ]
              }
          ]
        },
@@ -401,7 +414,11 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
               children: [
                   { 
                       id: 'nav-b', type: 'navbar', name: 'Navbar', 
-                      props: { logoText: 'VANTAGE', isSticky: true, linkColor: '#333', className: '', elementClassName: '' }
+                      props: { isSticky: true, className: 'flex justify-between items-center p-4 bg-white shadow-sm', elementClassName: '' },
+                      children: [
+                          { id: 'b-logo', type: 'logo', name: 'Logo', props: { logoText: 'VANTAGE', href: '#', className: 'font-bold' } },
+                          { id: 'b-menu', type: 'menu', name: 'Menu', props: { linkColor: '#333', navLinks: [{ id: 'm1', label: 'Services', href: '#' }, { id: 'm2', label: 'About', href: '#' }], mobileMenuBreakpoint: 'md' } }
+                      ]
                   }
               ]
           },

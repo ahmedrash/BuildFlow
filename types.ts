@@ -21,6 +21,7 @@ export type ElementType =
   | 'gallery' 
   | 'navbar' 
   | 'logo'      // New
+  | 'menu'      // New
   | 'testimonial' 
   | 'card'
   | 'slider'
