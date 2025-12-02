@@ -8,10 +8,10 @@ export const FONT_FAMILIES = [
 ];
 
 export const MENU_PRESETS = {
-    'simple': [{ label: 'Home', href: '#' }, { label: 'About', href: '#about' }, { label: 'Contact', href: '#contact' }],
-    'business': [{ label: 'Solutions', href: '#solutions' }, { label: 'Pricing', href: '#pricing' }, { label: 'Resources', href: '#resources' }, { label: 'Login', href: '#login' }],
-    'portfolio': [{ label: 'Work', href: '#work' }, { label: 'Services', href: '#services' }, { label: 'About', href: '#about' }],
-    'app': [{ label: 'Features', href: '#features' }, { label: 'Docs', href: '#docs' }, { label: 'Blog', href: '#blog' }, { label: 'Sign Up', href: '#signup' }]
+    'simple': [{ id: 'm-1', label: 'Home', href: '#' }, { id: 'm-2', label: 'About', href: '#about' }, { id: 'm-3', label: 'Contact', href: '#contact' }],
+    'business': [{ id: 'm-4', label: 'Solutions', href: '#solutions' }, { id: 'm-5', label: 'Pricing', href: '#pricing' }, { id: 'm-6', label: 'Resources', href: '#resources' }, { id: 'm-7', label: 'Login', href: '#login' }],
+    'portfolio': [{ id: 'm-8', label: 'Work', href: '#work' }, { id: 'm-9', label: 'Services', href: '#services' }, { id: 'm-10', label: 'About', href: '#about' }],
+    'app': [{ id: 'm-11', label: 'Features', href: '#features' }, { id: 'm-12', label: 'Docs', href: '#docs' }, { id: 'm-13', label: 'Blog', href: '#blog' }, { id: 'm-14', label: 'Sign Up', href: '#signup' }]
 };
 
 export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
@@ -29,7 +29,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                props: { 
                    logoText: 'BuildFlow', 
                    isSticky: true,
-                   navLinks: [{ label: 'Features', href: '#features' }, { label: 'Pricing', href: '#pricing' }, { label: 'Login', href: '#' }],
+                   navLinks: [{ id: 'nav-1', label: 'Features', href: '#features' }, { id: 'nav-2', label: 'Pricing', href: '#pricing' }, { id: 'nav-3', label: 'Login', href: '#' }],
                    className: '',
                    elementClassName: ''
                } 
@@ -330,7 +330,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                  id: 'navbar-p', type: 'navbar', name: 'Navbar', 
                  props: { 
                      logoText: 'ALEX.DESIGN', 
-                     navLinks: [{ label: 'Work', href: '#' }, { label: 'About', href: '#' }, { label: 'Contact', href: '#' }],
+                     navLinks: [{ id: 'pnav-1', label: 'Work', href: '#' }, { id: 'pnav-2', label: 'About', href: '#' }, { id: 'pnav-3', label: 'Contact', href: '#' }],
                      isSticky: false,
                      navOrientation: 'horizontal',
                      className: '',

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
 import { ElementRenderer } from './elements/ElementRenderer';
 import { Icons } from './Icons';
-import { EditorConfigContext, PopupContext } from './EditorConfigContext';
+import { EditorConfigContext, PopupContext, PageContext } from './EditorConfigContext';
 
 interface PageRendererProps {
   elements: PageElement[];
@@ -18,13 +18,26 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
 }) => {
   const [activePopupId, setActivePopupId] = useState<string | null>(null);
 
-  // Scan for Popup Target IDs
+  // Scan for Popup Targets to hide initially
   const popupTargets = useMemo(() => {
     const targets = new Set<string>();
     const scan = (els: PageElement[]) => {
         els.forEach(el => {
+            // Button triggers
             if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) {
                 targets.add(el.props.popupTargetId);
+            }
+            // Nav Link Triggers
+            if (el.type === 'navbar' && el.props.navLinks) {
+                const scanLinks = (links: any[]) => {
+                    links.forEach(l => {
+                        if ((l.type === 'popup' || l.type === 'mega-menu') && l.targetId) {
+                            targets.add(l.targetId);
+                        }
+                        if (l.children) scanLinks(l.children);
+                    });
+                }
+                scanLinks(el.props.navLinks);
             }
             if (el.children) scan(el.children);
         });
@@ -35,7 +48,6 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
 
   const openPopup = (id: string) => setActivePopupId(id);
   
-  // Find element for modal
   const findElementById = (id: string, list: PageElement[]): PageElement | null => {
       for (const el of list) {
           if (el.id === id) return el;
@@ -101,7 +113,6 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         return null;
     };
 
-    // Only clip Slider and Card to allow Dropdowns (in Navbar/Section) to overflow
     const containerClasses = ['slider', 'card'].includes(type) 
         ? 'relative overflow-hidden' 
         : 'relative';
@@ -109,7 +120,6 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
     const classNameToApply = type === 'button' ? '' : (props.className || '');
     const hiddenClass = isHiddenTarget ? ' hidden' : '';
     
-    // Hover effects for Card wrapper
     const getCardHoverClass = () => {
         if (type !== 'card') return '';
         const { cardHoverEffect } = props;
@@ -121,10 +131,8 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         return classes;
     };
 
-    // For exported/preview mode, we just render the structure
     const Tag = type === 'section' ? 'section' : 'div';
     
-    // Link Wrapper for Card
     const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
         if (type === 'card' && props.cardLink) {
              return <a href={props.cardLink} className="block h-full no-underline text-inherit">{children}</a>;
@@ -132,7 +140,6 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         return <>{children}</>;
     };
 
-    // Slider specific children rendering
     if (type === 'slider' && children) {
         return (
             <Tag key={id} className={`${classNameToApply} ${containerClasses}${hiddenClass}`} style={props.style}>
@@ -162,50 +169,46 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
 
   return (
     <PopupContext.Provider value={{ openPopup, popupTargets }}>
-        {elements.map(el => renderElement(el))}
-        
-        {/* Popup Modal Portal */}
-        {activePopupId && activePopupElement && createPortal(
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
-                {/* Backdrop */}
-                <div 
-                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                    onClick={() => setActivePopupId(null)}
-                />
-                
-                {/* Modal Content */}
-                <div className="relative shadow-2xl overflow-hidden w-auto max-w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
-                    <button 
-                        className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors"
+        <PageContext.Provider value={{ findElement: (id) => findElementById(id, elements) }}>
+            {elements.map(el => renderElement(el))}
+            
+            {activePopupId && activePopupElement && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         onClick={() => setActivePopupId(null)}
-                    >
-                        <Icons.X />
-                    </button>
-                    {/* Render the target element inside the modal. */}
-                    <div className="popup-content-wrapper">
-                         {(() => {
-                             const modalEl = { ...activePopupElement };
-                             return (
-                                 <div className="!block [&_.hidden]:!block"> 
-                                     <div style={{ display: 'block !important' }}>
-                                          <PopupRootRenderer 
-                                            element={modalEl} 
-                                            renderChild={renderElement} 
-                                          />
-                                     </div>
-                                 </div>
-                             )
-                         })()}
+                    />
+                    <div className="relative shadow-2xl overflow-hidden w-auto max-w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
+                        <button 
+                            className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors"
+                            onClick={() => setActivePopupId(null)}
+                        >
+                            <Icons.X />
+                        </button>
+                        <div className="popup-content-wrapper">
+                            {(() => {
+                                const modalEl = { ...activePopupElement };
+                                return (
+                                    <div className="!block [&_.hidden]:!block"> 
+                                        <div style={{ display: 'block !important' }}>
+                                            <PopupRootRenderer 
+                                                element={modalEl} 
+                                                renderChild={renderElement} 
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            })()}
+                        </div>
                     </div>
-                </div>
-            </div>,
-            document.body
-        )}
+                </div>,
+                document.body
+            )}
+        </PageContext.Provider>
     </PopupContext.Provider>
   );
 };
 
-// Helper to render just the root of the popup without the 'hidden' logic, but children use standard logic
 const PopupRootRenderer: React.FC<{ element: PageElement, renderChild: (el: PageElement) => React.ReactNode }> = ({ element, renderChild }) => {
     const { type, children, props } = element;
     const Tag = type === 'section' ? 'section' : 'div';
@@ -225,7 +228,6 @@ const PopupRootRenderer: React.FC<{ element: PageElement, renderChild: (el: Page
         return null;
     };
 
-    // Keep strict clipping only for elements that absolutely require it for effects
     const containerClasses = ['slider', 'card'].includes(type) ? 'relative overflow-hidden' : 'relative';
     const classNameToApply = type === 'button' ? '' : (props.className || '');
 
@@ -237,7 +239,6 @@ const PopupRootRenderer: React.FC<{ element: PageElement, renderChild: (el: Page
     );
 }
 
-// Internal Slider Component for the Renderer to handle interaction
 const SliderRenderer: React.FC<{ element: PageElement; renderChild: (el: PageElement) => React.ReactNode }> = ({ element, renderChild }) => {
     const [activeIndex, setActiveIndex] = useState(0);
 

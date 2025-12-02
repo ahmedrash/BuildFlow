@@ -87,6 +87,17 @@ export interface TestimonialItem {
     rating: number;
 }
 
+export interface NavLinkItem {
+    id: string;
+    label: string;
+    href?: string;
+    target?: '_self' | '_blank';
+    type?: 'link' | 'dropdown' | 'popup' | 'mega-menu';
+    targetId?: string; // For popup or mega-menu
+    triggerType?: 'click' | 'hover'; // For mega-menu
+    children?: NavLinkItem[];
+}
+
 export interface SavedTemplate {
     id: string;
     name: string;
@@ -181,7 +192,7 @@ export interface PageElement {
     checked?: boolean;
 
     // Navbar Specific
-    navLinks?: { label: string, href: string }[]; 
+    navLinks?: NavLinkItem[]; 
     isSticky?: boolean;
     navOrientation?: 'horizontal' | 'vertical';
     logoType?: 'text' | 'image';
@@ -193,6 +204,7 @@ export interface PageElement {
     hamburgerColor?: string;
     mobileMenuBreakpoint?: 'sm' | 'md' | 'lg' | 'none';
     mobileMenuType?: 'dropdown' | 'slide-left' | 'slide-right';
+    mobileMenuIconType?: 'menu' | 'grid' | 'dots';
     menuBackgroundColor?: string;
     
     // Card Specific

@@ -12,7 +12,7 @@ import { TEMPLATES } from '../data/constants';
 import { Toast } from './ui/Toast';
 import { PromptModal } from './ui/PromptModal';
 import { exportHtml } from '../utils/htmlExporter';
-import { EditorConfigContext, PopupContext } from './EditorConfigContext';
+import { EditorConfigContext, PopupContext, PageContext } from './EditorConfigContext';
 
 export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({ 
     initialData = TEMPLATES[0].elements, 
@@ -185,6 +185,11 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
       return elements;
   };
   
+  const activeElements = getActiveElements();
+  
+  // Context helper to find elements anywhere in the active tree
+  const findElementInActive = (id: string) => findElement(id, activeElements);
+
   const setActiveElements = (updater: (prev: PageElement[]) => PageElement[]) => {
       if (editingTemplateId) {
           setSavedTemplates(prev => prev.map(t => {
@@ -420,12 +425,21 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
   const handleAddNavLink = (id: string) => {
       const el = findElement(id, getActiveElements());
       if (el) {
-          const newLinks = [...(el.props.navLinks || []), { label: 'New Link', href: '#' }];
+          // New format for nested/mega support
+          const newLink = { 
+              id: `nav-${Date.now()}`,
+              label: 'New Link', 
+              href: '#',
+              type: 'link'
+          };
+          const newLinks = [...(el.props.navLinks || []), newLink];
           handleUpdateProps(id, { navLinks: newLinks });
       }
   };
 
-  const handleUpdateNavLink = (id: string, index: number, field: 'label' | 'href', value: string) => {
+  const handleUpdateNavLink = (id: string, index: number, field: string, value: string) => {
+      // NOTE: This legacy handler is replaced by recursive updates in PropertiesPanel
+      // Kept for simple flat list compatibility if needed
       const el = findElement(id, getActiveElements());
       if (el && el.props.navLinks) {
           const newLinks = [...el.props.navLinks];
@@ -547,7 +561,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 zoom: type === 'map' ? 13 : undefined,
                 mapType: type === 'map' ? 'roadmap' : undefined,
                 videoUrl: type === 'video' ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : undefined,
-                navLinks: type === 'navbar' ? [{ label: 'Home', href: '#' }, { label: 'About', href: '#' }] : undefined,
+                navLinks: type === 'navbar' ? [{ id: 'l1', label: 'Home', href: '#', type: 'link' }, { id: 'l2', label: 'About', href: '#', type: 'link' }] : undefined,
                 
                 logoType: type === 'navbar' || type === 'logo' ? 'text' : undefined,
                 logoText: type === 'navbar' || type === 'logo' ? (type === 'logo' ? 'Brand' : 'Logo') : undefined,
@@ -574,7 +588,8 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 testimonialItems: type === 'testimonial' ? [ { id: 't1', content: "This product changed my business completely.", author: "Sarah Johnson", role: "CEO", rating: 5, avatarSrc: "https://i.pravatar.cc/150?u=1" } ] : undefined,
                 cardHoverEffect: type === 'card' ? 'lift' : undefined,
                 buttonAction: type === 'button' ? 'link' : undefined,
-                target: type === 'button' ? '_self' : undefined
+                target: type === 'button' ? '_self' : undefined,
+                mobileMenuIconType: type === 'navbar' ? 'menu' : undefined
             },
             children
           };
@@ -655,9 +670,23 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     const targets = new Set<string>();
     const scan = (els: PageElement[]) => {
         els.forEach(el => {
+             // Button triggers
              if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) {
                  targets.add(el.props.popupTargetId);
              }
+             // Nav Link Triggers (Popup & Mega Menu)
+             if (el.type === 'navbar' && el.props.navLinks) {
+                 const scanLinks = (links: any[]) => {
+                     links.forEach(l => {
+                         if ((l.type === 'popup' || l.type === 'mega-menu') && l.targetId) {
+                             targets.add(l.targetId);
+                         }
+                         if (l.children) scanLinks(l.children);
+                     });
+                 }
+                 scanLinks(el.props.navLinks);
+             }
+
              if (el.children) scan(el.children);
         });
     };
@@ -670,226 +699,227 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
       if (isPreview) setActivePopupId(id);
   };
 
-  const activeElements = getActiveElements();
   const selectedElement = selectedId ? findElement(selectedId, activeElements) : null;
   const viewportWidth = viewMode === 'mobile' ? '375px' : viewMode === 'tablet' ? '768px' : '100%';
 
   return (
     <EditorConfigContext.Provider value={{ googleMapsApiKey, recaptchaSiteKey }}>
         <PopupContext.Provider value={{ openPopup, popupTargets }}>
-        <div className="flex flex-col h-full bg-white font-sans text-slate-900">
-        
-        {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
-        
-        <PromptModal 
-            isOpen={promptConfig.isOpen}
-            title={promptConfig.title}
-            defaultValue={promptConfig.defaultValue}
-            showGlobalOption={promptConfig.showGlobalOption}
-            onClose={() => setPromptConfig(prev => ({ ...prev, isOpen: false }))}
-            onConfirm={promptConfig.onConfirm}
-        />
-
-        <Topbar 
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            isPreview={isPreview}
-            setIsPreview={setIsPreview}
-            onOpenTemplates={() => { setIsTemplatesModalOpen(true); setTemplatesTab('presets'); }}
-            onOpenSettings={() => setIsSettingsModalOpen(true)}
-            onSave={() => onSave ? onSave(elements) : null}
-            onExportHtml={handleExport}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            canUndo={history.past.length > 0 && !editingTemplateId}
-            canRedo={history.future.length > 0 && !editingTemplateId}
-        />
-        
-        {editingTemplateId && (
-            <div className="bg-amber-100 px-4 py-2 text-center text-sm font-medium text-amber-800 flex justify-between items-center shadow-inner">
-                <span>You are editing a Master Template. Changes will affect all Global instances.</span>
-                <button onClick={handleFinishEditingTemplate} className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600 text-xs">Finish Editing</button>
-            </div>
-        )}
-
-        <div className="flex flex-1 overflow-hidden">
-            {!isPreview && (
-            <Sidebar 
-                onDragStart={handleSidebarDragStart} 
-                elements={activeElements}
-                selectedId={selectedId}
-                onSelect={(id) => handleSelect(id)}
-                onDelete={handleDelete}
-                onDuplicate={handleDuplicate}
-                onUpdateProps={handleUpdateProps}
-                onDropElement={handleDropElement}
+            <PageContext.Provider value={{ findElement: findElementInActive }}>
+            <div className="flex flex-col h-full bg-white font-sans text-slate-900">
+            
+            {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
+            
+            <PromptModal 
+                isOpen={promptConfig.isOpen}
+                title={promptConfig.title}
+                defaultValue={promptConfig.defaultValue}
+                showGlobalOption={promptConfig.showGlobalOption}
+                onClose={() => setPromptConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={promptConfig.onConfirm}
             />
+
+            <Topbar 
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                isPreview={isPreview}
+                setIsPreview={setIsPreview}
+                onOpenTemplates={() => { setIsTemplatesModalOpen(true); setTemplatesTab('presets'); }}
+                onOpenSettings={() => setIsSettingsModalOpen(true)}
+                onSave={() => onSave ? onSave(elements) : null}
+                onExportHtml={handleExport}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                canUndo={history.past.length > 0 && !editingTemplateId}
+                canRedo={history.future.length > 0 && !editingTemplateId}
+            />
+            
+            {editingTemplateId && (
+                <div className="bg-amber-100 px-4 py-2 text-center text-sm font-medium text-amber-800 flex justify-between items-center shadow-inner">
+                    <span>You are editing a Master Template. Changes will affect all Global instances.</span>
+                    <button onClick={handleFinishEditingTemplate} className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600 text-xs">Finish Editing</button>
+                </div>
             )}
 
-            <main 
-                className="flex-1 overflow-y-auto bg-gray-200/50 relative p-8 scroll-smooth flex justify-center"
-                onClick={() => setSelectedId(null)}
-            >
-            <PreviewFrame
-                width={viewportWidth}
-                className={`transition-all duration-500 ease-in-out h-fit min-h-[800px] bg-white shadow-2xl ${isPreview ? '' : 'ring-1 ring-gray-200'}`}
-            >
-                <div 
-                    id="canvas-root" 
-                    className="min-h-[800px] pb-20 relative"
-                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const type = e.dataTransfer.getData('type');
-                        if (type === 'new') {
-                            const elementType = e.dataTransfer.getData('elementType');
-                            if(elementType) handleDropElement('root', 'inside', { type: 'new', elementType });
-                        } else if (type === 'move') {
-                            const id = e.dataTransfer.getData('id');
-                            if (id) handleDropElement('root', 'inside', { type: 'move', id });
-                        }
-                    }}
+            <div className="flex flex-1 overflow-hidden">
+                {!isPreview && (
+                <Sidebar 
+                    onDragStart={handleSidebarDragStart} 
+                    elements={activeElements}
+                    selectedId={selectedId}
+                    onSelect={(id) => handleSelect(id)}
+                    onDelete={handleDelete}
+                    onDuplicate={handleDuplicate}
+                    onUpdateProps={handleUpdateProps}
+                    onDropElement={handleDropElement}
+                />
+                )}
+
+                <main 
+                    className="flex-1 overflow-y-auto bg-gray-200/50 relative p-8 scroll-smooth flex justify-center"
+                    onClick={() => setSelectedId(null)}
                 >
-                    {activeElements.map(el => (
-                        <EditorCanvas 
-                            key={el.id} 
-                            element={el} 
-                            selectedId={selectedId} 
-                            onSelect={handleSelect}
-                            isPreview={isPreview}
-                            onDropElement={handleDropElement}
-                            onDuplicate={handleDuplicate}
-                            onUpdateProps={handleUpdateProps}
-                            getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
-                            popupTargets={popupTargets}
-                        />
-                    ))}
-                    
-                    {activeElements.length === 0 && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 pointer-events-none">
-                            <Icons.Layout />
-                            <p className="mt-4 font-medium">Drag and drop elements here to start</p>
-                        </div>
-                    )}
-                    
-                    {/* Render Popup Modal inside iframe (Preview Mode Only) */}
-                    {isPreview && activePopupId && (
-                        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
-                            <div 
-                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                                onClick={() => setActivePopupId(null)}
+                <PreviewFrame
+                    width={viewportWidth}
+                    className={`transition-all duration-500 ease-in-out h-fit min-h-[800px] bg-white shadow-2xl ${isPreview ? '' : 'ring-1 ring-gray-200'}`}
+                >
+                    <div 
+                        id="canvas-root" 
+                        className="min-h-[800px] pb-20 relative"
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const type = e.dataTransfer.getData('type');
+                            if (type === 'new') {
+                                const elementType = e.dataTransfer.getData('elementType');
+                                if(elementType) handleDropElement('root', 'inside', { type: 'new', elementType });
+                            } else if (type === 'move') {
+                                const id = e.dataTransfer.getData('id');
+                                if (id) handleDropElement('root', 'inside', { type: 'move', id });
+                            }
+                        }}
+                    >
+                        {activeElements.map(el => (
+                            <EditorCanvas 
+                                key={el.id} 
+                                element={el} 
+                                selectedId={selectedId} 
+                                onSelect={handleSelect}
+                                isPreview={isPreview}
+                                onDropElement={handleDropElement}
+                                onDuplicate={handleDuplicate}
+                                onUpdateProps={handleUpdateProps}
+                                getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
+                                popupTargets={popupTargets}
                             />
-                            <div className="relative shadow-2xl overflow-hidden w-auto max-w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
-                                <button 
-                                    className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors"
-                                    onClick={() => setActivePopupId(null)}
-                                >
-                                    <Icons.X />
-                                </button>
-                                {(() => {
-                                    const targetEl = findElement(activePopupId, activeElements);
-                                    if (targetEl) {
-                                        return (
-                                            <EditorCanvas 
-                                                element={targetEl}
-                                                selectedId={null}
-                                                onSelect={() => {}}
-                                                isPreview={true} 
-                                                onDropElement={() => {}} 
-                                                onDuplicate={() => {}}
-                                                onUpdateProps={() => {}}
-                                                getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
-                                                popupTargets={popupTargets}
-                                                isPopupContent={true} // Force visibility
-                                            />
-                                        )
-                                    }
-                                    return null;
-                                })()}
+                        ))}
+                        
+                        {activeElements.length === 0 && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 pointer-events-none">
+                                <Icons.Layout />
+                                <p className="mt-4 font-medium">Drag and drop elements here to start</p>
                             </div>
-                        </div>
-                    )}
-                </div>
-            </PreviewFrame>
-            </main>
-
-            {!isPreview && (
-            <PropertiesPanel
-                selectedElement={selectedElement}
-                onUpdateId={handleUpdateId}
-                onUpdateName={handleUpdateName}
-                onDelete={handleDelete}
-                onDuplicate={handleDuplicate}
-                onUpdateProps={handleUpdateProps}
-                onUpdateStyle={handleUpdateStyle}
-                onFileUpload={onUploadImage || (async () => "")}
-                onAddNavLink={handleAddNavLink}
-                onUpdateNavLink={handleUpdateNavLink}
-                onRemoveNavLink={handleRemoveNavLink}
-                onAddSlide={handleAddSlide}
-                onRemoveSlide={handleRemoveSlide}
-                onUpdateSlide={()=>{}}
-                onSaveTemplate={handleSaveTemplate}
-                onDetach={handleDetachElement}
-                onEditTemplate={handleEditTemplate}
-                savedTemplates={savedTemplates}
-            />
-            )}
-        </div>
-        {/* Modals for Templates/Settings omitted for brevity (same as previous) */}
-        {isTemplatesModalOpen && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden h-[500px] flex flex-col">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-gray-900">Library</h3>
-                    <button onClick={() => setIsTemplatesModalOpen(false)} className="text-gray-400 hover:text-gray-600">Close</button>
-                </div>
-                <div className="flex border-b border-gray-200 px-6">
-                    <button className={`py-3 mr-4 text-sm font-medium border-b-2 transition-colors ${templatesTab === 'presets' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`} onClick={() => setTemplatesTab('presets')}>Presets</button>
-                    <button className={`py-3 text-sm font-medium border-b-2 transition-colors ${templatesTab === 'saved' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`} onClick={() => setTemplatesTab('saved')}>My Templates</button>
-                </div>
-                <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
-                    {templatesTab === 'presets' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {TEMPLATES.map(t => (
-                                <button key={t.name} onClick={() => { setActiveElements(() => t.elements); setIsTemplatesModalOpen(false); }} className="bg-white p-4 rounded-xl border border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all text-left group">
-                                    <div className="h-32 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-300 group-hover:bg-indigo-50 group-hover:text-indigo-300 transition-colors"><Icons.Layout /></div>
-                                    <h4 className="font-bold text-gray-800">{t.name}</h4>
-                                    <p className="text-xs text-gray-500 mt-1">Professional layout.</p>
-                                </button>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {savedTemplates.map(t => (
-                                <div key={t.id} className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-lg transition-all flex flex-col group relative">
-                                    <button onClick={() => handleDeleteTemplate(t.id)} className="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10"><Icons.Trash width={14} height={14} /></button>
-                                    <button className="flex-1 text-left" onClick={() => { handleDropElement('root', 'inside', { type: 'template', templateId: t.id }); setIsTemplatesModalOpen(false); showToast("Template added"); }}>
-                                        <div className="h-24 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-400 transition-colors">{t.isGlobal ? <Icons.Globe /> : <Icons.Component />}</div>
-                                        <div className="flex items-center gap-2"><h4 className="font-bold text-gray-800">{t.name}</h4>{t.isGlobal && <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded font-mono">GLOBAL</span>}</div>
+                        )}
+                        
+                        {/* Render Popup Modal inside iframe (Preview Mode Only) */}
+                        {isPreview && activePopupId && (
+                            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
+                                <div 
+                                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                                    onClick={() => setActivePopupId(null)}
+                                />
+                                <div className="relative shadow-2xl overflow-hidden w-auto max-w-full max-h-[90vh] overflow-y-auto animate-fade-in-up">
+                                    <button 
+                                        className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors"
+                                        onClick={() => setActivePopupId(null)}
+                                    >
+                                        <Icons.X />
                                     </button>
-                                    {t.isGlobal && <button onClick={() => handleEditTemplate(t.id)} className="mt-3 w-full py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200">Edit Master</button>}
+                                    {(() => {
+                                        const targetEl = findElement(activePopupId, activeElements);
+                                        if (targetEl) {
+                                            return (
+                                                <EditorCanvas 
+                                                    element={targetEl}
+                                                    selectedId={null}
+                                                    onSelect={() => {}}
+                                                    isPreview={true} 
+                                                    onDropElement={() => {}} 
+                                                    onDuplicate={() => {}}
+                                                    onUpdateProps={() => {}}
+                                                    getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
+                                                    popupTargets={popupTargets}
+                                                    isPopupContent={true} // Force visibility
+                                                />
+                                            )
+                                        }
+                                        return null;
+                                    })()}
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                            </div>
+                        )}
+                    </div>
+                </PreviewFrame>
+                </main>
+
+                {!isPreview && (
+                <PropertiesPanel
+                    selectedElement={selectedElement}
+                    onUpdateId={handleUpdateId}
+                    onUpdateName={handleUpdateName}
+                    onDelete={handleDelete}
+                    onDuplicate={handleDuplicate}
+                    onUpdateProps={handleUpdateProps}
+                    onUpdateStyle={handleUpdateStyle}
+                    onFileUpload={onUploadImage || (async () => "")}
+                    onAddNavLink={handleAddNavLink}
+                    onUpdateNavLink={handleUpdateNavLink}
+                    onRemoveNavLink={handleRemoveNavLink}
+                    onAddSlide={handleAddSlide}
+                    onRemoveSlide={handleRemoveSlide}
+                    onUpdateSlide={()=>{}}
+                    onSaveTemplate={handleSaveTemplate}
+                    onDetach={handleDetachElement}
+                    onEditTemplate={handleEditTemplate}
+                    savedTemplates={savedTemplates}
+                />
+                )}
+            </div>
+            {/* Modals for Templates/Settings omitted for brevity (same as previous) */}
+            {isTemplatesModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden h-[500px] flex flex-col">
+                    <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h3 className="text-lg font-bold text-gray-900">Library</h3>
+                        <button onClick={() => setIsTemplatesModalOpen(false)} className="text-gray-400 hover:text-gray-600">Close</button>
+                    </div>
+                    <div className="flex border-b border-gray-200 px-6">
+                        <button className={`py-3 mr-4 text-sm font-medium border-b-2 transition-colors ${templatesTab === 'presets' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`} onClick={() => setTemplatesTab('presets')}>Presets</button>
+                        <button className={`py-3 text-sm font-medium border-b-2 transition-colors ${templatesTab === 'saved' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`} onClick={() => setTemplatesTab('saved')}>My Templates</button>
+                    </div>
+                    <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
+                        {templatesTab === 'presets' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {TEMPLATES.map(t => (
+                                    <button key={t.name} onClick={() => { setActiveElements(() => t.elements); setIsTemplatesModalOpen(false); }} className="bg-white p-4 rounded-xl border border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all text-left group">
+                                        <div className="h-32 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-300 group-hover:bg-indigo-50 group-hover:text-indigo-300 transition-colors"><Icons.Layout /></div>
+                                        <h4 className="font-bold text-gray-800">{t.name}</h4>
+                                        <p className="text-xs text-gray-500 mt-1">Professional layout.</p>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {savedTemplates.map(t => (
+                                    <div key={t.id} className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-lg transition-all flex flex-col group relative">
+                                        <button onClick={() => handleDeleteTemplate(t.id)} className="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all z-10"><Icons.Trash width={14} height={14} /></button>
+                                        <button className="flex-1 text-left" onClick={() => { handleDropElement('root', 'inside', { type: 'template', templateId: t.id }); setIsTemplatesModalOpen(false); showToast("Template added"); }}>
+                                            <div className="h-24 bg-gray-100 rounded-lg mb-4 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-400 transition-colors">{t.isGlobal ? <Icons.Globe /> : <Icons.Component />}</div>
+                                            <div className="flex items-center gap-2"><h4 className="font-bold text-gray-800">{t.name}</h4>{t.isGlobal && <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded font-mono">GLOBAL</span>}</div>
+                                        </button>
+                                        {t.isGlobal && <button onClick={() => handleEditTemplate(t.id)} className="mt-3 w-full py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200">Edit Master</button>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
-            </div>
-        )}
-        {isSettingsModalOpen && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center"><h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Icons.Globe /> Page Settings</h3><button onClick={() => setIsSettingsModalOpen(false)} className="text-gray-400 hover:text-gray-600">Close</button></div>
-                <div className="p-6 space-y-4">
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Page Title</label><input className="w-full border border-gray-300 rounded-lg p-2 text-sm" value={pageSettings.title} onChange={(e) => setPageSettings(p => ({ ...p, title: e.target.value }))} /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Meta Description</label><textarea className="w-full border border-gray-300 rounded-lg p-2 text-sm" rows={3} value={pageSettings.description} onChange={(e) => setPageSettings(p => ({ ...p, description: e.target.value }))} /></div>
                 </div>
-                <div className="p-4 bg-gray-50 text-right"><button onClick={() => { setIsSettingsModalOpen(false); showToast("Settings saved"); }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Save Changes</button></div>
+            )}
+            {isSettingsModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 flex justify-between items-center"><h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Icons.Globe /> Page Settings</h3><button onClick={() => setIsSettingsModalOpen(false)} className="text-gray-400 hover:text-gray-600">Close</button></div>
+                    <div className="p-6 space-y-4">
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Page Title</label><input className="w-full border border-gray-300 rounded-lg p-2 text-sm" value={pageSettings.title} onChange={(e) => setPageSettings(p => ({ ...p, title: e.target.value }))} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Meta Description</label><textarea className="w-full border border-gray-300 rounded-lg p-2 text-sm" rows={3} value={pageSettings.description} onChange={(e) => setPageSettings(p => ({ ...p, description: e.target.value }))} /></div>
+                    </div>
+                    <div className="p-4 bg-gray-50 text-right"><button onClick={() => { setIsSettingsModalOpen(false); showToast("Settings saved"); }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Save Changes</button></div>
+                </div>
+                </div>
+            )}
             </div>
-            </div>
-        )}
-        </div>
+            </PageContext.Provider>
         </PopupContext.Provider>
     </EditorConfigContext.Provider>
   );

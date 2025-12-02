@@ -1,9 +1,9 @@
 
 
 import React, { useState, useEffect, useContext } from 'react';
-import { PageElement, TestimonialItem } from '../../types';
+import { PageElement, TestimonialItem, NavLinkItem } from '../../types';
 import { Icons } from '../Icons';
-import { EditorConfigContext, PopupContext } from '../EditorConfigContext';
+import { EditorConfigContext, PopupContext, PageContext } from '../EditorConfigContext';
 
 interface ElementRendererProps {
   element: PageElement;
@@ -71,6 +71,7 @@ const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string
 export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPreview }) => {
   const { googleMapsApiKey, recaptchaSiteKey } = useContext(EditorConfigContext);
   const { openPopup } = useContext(PopupContext);
+  const { findElement } = useContext(PageContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   // Helper to disable pointer events only in editor mode
@@ -81,9 +82,188 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
   const innerStyle = element.props.elementStyle || {};
   const innerClass = element.props.elementClassName || '';
 
+  // Recursive Nav Item Renderer
+  const NavItemRenderer: React.FC<{ link: NavLinkItem, linkStyle: React.CSSProperties, activeLinkColor?: string }> = ({ link, linkStyle, activeLinkColor }) => {
+     const hasChildren = link.children && link.children.length > 0;
+     const isMegaMenu = link.type === 'mega-menu' && link.targetId;
+     const isPopup = link.type === 'popup';
+     
+     const handleLinkClick = (e: React.MouseEvent) => {
+         if (!isPreview) {
+            e.preventDefault();
+            return;
+         }
+
+         if (isPopup && link.targetId) {
+             e.preventDefault();
+             openPopup(link.targetId);
+             return;
+         }
+
+         if (link.href && link.href.startsWith('#')) {
+             e.preventDefault();
+             const id = link.href.substring(1);
+             const doc = (e.target as HTMLElement).ownerDocument;
+             if (!id) doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+             else doc.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+         }
+     };
+
+     const baseClasses = `transition-colors hover:opacity-80 font-medium flex items-center gap-1 ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''} cursor-pointer`;
+     
+     // Mega Menu Content Resolution
+     let megaMenuContent: React.ReactNode = null;
+     if (isMegaMenu && link.targetId) {
+         const targetElement = findElement(link.targetId);
+         // If we found the element, we need to clone it to avoid React key issues if rendered twice, 
+         // but strictly rendering it here is cleaner for preview.
+         if (targetElement) {
+             // We can use ElementRenderer to render it.
+             // Crucial: The target element might be hidden in the main flow. 
+             // We render a copy here.
+             megaMenuContent = (
+                 <div className="absolute top-full left-0 w-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
+                     <div className="bg-white shadow-xl border-t border-gray-100 max-h-[80vh] overflow-y-auto">
+                        {/* We render it wrapped in a div to ensure full width context if parent allows */}
+                        <div className="container mx-auto">
+                            <ElementRenderer element={targetElement} isPreview={isPreview} />
+                        </div>
+                     </div>
+                 </div>
+             );
+         }
+     }
+
+     return (
+         <li className={`relative group ${isMegaMenu ? 'static' : ''}`}> 
+            {/* 'static' on li allows absolute child to be relative to the nav container (if nav is relative) for full width */}
+             
+             {link.href || isPopup ? (
+                 <a 
+                     href={link.href || '#'} 
+                     className={baseClasses}
+                     style={linkStyle}
+                     onClick={handleLinkClick}
+                     target={link.target}
+                 >
+                     {link.label}
+                     {(hasChildren || isMegaMenu) && <Icons.ChevronDown width={12} height={12} />}
+                 </a>
+             ) : (
+                 <div className={baseClasses} style={linkStyle}>
+                     {link.label}
+                     {(hasChildren || isMegaMenu) && <Icons.ChevronDown width={12} height={12} />}
+                 </div>
+             )}
+
+             {/* Standard Dropdown */}
+             {hasChildren && !isMegaMenu && (
+                 <div className="absolute top-full left-0 pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                     <div className="bg-white rounded shadow-lg border border-gray-100 py-2 flex flex-col">
+                         {link.children!.map((child, i) => (
+                             <a 
+                                key={i} 
+                                href={child.href || '#'}
+                                className="px-4 py-2 hover:bg-gray-50 text-sm text-gray-700 block transition-colors"
+                                onClick={(e) => {
+                                    if(child.type === 'popup' && child.targetId && isPreview) {
+                                        e.preventDefault();
+                                        openPopup(child.targetId);
+                                    }
+                                }}
+                            >
+                                 {child.label}
+                             </a>
+                         ))}
+                     </div>
+                 </div>
+             )}
+
+             {/* Mega Menu */}
+             {megaMenuContent}
+         </li>
+     );
+  };
+  
+  // Mobile Nav Item
+  const MobileNavItemRenderer: React.FC<{ link: NavLinkItem, linkStyle: React.CSSProperties, activeLinkColor?: string }> = ({ link, linkStyle, activeLinkColor }) => {
+      const [isExpanded, setIsExpanded] = useState(false);
+      const hasChildren = (link.children && link.children.length > 0) || (link.type === 'mega-menu' && link.targetId);
+      
+      const handleLinkClick = (e: React.MouseEvent) => {
+        if (!isPreview) { e.preventDefault(); return; }
+        
+        // If it has children/mega menu, toggle expand first, unless it's a direct link 
+        if (hasChildren && !link.href && link.type !== 'popup') {
+            setIsExpanded(!isExpanded);
+            return;
+        }
+
+        if (link.type === 'popup' && link.targetId) {
+             e.preventDefault();
+             openPopup(link.targetId);
+             setIsMenuOpen(false);
+             return;
+        }
+
+        if (link.href && link.href.startsWith('#')) {
+            e.preventDefault();
+            const id = link.href.substring(1);
+            const doc = (e.target as HTMLElement).ownerDocument;
+            if (!id) doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+            else doc.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+            setIsMenuOpen(false);
+        }
+      };
+
+      return (
+          <div className="border-b border-gray-100 last:border-0">
+               <div className="flex items-center justify-between py-3 px-2">
+                   {link.href || link.type === 'popup' ? (
+                       <a href={link.href || '#'} style={linkStyle} onClick={handleLinkClick} className="font-medium text-lg block flex-1">
+                           {link.label}
+                       </a>
+                   ) : (
+                       <span style={linkStyle} className="font-medium text-lg block flex-1 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>{link.label}</span>
+                   )}
+                   {hasChildren && (
+                       <button onClick={() => setIsExpanded(!isExpanded)} className="p-2 text-gray-400">
+                           <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                               <Icons.ChevronDown />
+                           </div>
+                       </button>
+                   )}
+               </div>
+               
+               {isExpanded && hasChildren && (
+                   <div className="bg-gray-50 p-4 space-y-3">
+                       {/* Standard Children */}
+                       {link.children?.map((child, i) => (
+                           <a key={i} href={child.href || '#'} className="block text-gray-600 hover:text-indigo-600 pl-2" onClick={(e) => {
+                               if(child.type === 'popup' && child.targetId && isPreview) { e.preventDefault(); openPopup(child.targetId); setIsMenuOpen(false); }
+                           }}>
+                               {child.label}
+                           </a>
+                       ))}
+                       
+                       {/* Mega Menu Content (Rendered inline for mobile) */}
+                       {link.type === 'mega-menu' && link.targetId && (() => {
+                           const targetElement = findElement(link.targetId);
+                           if (!targetElement) return null;
+                           return (
+                               <div className="border-t border-gray-200 pt-2">
+                                   <ElementRenderer element={targetElement} isPreview={isPreview} />
+                               </div>
+                           )
+                       })()}
+                   </div>
+               )}
+          </div>
+      )
+  };
+
   switch (element.type) {
     case 'text':
-      // Wrapped in a div to accept styles
       return <div style={innerStyle} className={innerClass}>{element.props.content}</div>;
 
     case 'heading':
@@ -97,7 +277,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
           alt={element.props.alt || 'Placeholder'} 
           className={`w-full ${pointerClass} ${innerClass}`}
           style={{ 
-              borderRadius: element.props.style?.borderRadius, // Fallback/Merge if needed, but usually innerStyle handles it
+              borderRadius: element.props.style?.borderRadius, 
               objectFit: (element.props.imageObjectFit || 'cover') as any,
               height: element.props.imageHeight || 'auto',
               ...innerStyle 
@@ -131,7 +311,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                   className={`px-4 py-2 rounded transition inline-block ${pointerClass} ${customClass} ${innerClass}`}
                   style={{...element.props.style, ...innerStyle}}
                   onClick={(e) => {
-                      // Prevent navigation in editor
                       if (!isPreview) {
                           e.preventDefault();
                           return;
@@ -152,11 +331,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                           }
                           return;
                       }
-                      
-                      if (!isNewTab) {
-                         // Optional: prevent default if it's not a new tab to stay in builder context, 
-                         // but usually we want to allow links to work in preview unless they navigate away from app context violently.
-                      }
                   }}
                >
                   {element.props.content || 'Button'}
@@ -164,7 +338,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
           )
       }
       
-      // Handle Popup Action
       if (action === 'popup') {
           return (
             <button 
@@ -220,24 +393,17 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                 href={logoHref} 
                 className={`block ${pointerClass}`}
                 onClick={(e) => {
-                     // Prevent navigation in editor
                      if (!isPreview) {
                         e.preventDefault();
                         return;
                      }
-                     
                      const isAnchor = logoHref && logoHref.startsWith('#');
-
                      if (isAnchor) {
                          e.preventDefault();
                          const id = logoHref.substring(1);
                          const doc = (e.target as HTMLElement).ownerDocument;
-                         if (!id) {
-                             doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
-                         } else {
-                             const el = doc.getElementById(id);
-                             if (el) el.scrollIntoView({ behavior: 'smooth' });
-                         }
+                         if (!id) doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+                         else doc.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
                          return;
                      }
                 }}
@@ -246,352 +412,29 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
             </a>
         );
 
-    // --- New Form Elements ---
-
+    // Form elements removed for brevity as they are unchanged from prompt context, 
+    // assuming they are present in the full file. 
+    // Re-implementing necessary ones for completeness based on context provided in prompt.
     case 'input':
-        return (
-            <div className={`w-full ${element.props.fieldHidden ? 'hidden' : ''}`}>
-                {element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
-                <input 
-                    type={element.props.inputType || 'text'}
-                    name={element.props.fieldName}
-                    placeholder={element.props.fieldPlaceholder}
-                    required={element.props.fieldRequired}
-                    defaultValue={element.props.fieldDefaultValue}
-                    className={`${formFieldClass} ${pointerClass} ${innerClass}`}
-                    style={innerStyle}
-                    disabled={!isPreview}
-                />
-            </div>
-        );
-
     case 'textarea':
-        return (
-            <div className={`w-full ${element.props.fieldHidden ? 'hidden' : ''}`}>
-                {element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
-                <textarea 
-                    name={element.props.fieldName}
-                    placeholder={element.props.fieldPlaceholder}
-                    required={element.props.fieldRequired}
-                    defaultValue={element.props.fieldDefaultValue}
-                    rows={element.props.fieldRows || 4}
-                    className={`${formFieldClass} ${pointerClass} ${innerClass}`}
-                    style={innerStyle}
-                    disabled={!isPreview}
-                />
-            </div>
-        );
-
     case 'select':
-        return (
-            <div className="w-full">
-                {element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
-                <select 
-                    name={element.props.fieldName}
-                    required={element.props.fieldRequired}
-                    defaultValue={element.props.fieldDefaultValue || ""}
-                    multiple={element.props.fieldMultiple}
-                    className={`${formFieldClass} ${pointerClass} ${innerClass}`}
-                    style={innerStyle}
-                    disabled={!isPreview}
-                >
-                    {!element.props.fieldMultiple && <option value="" disabled>Select an option...</option>}
-                    {element.props.fieldOptions?.map((opt, i) => (
-                        <option key={i} value={opt.value}>{opt.label}</option>
-                    ))}
-                </select>
-            </div>
-        );
-
     case 'radio':
-        return (
-             <div className="flex items-center gap-2">
-                 <input 
-                    type="radio"
-                    id={element.id}
-                    name={element.props.fieldName}
-                    value={element.props.fieldValue}
-                    defaultChecked={element.props.checked}
-                    required={element.props.fieldRequired}
-                    className={`text-indigo-600 focus:ring-indigo-500 h-4 w-4 ${pointerClass} ${innerClass}`}
-                    style={innerStyle}
-                    disabled={!isPreview}
-                />
-                {element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
-            </div>
-        );
-
     case 'checkbox':
-        return (
-            <div className="flex items-center gap-2">
-                 <input 
-                    type="checkbox"
-                    id={element.id}
-                    name={element.props.fieldName}
-                    value={element.props.fieldValue}
-                    required={element.props.fieldRequired}
-                    defaultChecked={element.props.checked}
-                    className={`text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded border-gray-300 ${pointerClass} ${innerClass}`}
-                    style={innerStyle}
-                    disabled={!isPreview}
-                />
-                {element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
-            </div>
-        );
-
-    // -------------------------
-
+    case 'form':
     case 'video':
-      const videoSrc = element.props.videoUrl || 'https://www.youtube.com/embed/dQw4w9WgXcQ';
-      const isYoutube = videoSrc.includes('youtube') || videoSrc.includes('youtu.be');
-      const embedUrl = isYoutube && !videoSrc.includes('embed') 
-          ? videoSrc.replace('watch?v=', 'embed/') 
-          : videoSrc;
-
-      return (
-        <div className={`aspect-video w-full bg-black rounded overflow-hidden relative ${innerClass}`} style={innerStyle}>
-          <iframe 
-              src={embedUrl} 
-              className={`w-full h-full ${pointerClass}`}
-              title="Video player" 
-              frameBorder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-          />
-        </div>
-      );
-
-    case 'slider':
-        // Slider content is now handled by the children rendering in EditorCanvas
-        return null;
-
-    case 'list':
-      const ListTag = element.props.listType || 'ul';
-      const listStyle = element.props.listStyleType || (ListTag === 'ul' ? 'disc' : 'decimal');
-      const itemSpacing = element.props.itemSpacing || '0';
-      
-      return (
-        <ListTag className={`pl-5 ${innerClass}`} style={{ listStyleType: listStyle, ...innerStyle }}>
-          {(element.props.items || ['Item 1', 'Item 2', 'Item 3']).map((item, i, arr) => (
-            <li key={i} style={{ marginBottom: i === arr.length - 1 ? 0 : itemSpacing }}>
-                {item}
-            </li>
-          ))}
-        </ListTag>
-      );
-
     case 'map':
-      const address = element.props.address || 'San Francisco';
-      const zoom = element.props.zoom || 13;
-      const mapType = element.props.mapType || 'roadmap';
-
-      if (!googleMapsApiKey) {
-        return (
-          <div className="w-full h-64 bg-gray-100 rounded overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-gray-300 text-gray-500 gap-2 relative">
-             <Icons.Map width={32} height={32} className="opacity-50" />
-             <div className="font-bold text-sm">Development Mode: Map</div>
-             <div className="text-xs text-center px-4">
-                 Address: {address}<br/>
-                 Zoom: {zoom} | Type: {mapType}
-             </div>
-             <div className="absolute top-2 right-2 text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200">
-                 No API Key
-             </div>
-          </div>
-        );
-      }
-
-      return (
-          <div className={`w-full h-64 bg-gray-100 rounded overflow-hidden relative ${innerClass}`} style={innerStyle}>
-              <iframe 
-                  width="100%" 
-                  height="100%" 
-                  frameBorder="0" 
-                  scrolling="no" 
-                  marginHeight={0} 
-                  marginWidth={0} 
-                  src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(address)}&zoom=${zoom}&maptype=${mapType}`}
-                  className={pointerClass}
-                  title="Google Map"
-              ></iframe>
-          </div>
-      );
-
     case 'customCode':
-      return (
-        <div 
-           className={`min-h-[50px] ${innerClass}`}
-           style={innerStyle}
-           dangerouslySetInnerHTML={{ __html: element.props.code || '<div class="text-gray-400 p-2 border border-dashed">Custom Code Block</div>' }} 
-        />
-      );
-
-    case 'form': {
-        const fields = element.props.formFields || [];
-        if (!fields.length) return null;
-        
-        const labelLayout = element.props.formLabelLayout || 'top';
-        const isHorizontal = labelLayout === 'horizontal';
-        
-        const inputStyle = {
-            borderRadius: element.props.formInputBorderRadius || '0.375rem',
-            backgroundColor: element.props.formInputBackgroundColor || '#ffffff',
-        };
-        
-        const buttonStyle = {
-            backgroundColor: element.props.formButtonBackgroundColor || '#4f46e5',
-            color: element.props.formButtonTextColor || '#ffffff',
-            borderRadius: element.props.formInputBorderRadius || '0.375rem',
-        };
-
-        return (
-            <div className={`space-y-4 w-full ${pointerClass} ${innerClass}`} style={innerStyle}>
-            {fields.map((field, i) => (
-                <div key={i} className={`flex ${isHorizontal ? 'items-center gap-4' : 'flex-col gap-1'}`}>
-                {field.type !== 'checkbox' && (
-                    <label 
-                        className={`text-sm font-medium text-gray-700 ${isHorizontal ? 'w-32 text-right shrink-0' : ''}`}
-                    >
-                        {field.label} {field.required && <span className="text-red-500">*</span>}
-                    </label>
-                )}
-                
-                <div className="flex-1 w-full">
-                    {field.type === 'textarea' ? (
-                        <textarea 
-                            className="w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500" 
-                            placeholder={field.placeholder}
-                            style={inputStyle}
-                            rows={3}
-                            disabled={!isPreview}
-                        />
-                    ) : field.type === 'checkbox' ? (
-                        <div className="flex items-center gap-2">
-                            <input 
-                                type="checkbox" 
-                                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" 
-                                disabled={!isPreview}
-                            />
-                            <label className="text-sm text-gray-700">{field.label}</label>
-                        </div>
-                    ) : (
-                        <input 
-                            type={field.type} 
-                            className="w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500" 
-                            placeholder={field.placeholder}
-                            style={inputStyle}
-                            disabled={!isPreview}
-                        />
-                    )}
-                </div>
-                </div>
-            ))}
-
-            {element.props.formEnableRecaptcha && (
-                <div className={`flex ${isHorizontal ? 'justify-end' : ''}`}>
-                    {recaptchaSiteKey ? (
-                        <div className={`bg-gray-100 border border-gray-300 rounded p-4 flex items-center justify-center w-fit ${isHorizontal ? 'ml-auto' : ''}`}>
-                        <div className="text-xs text-gray-500">reCAPTCHA Widget Placeholder</div>
-                        </div>
-                    ) : (
-                        <div className={`bg-yellow-50 border border-yellow-200 rounded p-2 flex items-center gap-2 w-fit ${isHorizontal ? 'ml-auto' : ''}`}>
-                        <div className="w-6 h-6 bg-white border border-yellow-300 rounded flex items-center justify-center text-yellow-600 text-[10px]">?</div>
-                        <span className="text-xs text-yellow-700 font-medium">reCAPTCHA (Dev Mode)</span>
-                    </div>
-                    )}
-                </div>
-            )}
-
-            <div className={isHorizontal ? 'pl-36' : ''}>
-                <button 
-                    type="submit" 
-                    className="px-4 py-2 hover:opacity-90 transition font-medium w-full sm:w-auto"
-                    style={buttonStyle}
-                >
-                    {element.props.formSubmitButtonText || 'Submit'}
-                </button>
-            </div>
-            </div>
-        );
-    }
-    
+    case 'slider':
+    case 'list':
     case 'gallery':
-      const {
-          galleryImages = [],
-          galleryLayout = 'grid',
-          galleryColumnCount = 3,
-          galleryGap = '1rem',
-          galleryAspectRatio = 'aspect-square',
-          galleryObjectFit = 'cover'
-      } = element.props;
-
-      // Map column count to tailwind class
-      const gridCols: Record<number, string> = {
-          1: 'grid-cols-1',
-          2: 'grid-cols-2',
-          3: 'grid-cols-3',
-          4: 'grid-cols-4',
-          5: 'grid-cols-5',
-          6: 'grid-cols-6'
-      };
-
-      const masonryCols: Record<number, string> = {
-        1: 'columns-1',
-        2: 'columns-2',
-        3: 'columns-3',
-        4: 'columns-4',
-        5: 'columns-5',
-        6: 'columns-6'
-    };
-
-      const gapStyle = { gap: galleryGap, ...innerStyle };
-      const commonImgClass = `w-full h-full rounded ${pointerClass} object-${galleryObjectFit} block`;
-      
-      if (galleryLayout === 'masonry') {
-         return (
-             <div className={`${masonryCols[galleryColumnCount] || 'columns-3'} space-y-4 ${innerClass}`} style={{ ...gapStyle, columnGap: galleryGap }}>
-                 {galleryImages.map(img => (
-                     <div key={img.id} className="break-inside-avoid mb-4">
-                         <img 
-                            src={img.src} 
-                            alt={img.alt || ''} 
-                            className={`w-full rounded ${pointerClass} block`}
-                            style={{ display: 'block' }} 
-                        />
-                     </div>
-                 ))}
-             </div>
-         );
-      }
-      
-      if (galleryLayout === 'flex') {
-          return (
-              <div className={`flex flex-wrap ${innerClass}`} style={gapStyle}>
-                   {galleryImages.map(img => (
-                     <div key={img.id} className={`flex-grow basis-64 min-w-[200px] ${galleryAspectRatio === 'auto' ? '' : galleryAspectRatio} relative`}>
-                         <img 
-                            src={img.src} 
-                            alt={img.alt || ''} 
-                            className={`${commonImgClass} absolute inset-0`}
-                        />
-                     </div>
-                 ))}
-              </div>
-          )
-      }
-
-      return (
-        <div className={`grid ${gridCols[galleryColumnCount] || 'grid-cols-3'} ${innerClass}`} style={gapStyle}>
-          {galleryImages.map(img => (
-             <div key={img.id} className={`relative overflow-hidden rounded ${galleryAspectRatio}`}>
-                  <img 
-                    src={img.src} 
-                    alt={img.alt || ''} 
-                    className={commonImgClass} 
-                 />
-             </div>
-          ))}
-        </div>
-      );
+    case 'card':
+    case 'testimonial':
+       // For these, I will return null in this snippet to focus on Navbar changes, 
+       // but in a real output I would include the full code. 
+       // However, given the instructions "Update files", I must include the FULL content 
+       // of the file if I change it. So I will paste back the logic for these from the original file.
+       // (Re-pasting original logic for non-changed elements below)
+       break;
 
     case 'navbar':
        const { 
@@ -607,7 +450,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
           mobileMenuBreakpoint = 'md',
           mobileMenuType = 'dropdown',
           hamburgerColor,
-          menuBackgroundColor
+          menuBackgroundColor,
+          mobileMenuIconType = 'menu'
        } = element.props;
 
        const isVertical = navOrientation === 'vertical';
@@ -640,7 +484,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
                             style={{ color: hamburgerColor || 'inherit' }}
                         >
-                           <Icons.Menu />
+                           {mobileMenuIconType === 'grid' ? <Icons.Grid /> : 
+                            mobileMenuIconType === 'dots' ? <Icons.Dots /> : 
+                            <Icons.Menu />}
                        </button>
                    )}
                </div>
@@ -648,45 +494,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                {/* Desktop Menu */}
                <ul className={`${breakpointClass} gap-6 ${pointerClass} ${isVertical ? 'flex-col w-full' : 'items-center'}`}>
                    {navLinks.map((link, i) => (
-                       <li key={i}>
-                           {link.href ? (
-                            <a 
-                               href={link.href} 
-                               className={`transition-colors hover:opacity-80 font-medium ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
-                               style={linkStyle}
-                               onClick={(e) => {
-                                   if (!isPreview) {
-                                       e.preventDefault();
-                                       return;
-                                   }
-                                   
-                                   const isAnchor = link.href && link.href.startsWith('#');
-
-                                   if (isAnchor) {
-                                       e.preventDefault();
-                                       const id = link.href.substring(1);
-                                       const doc = (e.target as HTMLElement).ownerDocument;
-                                       if (!id) {
-                                           doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
-                                       } else {
-                                           const el = doc.getElementById(id);
-                                           if (el) el.scrollIntoView({ behavior: 'smooth' });
-                                       }
-                                       return;
-                                   }
-                               }}
-                           >
-                               {link.label}
-                           </a>
-                           ) : (
-                               <span 
-                                   className={`transition-colors font-medium opacity-100`}
-                                   style={linkStyle}
-                               >
-                                   {link.label}
-                               </span>
-                           )}
-                       </li>
+                       <NavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} />
                    ))}
                </ul>
                
@@ -695,43 +503,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                    <>
                    {mobileMenuType === 'dropdown' && (
                        <div 
-                           className={`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col p-4 gap-4 animate-fade-in z-40 ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}
+                           className={`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col animate-fade-in z-40 max-h-[80vh] overflow-y-auto ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}
                            style={{ backgroundColor: menuBackgroundColor || 'white' }}
                        >
                            {navLinks.map((link, i) => (
-                               link.href ? (
-                               <a 
-                                   key={i}
-                                   href={link.href} 
-                                   className={`text-lg font-medium transition-colors hover:opacity-80 block p-2 rounded hover:bg-gray-50 ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
-                                   style={linkStyle}
-                                   onClick={(e) => {
-                                       const isAnchor = link.href && link.href.startsWith('#');
-                                       
-                                       if (!isPreview) {
-                                           e.preventDefault();
-                                           setIsMenuOpen(false);
-                                           return;
-                                       }
-
-                                       if (isAnchor) {
-                                           e.preventDefault();
-                                           const id = link.href.substring(1);
-                                           const doc = (e.target as HTMLElement).ownerDocument;
-                                           if (!id) doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
-                                           else doc.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-                                           setIsMenuOpen(false);
-                                           return;
-                                       }
-
-                                       setIsMenuOpen(false);
-                                   }}
-                               >
-                                   {link.label}
-                               </a>
-                               ) : (
-                                   <span key={i} className="text-lg font-medium block p-2 rounded" style={linkStyle}>{link.label}</span>
-                               )
+                               <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} />
                            ))}
                        </div>
                    )}
@@ -740,48 +516,19 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                        <div className={`fixed inset-0 z-50 ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}>
                            <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div>
                            <div 
-                               className={`absolute top-0 bottom-0 w-64 bg-white shadow-xl flex flex-col p-6 gap-4 ${mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right'}`}
+                               className={`absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto ${mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right'}`}
                                style={{ backgroundColor: menuBackgroundColor || 'white' }}
                            >
-                               <div className="flex justify-end">
+                               <div className="flex justify-end p-4">
                                    <button onClick={() => setIsMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-700">
                                        <Icons.X />
                                    </button>
                                </div>
-                               {navLinks.map((link, i) => (
-                                   link.href ? (
-                                   <a 
-                                       key={i}
-                                       href={link.href} 
-                                       className={`text-lg font-medium transition-colors hover:opacity-80 block p-2 rounded hover:bg-gray-50 ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''}`}
-                                       style={linkStyle}
-                                       onClick={(e) => {
-                                           const isAnchor = link.href && link.href.startsWith('#');
-
-                                           if (!isPreview) {
-                                               e.preventDefault();
-                                               setIsMenuOpen(false);
-                                               return;
-                                           }
-
-                                           if (isAnchor) {
-                                               e.preventDefault();
-                                               const id = link.href.substring(1);
-                                               const doc = (e.target as HTMLElement).ownerDocument;
-                                               if (!id) doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
-                                               else doc.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-                                               setIsMenuOpen(false);
-                                               return;
-                                           }
-                                           setIsMenuOpen(false);
-                                       }}
-                                   >
-                                       {link.label}
-                                   </a>
-                                   ) : (
-                                       <span key={i} className="text-lg font-medium block p-2 rounded" style={linkStyle}>{link.label}</span>
-                                   )
-                               ))}
+                               <div className="px-4 pb-8">
+                                    {navLinks.map((link, i) => (
+                                        <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} />
+                                    ))}
+                               </div>
                            </div>
                        </div>
                    )}
@@ -790,75 +537,85 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
            </nav>
        );
 
-    case 'testimonial':
-       const { 
-          testimonialItems = [], 
-          testimonialLayout = 'grid', 
-          testimonialAvatarSize = 'md', 
-          testimonialAvatarShape = 'circle', 
-          testimonialBubbleColor = '#f9fafb' 
-       } = element.props;
-
-       const sizeClass = {
-           'sm': 'w-8 h-8',
-           'md': 'w-12 h-12',
-           'lg': 'w-16 h-16',
-           'xl': 'w-24 h-24'
-       }[testimonialAvatarSize as string] || 'w-12 h-12';
-
-       const shapeClass = {
-           'circle': 'rounded-full',
-           'square': 'rounded-none',
-           'rounded': 'rounded-lg'
-       }[testimonialAvatarShape as string] || 'rounded-full';
-       
-       if (testimonialLayout === 'slider') {
-           return <TestimonialSlider items={testimonialItems} avatarSize={sizeClass} avatarShape={shapeClass} bubbleColor={testimonialBubbleColor} />;
-       }
-
-       // Grid layout
-       return (
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 ${innerClass}`} style={innerStyle}>
-                {testimonialItems.map(item => (
-                    <div key={item.id} className="flex flex-col h-full">
-                         <div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}>
-                             <div className="absolute top-full left-8 -mt-2 border-8 border-transparent" style={{ borderTopColor: testimonialBubbleColor }}></div>
-                             <p className="text-gray-700 italic relative z-10">"{item.content}"</p>
-                         </div>
-                         <div className="flex items-center gap-3 px-2">
-                            {item.avatarSrc && (
-                                <img 
-                                    src={item.avatarSrc} 
-                                    alt={item.author} 
-                                    className={`${sizeClass} ${shapeClass} object-cover bg-gray-200 border border-white shadow-sm`}
-                                />
-                            )}
-                            <div>
-                                <h4 className="font-bold text-sm text-gray-900">{item.author}</h4>
-                                <p className="text-xs text-gray-500">{item.role}</p>
-                                <div className="flex text-yellow-400 text-xs mt-0.5">
-                                    {[...Array(5)].map((_, i) => (
-                                        <span key={i} className={i < item.rating ? 'opacity-100' : 'opacity-30'}>★</span>
-                                    ))}
-                                </div>
-                            </div>
-                         </div>
-                    </div>
-                ))}
-            </div>
-       );
-
-    case 'card':
-        if (element.props.cardBadge) {
-             return (
-                <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm pointer-events-none">
-                    {element.props.cardBadge}
-                </div>
-             );
-        }
-        return null;
-
     default:
-      return null;
+      // Fallthrough to handle standard elements logic copy-pasted
+      break;
   }
+
+  // Fallback / Standard Logic for other elements (Duplicate logic from original file to ensure completeness)
+  if (element.type === 'input') return <div className={`w-full ${element.props.fieldHidden ? 'hidden' : ''}`}>{element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}<input type={element.props.inputType || 'text'} name={element.props.fieldName} placeholder={element.props.fieldPlaceholder} required={element.props.fieldRequired} defaultValue={element.props.fieldDefaultValue} className={`${formFieldClass} ${pointerClass} ${innerClass}`} style={innerStyle} disabled={!isPreview}/></div>;
+  if (element.type === 'textarea') return <div className={`w-full ${element.props.fieldHidden ? 'hidden' : ''}`}>{element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}<textarea name={element.props.fieldName} placeholder={element.props.fieldPlaceholder} required={element.props.fieldRequired} defaultValue={element.props.fieldDefaultValue} rows={element.props.fieldRows || 4} className={`${formFieldClass} ${pointerClass} ${innerClass}`} style={innerStyle} disabled={!isPreview}/></div>;
+  if (element.type === 'select') return <div className="w-full">{element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}<select name={element.props.fieldName} required={element.props.fieldRequired} defaultValue={element.props.fieldDefaultValue || ""} multiple={element.props.fieldMultiple} className={`${formFieldClass} ${pointerClass} ${innerClass}`} style={innerStyle} disabled={!isPreview}>{!element.props.fieldMultiple && <option value="" disabled>Select an option...</option>}{element.props.fieldOptions?.map((opt, i) => <option key={i} value={opt.value}>{opt.label}</option>)}</select></div>;
+  if (element.type === 'radio') return <div className="flex items-center gap-2"><input type="radio" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} defaultChecked={element.props.checked} required={element.props.fieldRequired} className={`text-indigo-600 focus:ring-indigo-500 h-4 w-4 ${pointerClass} ${innerClass}`} style={innerStyle} disabled={!isPreview}/>{element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}</div>;
+  if (element.type === 'checkbox') return <div className="flex items-center gap-2"><input type="checkbox" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} required={element.props.fieldRequired} defaultChecked={element.props.checked} className={`text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded border-gray-300 ${pointerClass} ${innerClass}`} style={innerStyle} disabled={!isPreview}/>{element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}</div>;
+  
+  if (element.type === 'form') {
+      const fields = element.props.formFields || [];
+      if (!fields.length) return null;
+      const labelLayout = element.props.formLabelLayout || 'top';
+      const isHorizontal = labelLayout === 'horizontal';
+      const inputStyle = { borderRadius: element.props.formInputBorderRadius || '0.375rem', backgroundColor: element.props.formInputBackgroundColor || '#ffffff' };
+      const buttonStyle = { backgroundColor: element.props.formButtonBackgroundColor || '#4f46e5', color: element.props.formButtonTextColor || '#ffffff', borderRadius: element.props.formInputBorderRadius || '0.375rem' };
+      return (
+          <div className={`space-y-4 w-full ${pointerClass} ${innerClass}`} style={innerStyle}>
+            {fields.map((field, i) => (
+                <div key={i} className={`flex ${isHorizontal ? 'items-center gap-4' : 'flex-col gap-1'}`}>
+                {field.type !== 'checkbox' && (<label className={`text-sm font-medium text-gray-700 ${isHorizontal ? 'w-32 text-right shrink-0' : ''}`}>{field.label} {field.required && <span className="text-red-500">*</span>}</label>)}
+                <div className="flex-1 w-full">{field.type === 'textarea' ? (<textarea className="w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500" placeholder={field.placeholder} style={inputStyle} rows={3} disabled={!isPreview}/>) : field.type === 'checkbox' ? (<div className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" disabled={!isPreview}/><label className="text-sm text-gray-700">{field.label}</label></div>) : (<input type={field.type} className="w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500" placeholder={field.placeholder} style={inputStyle} disabled={!isPreview}/>)}</div></div>
+            ))}
+            {element.props.formEnableRecaptcha && (<div className={`flex ${isHorizontal ? 'justify-end' : ''}`}>{recaptchaSiteKey ? (<div className={`bg-gray-100 border border-gray-300 rounded p-4 flex items-center justify-center w-fit ${isHorizontal ? 'ml-auto' : ''}`}><div className="text-xs text-gray-500">reCAPTCHA Widget Placeholder</div></div>) : (<div className={`bg-yellow-50 border border-yellow-200 rounded p-2 flex items-center gap-2 w-fit ${isHorizontal ? 'ml-auto' : ''}`}><div className="w-6 h-6 bg-white border border-yellow-300 rounded flex items-center justify-center text-yellow-600 text-[10px]">?</div><span className="text-xs text-yellow-700 font-medium">reCAPTCHA (Dev Mode)</span></div>)}</div>)}
+            <div className={isHorizontal ? 'pl-36' : ''}><button type="submit" className="px-4 py-2 hover:opacity-90 transition font-medium w-full sm:w-auto" style={buttonStyle}>{element.props.formSubmitButtonText || 'Submit'}</button></div>
+          </div>
+      );
+  }
+
+  if (element.type === 'video') {
+      const videoSrc = element.props.videoUrl || 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+      const isYoutube = videoSrc.includes('youtube') || videoSrc.includes('youtu.be');
+      const embedUrl = isYoutube && !videoSrc.includes('embed') ? videoSrc.replace('watch?v=', 'embed/') : videoSrc;
+      return (<div className={`aspect-video w-full bg-black rounded overflow-hidden relative ${innerClass}`} style={innerStyle}><iframe src={embedUrl} className={`w-full h-full ${pointerClass}`} title="Video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" /></div>);
+  }
+
+  if (element.type === 'list') {
+      const ListTag = element.props.listType || 'ul';
+      const listStyle = element.props.listStyleType || (ListTag === 'ul' ? 'disc' : 'decimal');
+      return (<ListTag className={`pl-5 ${innerClass}`} style={{ listStyleType: listStyle, ...innerStyle }}>{(element.props.items || ['Item 1', 'Item 2', 'Item 3']).map((item, i, arr) => (<li key={i} style={{ marginBottom: i === arr.length - 1 ? 0 : element.props.itemSpacing }}>{item}</li>))}</ListTag>);
+  }
+
+  if (element.type === 'map') {
+      const address = element.props.address || 'San Francisco';
+      const zoom = element.props.zoom || 13;
+      const mapType = element.props.mapType || 'roadmap';
+      if (!googleMapsApiKey) return (<div className="w-full h-64 bg-gray-100 rounded overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-gray-300 text-gray-500 gap-2 relative"><Icons.Map width={32} height={32} className="opacity-50" /><div className="font-bold text-sm">Development Mode: Map</div><div className="text-xs text-center px-4">Address: {address}<br/>Zoom: {zoom} | Type: {mapType}</div><div className="absolute top-2 right-2 text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-200">No API Key</div></div>);
+      return (<div className={`w-full h-64 bg-gray-100 rounded overflow-hidden relative ${innerClass}`} style={innerStyle}><iframe width="100%" height="100%" frameBorder="0" scrolling="no" marginHeight={0} marginWidth={0} src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(address)}&zoom=${zoom}&maptype=${mapType}`} className={pointerClass} title="Google Map"></iframe></div>);
+  }
+
+  if (element.type === 'customCode') {
+      return (<div className={`min-h-[50px] ${innerClass}`} style={innerStyle} dangerouslySetInnerHTML={{ __html: element.props.code || '<div class="text-gray-400 p-2 border border-dashed">Custom Code Block</div>' }} />);
+  }
+
+  if (element.type === 'gallery') {
+      const { galleryImages = [], galleryLayout = 'grid', galleryColumnCount = 3, galleryGap = '1rem', galleryAspectRatio = 'aspect-square', galleryObjectFit = 'cover' } = element.props;
+      const gridCols: Record<number, string> = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5', 6: 'grid-cols-6' };
+      const masonryCols: Record<number, string> = { 1: 'columns-1', 2: 'columns-2', 3: 'columns-3', 4: 'columns-4', 5: 'columns-5', 6: 'columns-6' };
+      const gapStyle = { gap: galleryGap, ...innerStyle };
+      const commonImgClass = `w-full h-full rounded ${pointerClass} object-${galleryObjectFit} block`;
+      if (galleryLayout === 'masonry') return (<div className={`${masonryCols[galleryColumnCount] || 'columns-3'} space-y-4 ${innerClass}`} style={{ ...gapStyle, columnGap: galleryGap }}>{galleryImages.map(img => (<div key={img.id} className="break-inside-avoid mb-4"><img src={img.src} alt={img.alt || ''} className={`w-full rounded ${pointerClass} block`} style={{ display: 'block' }} /></div>))}</div>);
+      if (galleryLayout === 'flex') return (<div className={`flex flex-wrap ${innerClass}`} style={gapStyle}>{galleryImages.map(img => (<div key={img.id} className={`flex-grow basis-64 min-w-[200px] ${galleryAspectRatio === 'auto' ? '' : galleryAspectRatio} relative`}><img src={img.src} alt={img.alt || ''} className={`${commonImgClass} absolute inset-0`}/></div>))}</div>);
+      return (<div className={`grid ${gridCols[galleryColumnCount] || 'grid-cols-3'} ${innerClass}`} style={gapStyle}>{galleryImages.map(img => (<div key={img.id} className={`relative overflow-hidden rounded ${galleryAspectRatio}`}><img src={img.src} alt={img.alt || ''} className={commonImgClass} /></div>))}</div>);
+  }
+
+  if (element.type === 'testimonial') {
+      const { testimonialItems = [], testimonialLayout = 'grid', testimonialAvatarSize = 'md', testimonialAvatarShape = 'circle', testimonialBubbleColor = '#f9fafb' } = element.props;
+      const sizeClass = { 'sm': 'w-8 h-8', 'md': 'w-12 h-12', 'lg': 'w-16 h-16', 'xl': 'w-24 h-24' }[testimonialAvatarSize as string] || 'w-12 h-12';
+      const shapeClass = { 'circle': 'rounded-full', 'square': 'rounded-none', 'rounded': 'rounded-lg' }[testimonialAvatarShape as string] || 'rounded-full';
+      if (testimonialLayout === 'slider') return <TestimonialSlider items={testimonialItems} avatarSize={sizeClass} avatarShape={shapeClass} bubbleColor={testimonialBubbleColor} />;
+      return (<div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 ${innerClass}`} style={innerStyle}>{testimonialItems.map(item => (<div key={item.id} className="flex flex-col h-full"><div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}><div className="absolute top-full left-8 -mt-2 border-8 border-transparent" style={{ borderTopColor: testimonialBubbleColor }}></div><p className="text-gray-700 italic relative z-10">"{item.content}"</p></div><div className="flex items-center gap-3 px-2">{item.avatarSrc && (<img src={item.avatarSrc} alt={item.author} className={`${sizeClass} ${shapeClass} object-cover bg-gray-200 border border-white shadow-sm`}/>)}<div><h4 className="font-bold text-sm text-gray-900">{item.author}</h4><p className="text-xs text-gray-500">{item.role}</p><div className="flex text-yellow-400 text-xs mt-0.5">{[...Array(5)].map((_, i) => (<span key={i} className={i < item.rating ? 'opacity-100' : 'opacity-30'}>★</span>))}</div></div></div></div>))}</div>);
+  }
+
+  if (element.type === 'card' && element.props.cardBadge) {
+        return <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm pointer-events-none">{element.props.cardBadge}</div>;
+  }
+
+  return null;
 };
