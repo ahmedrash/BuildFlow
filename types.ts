@@ -13,15 +13,15 @@ export type ElementType =
   | 'map' 
   | 'customCode' 
   | 'form' 
-  | 'input'     // New
-  | 'textarea'  // New
-  | 'select'    // New
-  | 'radio'     // New
-  | 'checkbox'  // New
+  | 'input'     
+  | 'textarea'  
+  | 'select'    
+  | 'radio'     
+  | 'checkbox'  
   | 'gallery' 
   | 'navbar' 
-  | 'logo'      // New
-  | 'menu'      // New
+  | 'logo'      
+  | 'menu'      
   | 'testimonial' 
   | 'card'
   | 'slider'
@@ -164,8 +164,8 @@ export interface PageElement {
     testimonialInterval?: number;
 
     // Form Container Specific
-    formActionUrl?: string;     // New
-    formThankYouUrl?: string;   // New
+    formActionUrl?: string;     
+    formThankYouUrl?: string;   
     formSuccessMessage?: string;
     formEnableRecaptcha?: boolean;
     formLabelLayout?: 'top' | 'horizontal'; // Maps to flex-col vs flex-row
@@ -194,8 +194,8 @@ export interface PageElement {
     checked?: boolean;
 
     // Navbar Specific
-    headerType?: 'relative' | 'fixed' | 'sticky'; // Replaces isSticky for more control
-    stickyOffset?: number; // Scroll amount before sticking
+    headerType?: 'relative' | 'fixed' | 'sticky'; 
+    stickyOffset?: number; 
     
     // Menu Specific
     navLinks?: NavLinkItem[]; 
@@ -241,7 +241,7 @@ export interface PageElement {
     sliderNavType?: 'chevron' | 'arrow' | 'caret';
     sliderActiveIndex?: number;
     sliderShowPagination?: boolean;
-    sliderTransition?: 'fade' | 'zoom' | 'slide-up'; // New
+    sliderTransition?: 'fade' | 'zoom' | 'slide-up'; 
 
     // Styles
     style?: ElementStyle;

@@ -1,5 +1,3 @@
-
-
 import React, { useRef, useState, useEffect } from 'react';
 import { PageElement, FormField, SavedTemplate, TestimonialItem, ElementType, NavLinkItem } from '../../types';
 import { Icons } from '../Icons';
@@ -808,36 +806,89 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                     )}
                                     {/* Heading Props */}
                                     {displayElement.type === 'heading' && (
-                                        <div className="space-y-3"><h3 className={sectionTitleClass}>Heading</h3><div><label className={labelClass}>Level</label><select className={inputClass} value={displayElement.props.level || 2} onChange={(e) => onUpdateProps(selectedElement.id, { level: Number(e.target.value) })}><option value={1}>H1</option><option value={2}>H2</option><option value={3}>H3</option><option value={4}>H4</option><option value={5}>H5</option><option value={6}>H6</option></select></div><div><label className={labelClass}>Text</label><textarea className={inputClass} value={displayElement.props.content || ''} onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })}/></div></div>
+                                        <div className="space-y-3">
+                                            <h3 className={sectionTitleClass}>Heading</h3>
+                                            <div>
+                                                <label className={labelClass}>Level</label>
+                                                <select className={inputClass} value={displayElement.props.level || 2} onChange={(e) => onUpdateProps(selectedElement.id, { level: Number(e.target.value) })}>
+                                                    <option value={1}>H1</option>
+                                                    <option value={2}>H2</option>
+                                                    <option value={3}>H3</option>
+                                                    <option value={4}>H4</option>
+                                                    <option value={5}>H5</option>
+                                                    <option value={6}>H6</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>Text</label>
+                                                <textarea className={inputClass} value={displayElement.props.content || ''} onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })} rows={2} />
+                                            </div>
+                                        </div>
                                     )}
                                     {/* Text Props */}
-                                    {(displayElement.type === 'text') && (
-                                        <div className="space-y-3"><h3 className={sectionTitleClass}>Content</h3><div><label className={labelClass}>Text Content</label><textarea className={inputClass} rows={3} value={displayElement.props.content || ''} onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })}/></div></div>
+                                    {displayElement.type === 'text' && (
+                                        <div className="space-y-3">
+                                            <h3 className={sectionTitleClass}>Text Content</h3>
+                                            <textarea className={inputClass} rows={6} value={displayElement.props.content || ''} onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })} />
+                                        </div>
                                     )}
                                     {/* Image Props */}
                                     {displayElement.type === 'image' && (
-                                        <div className="space-y-3"><h3 className={sectionTitleClass}>Media Settings</h3><div><label className={labelClass}>Image URL</label><input type="text" className={inputClass} value={displayElement.props.src || ''} onChange={(e) => onUpdateProps(selectedElement.id, { src: e.target.value })}/><input type="file" accept="image/*" className={fileInputClass} onChange={async (e) => { const file = e.target.files?.[0]; if (file) { const base64 = await onFileUpload(file); onUpdateProps(selectedElement.id, { src: base64 }); } }}/></div><div className="grid grid-cols-2 gap-3 mt-3"><div><label className={labelClass}>Object Fit</label><select className={inputClass} value={displayElement.props.imageObjectFit || 'cover'} onChange={(e) => onUpdateProps(selectedElement.id, { imageObjectFit: e.target.value })}><option value="cover">Cover</option><option value="contain">Contain</option><option value="fill">Fill</option><option value="none">None</option><option value="scale-down">Scale Down</option></select></div><div><label className={labelClass}>Height</label><input className={inputClass} value={displayElement.props.imageHeight || ''} onChange={(e) => onUpdateProps(selectedElement.id, { imageHeight: e.target.value })} placeholder="auto, 200px..."/></div></div></div>
+                                        <div className="space-y-3">
+                                            <h3 className={sectionTitleClass}>Image Settings</h3>
+                                            <div>
+                                                <label className={labelClass}>Image URL</label>
+                                                <input className={inputClass} value={displayElement.props.src || ''} onChange={(e) => onUpdateProps(selectedElement.id, { src: e.target.value })} placeholder="https://..." />
+                                                <input type="file" accept="image/*" className={fileInputClass} onChange={async (e) => { const file = e.target.files?.[0]; if (file) { const base64 = await onFileUpload(file); onUpdateProps(selectedElement.id, { src: base64 }); } }} />
+                                            </div>
+                                            <div><label className={labelClass}>Alt Text</label><input className={inputClass} value={displayElement.props.alt || ''} onChange={(e) => onUpdateProps(selectedElement.id, { alt: e.target.value })} /></div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div><label className={labelClass}>Height</label><input className={inputClass} value={displayElement.props.imageHeight || ''} onChange={(e) => onUpdateProps(selectedElement.id, { imageHeight: e.target.value })} placeholder="auto, 300px" /></div>
+                                                <div><label className={labelClass}>Object Fit</label><select className={inputClass} value={displayElement.props.imageObjectFit || 'cover'} onChange={(e) => onUpdateProps(selectedElement.id, { imageObjectFit: e.target.value })}><option value="cover">Cover</option><option value="contain">Contain</option><option value="fill">Fill</option><option value="none">None</option></select></div>
+                                            </div>
+                                        </div>
                                     )}
-                                     {/* Background Settings (If parallax exists) */}
-                                     {['section', 'container', 'columns', 'navbar'].includes(displayElement.type) && (
-                                          <div className="flex items-center justify-between mt-4 border border-gray-100 bg-gray-50 p-2 rounded"><label className="text-[10px] text-gray-600 font-bold">Parallax Effect</label><input type="checkbox" className="accent-indigo-600 w-3 h-3" checked={displayElement.props.parallax || false} onChange={(e) => onUpdateProps(selectedElement.id, { parallax: e.target.checked })}/></div>
-                                     )}
+                                    {/* Video Props */}
+                                    {displayElement.type === 'video' && (
+                                        <div className="space-y-3">
+                                            <h3 className={sectionTitleClass}>Video Settings</h3>
+                                            <div><label className={labelClass}>Video URL</label><input className={inputClass} value={displayElement.props.videoUrl || ''} onChange={(e) => onUpdateProps(selectedElement.id, { videoUrl: e.target.value })} placeholder="YouTube or MP4 URL" /></div>
+                                        </div>
+                                    )}
+                                    {/* List Props */}
+                                    {displayElement.type === 'list' && (
+                                        <div className="space-y-3">
+                                            <h3 className={sectionTitleClass}>List Settings</h3>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div><label className={labelClass}>Type</label><select className={inputClass} value={displayElement.props.listType || 'ul'} onChange={(e) => onUpdateProps(selectedElement.id, { listType: e.target.value })}><option value="ul">Bullet</option><option value="ol">Numbered</option></select></div>
+                                                <div><label className={labelClass}>Spacing</label><input className={inputClass} value={displayElement.props.itemSpacing || ''} onChange={(e) => onUpdateProps(selectedElement.id, { itemSpacing: e.target.value })} placeholder="0.5rem" /></div>
+                                            </div>
+                                            <div><label className={labelClass}>Items (one per line)</label><textarea className={inputClass} rows={5} value={(displayElement.props.items || []).join('\n')} onChange={(e) => onUpdateProps(selectedElement.id, { items: e.target.value.split('\n') })} /></div>
+                                        </div>
+                                    )}
+                                    {/* Custom Code */}
+                                    {displayElement.type === 'customCode' && (
+                                        <div className="space-y-3">
+                                            <h3 className={sectionTitleClass}>Custom HTML Code</h3>
+                                            <textarea className="w-full h-64 font-mono text-xs bg-slate-800 text-green-400 p-3 rounded" value={displayElement.props.code || ''} onChange={(e) => onUpdateProps(selectedElement.id, { code: e.target.value })} placeholder="<div>Hello World</div>" />
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
-                            {/* --- ELEMENT TAB --- */}
-                            {activeTab === 'element' && (
+                            {/* --- ELEMENT DESIGN TAB --- */}
+                            {activeTab === 'element' && !isLayoutElement && (
                                 <DesignSettings 
                                     style={displayElement.props.elementStyle || {}}
                                     className={displayElement.props.elementClassName || ''}
                                     onUpdateStyle={handleElementStyleUpdate}
                                     onUpdateClassName={handleElementClassUpdate}
                                     onFileUpload={onFileUpload}
-                                    isTextElement={['text', 'heading', 'button', 'list', 'logo'].includes(displayElement.type)}
+                                    isTextElement={['text', 'heading', 'button', 'input', 'label'].includes(displayElement.type)}
                                 />
                             )}
 
-                            {/* --- CONTAINER TAB --- */}
+                            {/* --- CONTAINER DESIGN TAB --- */}
                             {activeTab === 'container' && (
                                 <DesignSettings 
                                     style={displayElement.props.style || {}}
@@ -845,7 +896,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                     onUpdateStyle={(key, value) => onUpdateStyle(selectedElement.id, key, value)}
                                     onUpdateClassName={(value) => onUpdateProps(selectedElement.id, { className: value })}
                                     onFileUpload={onFileUpload}
-                                    isTextElement={false} // Container usually doesn't need typography unless cascading
+                                    isTextElement={false} // Container usually handles bg/layout
                                 />
                             )}
                         </div>

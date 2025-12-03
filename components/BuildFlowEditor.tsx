@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';
@@ -532,6 +533,23 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 }
             ];
           }
+          
+          if (type === 'navbar') {
+               // Navbar is a container with nested logo and menu
+               children = [
+                  {
+                      id: `${newId}-logo`, type: 'logo', name: 'Logo',
+                      props: { logoText: 'Brand', href: '#', className: 'font-bold text-xl' }
+                  },
+                  {
+                      id: `${newId}-menu`, type: 'menu', name: 'Menu',
+                      props: {
+                          navLinks: [{ id: 'l1', label: 'Home', href: '#' }, { id: 'l2', label: 'About', href: '#' }],
+                          mobileMenuBreakpoint: 'md'
+                      }
+                  }
+               ];
+          }
 
           if (type === 'form') {
               children = [
@@ -552,7 +570,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                     fontSize: type === 'logo' ? '1.5rem' : undefined,
                     color: type === 'logo' ? 'inherit' : undefined,
                 },
-                className: type === 'columns' ? 'grid grid-cols-2 gap-4' : type === 'slider' ? 'relative w-full' : type === 'button' ? 'bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded transition' : type === 'card' ? 'flex flex-col rounded-lg shadow-md overflow-hidden h-full transition-all hover:shadow-lg' : type === 'form' ? 'flex flex-col gap-4 p-4 border border-dashed border-gray-200 rounded' : undefined,
+                className: type === 'columns' ? 'grid grid-cols-2 gap-4' : type === 'slider' ? 'relative w-full' : type === 'button' ? 'bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded transition' : type === 'card' ? 'flex flex-col rounded-lg shadow-md overflow-hidden h-full transition-all hover:shadow-lg' : type === 'form' ? 'flex flex-col gap-4 p-4 border border-dashed border-gray-200 rounded' : type === 'navbar' ? 'flex items-center justify-between p-4 bg-white shadow-sm' : undefined,
                 level: type === 'heading' ? 2 : undefined,
                 listType: type === 'list' ? 'ul' : undefined,
                 items: type === 'list' ? ['Item 1', 'Item 2', 'Item 3'] : undefined,
@@ -560,10 +578,13 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 zoom: type === 'map' ? 13 : undefined,
                 mapType: type === 'map' ? 'roadmap' : undefined,
                 videoUrl: type === 'video' ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : undefined,
-                navLinks: type === 'navbar' ? [{ id: 'l1', label: 'Home', href: '#', type: 'link' }, { id: 'l2', label: 'About', href: '#', type: 'link' }] : undefined,
                 
-                logoType: type === 'navbar' || type === 'logo' ? 'text' : undefined,
-                logoText: type === 'navbar' || type === 'logo' ? (type === 'logo' ? 'Brand' : 'Logo') : undefined,
+                // Defaults for Menu/Navbar
+                navLinks: type === 'menu' ? [{ id: 'l1', label: 'Home', href: '#', type: 'link' }, { id: 'l2', label: 'About', href: '#', type: 'link' }] : undefined,
+                mobileMenuBreakpoint: type === 'menu' ? 'md' : undefined,
+
+                logoType: type === 'logo' ? 'text' : undefined,
+                logoText: type === 'logo' ? 'Logo' : undefined,
                 href: type === 'logo' ? '#' : undefined,
 
                 sliderAutoplay: type === 'slider' ? false : undefined,
@@ -588,7 +609,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 cardHoverEffect: type === 'card' ? 'lift' : undefined,
                 buttonAction: type === 'button' ? 'link' : undefined,
                 target: type === 'button' ? '_self' : undefined,
-                mobileMenuIconType: type === 'navbar' ? 'menu' : undefined
+                mobileMenuIconType: type === 'menu' ? 'menu' : undefined
             },
             children
           };
@@ -673,8 +694,8 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
              if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) {
                  targets.add(el.props.popupTargetId);
              }
-             // Nav Link Triggers (Standard Popup)
-             if (el.type === 'navbar' && el.props.navLinks) {
+             // Nav Link Triggers (Standard Popup) - Scan both Navbar (legacy) and Menu elements
+             if ((el.type === 'navbar' || el.type === 'menu') && el.props.navLinks) {
                  const scanLinks = (links: any[]) => {
                      links.forEach(l => {
                          if (l.type === 'popup' && l.targetId) {
@@ -698,7 +719,8 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     const targets = new Set<string>();
     const scan = (els: PageElement[]) => {
         els.forEach(el => {
-             if (el.type === 'navbar' && el.props.navLinks) {
+             // Scan both Navbar (legacy) and Menu elements
+             if ((el.type === 'navbar' || el.type === 'menu') && el.props.navLinks) {
                  const scanLinks = (links: any[]) => {
                      links.forEach(l => {
                          if (l.type === 'mega-menu' && l.targetId) {

@@ -1,5 +1,4 @@
 
-
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (
@@ -510,6 +509,7 @@ export const exportHtml = (
                 const scan = (els) => {
                     els.forEach(el => {
                         if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) popups.add(el.props.popupTargetId);
+                        // FIX: Scan both Navbar (legacy) AND Menu elements
                         if ((el.type === 'navbar' || el.type === 'menu') && el.props.navLinks) {
                              const scanLinks = (links) => { links.forEach(l => { if (l.type === 'popup' && l.targetId) popups.add(l.targetId); if (l.type === 'mega-menu' && l.targetId) megas.add(l.targetId); if (l.children) scanLinks(l.children); }); };
                              scanLinks(el.props.navLinks);
