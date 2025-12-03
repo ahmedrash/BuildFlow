@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useContext } from 'react';
 import { PageElement, TestimonialItem, NavLinkItem } from '../../types';
 import { Icons } from '../Icons';
@@ -276,14 +277,13 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
     case 'columns':
     case 'navbar': // Navbar is now primarily a container
         const isNavbar = element.type === 'navbar';
-        const isSticky = isNavbar && element.props.isSticky;
-        // Use fixed for sticky behavior to avoid nesting issues
-        const stickyClass = isSticky ? 'fixed top-0 left-0 w-full z-50' : 'relative';
+        // Note: Actual sticky behavior is applied in EditorCanvas/PageRenderer wrapper logic for positioning
+        // But we apply the classes here for the inner visual
         
         return (
             <div 
                 id={element.id} 
-                className={`${element.props.className || ''} ${stickyClass}`} 
+                className={`${element.props.className || ''}`} 
                 style={element.props.style}
             >
                 {renderBackground()}

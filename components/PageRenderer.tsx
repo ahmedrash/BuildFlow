@@ -1,5 +1,6 @@
 
-import React, { useEffect, useState, useMemo } from 'react';
+
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
 import { ElementRenderer } from './elements/ElementRenderer';
@@ -19,22 +20,23 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
 }) => {
   const [activePopupId, setActivePopupId] = useState<string | null>(null);
 
-  // Scan for Popup Targets to hide initially
-  const popupTargets = useMemo(() => {
-    const targets = new Set<string>();
+  // Scan for Popup Targets & Mega Menu Targets to hide initially
+  const { popupTargets, megaMenuTargets } = useMemo(() => {
+    const popups = new Set<string>();
+    const megas = new Set<string>();
+    
     const scan = (els: PageElement[]) => {
         els.forEach(el => {
             // Button triggers
             if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) {
-                targets.add(el.props.popupTargetId);
+                popups.add(el.props.popupTargetId);
             }
             // Nav Link Triggers
-            if (el.type === 'navbar' && el.props.navLinks) {
+            if ((el.type === 'navbar' || el.type === 'menu') && el.props.navLinks) {
                 const scanLinks = (links: any[]) => {
                     links.forEach(l => {
-                        if ((l.type === 'popup' || l.type === 'mega-menu') && l.targetId) {
-                            targets.add(l.targetId);
-                        }
+                        if (l.type === 'popup' && l.targetId) popups.add(l.targetId);
+                        if (l.type === 'mega-menu' && l.targetId) megas.add(l.targetId);
                         if (l.children) scanLinks(l.children);
                     });
                 }
@@ -44,7 +46,7 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         });
     };
     scan(elements);
-    return targets;
+    return { popupTargets: popups, megaMenuTargets: megas };
   }, [elements]);
 
   const openPopup = (id: string) => setActivePopupId(id);
@@ -74,9 +76,8 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
 
     const { type, children, id, props } = renderedElement;
     
-    // Popup Hiding Logic
-    const isTarget = popupTargets.has(id);
-    const isHiddenTarget = isTarget && isPreview; // Only hide in preview/render mode
+    // Hiding Logic
+    const isHiddenTarget = (popupTargets.has(id) || megaMenuTargets.has(id)) && isPreview;
     
     // Background Rendering
     const renderBackground = () => {
@@ -114,14 +115,42 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         return null;
     };
 
-    // Navbar positioning logic
+    // Navbar Sticky Logic
     const isNavbar = type === 'navbar';
-    const isSticky = isNavbar && props.isSticky;
-    const stickyClass = isSticky ? 'fixed top-0 left-0 w-full z-50' : 'relative';
+    const headerType = props.headerType || 'relative';
+    
+    const NavbarWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
+        const [isStuck, setIsStuck] = useState(false);
+        const ref = useRef<HTMLDivElement>(null);
+        
+        useEffect(() => {
+            if (headerType !== 'sticky' || !isPreview) return;
+            const handleScroll = () => {
+                const offset = props.stickyOffset || 100;
+                if (window.scrollY > offset) setIsStuck(true);
+                else setIsStuck(false);
+            };
+            window.addEventListener('scroll', handleScroll);
+            return () => window.removeEventListener('scroll', handleScroll);
+        }, [headerType, props.stickyOffset, isPreview]);
+        
+        const stickyClass = headerType === 'fixed' ? 'fixed top-0 left-0 w-full z-50' : 
+                            (headerType === 'sticky' && isStuck) ? 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md' : 'relative';
+        
+        return (
+            <div 
+                ref={ref} 
+                id={id} 
+                className={`${props.className || ''} ${stickyClass}`} 
+                style={props.style}
+            >
+                {children}
+            </div>
+        )
+    };
+
     const overflowClass = ['slider', 'card'].includes(type) ? 'overflow-hidden' : '';
-
-    const containerClasses = `${stickyClass} ${overflowClass}`;
-
+    const containerClasses = `${overflowClass}`;
     const classNameToApply = type === 'button' ? '' : (props.className || '');
     const hiddenClass = isHiddenTarget ? ' hidden' : '';
     
@@ -155,6 +184,21 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
                 />
             </Tag>
         );
+    }
+
+    if (isNavbar) {
+        return (
+            <NavbarWrapper key={id}>
+                {renderBackground()}
+                <LinkWrapper>
+                    {children && children.length > 0 ? (
+                        children.map(child => renderElement(child))
+                    ) : (
+                        <ElementRenderer element={renderedElement} isPreview={isPreview} />
+                    )}
+                </LinkWrapper>
+            </NavbarWrapper>
+        )
     }
 
     return (

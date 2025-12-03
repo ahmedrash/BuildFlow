@@ -28,8 +28,9 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
            { 
                id: 'navbar', type: 'navbar', name: 'Navbar', 
                props: { 
-                   isSticky: true,
-                   className: 'flex flex-row justify-between items-center p-4 bg-white',
+                   headerType: 'sticky',
+                   stickyOffset: 100,
+                   className: 'flex flex-row justify-between items-center p-4 bg-white shadow-sm transition-all',
                    elementClassName: ''
                },
                children: [
@@ -41,7 +42,9 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                        id: 'nav-menu', type: 'menu', name: 'Menu',
                        props: {
                            navLinks: [{ id: 'nav-1', label: 'Features', href: '#features' }, { id: 'nav-2', label: 'Pricing', href: '#pricing' }, { id: 'nav-3', label: 'Login', href: '#' }],
-                           mobileMenuBreakpoint: 'md'
+                           mobileMenuBreakpoint: 'md',
+                           mobileMenuType: 'slide-right',
+                           mobileMenuIconType: 'menu'
                        }
                    }
                ]
@@ -86,7 +89,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                             buttonAction: 'popup', 
                             popupTargetId: 'waitlist-popup', 
                             className: '',
-                            elementClassName: 'bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-bold transition-all hover:scale-105'
+                            elementClassName: 'bg-indigo-600 hover:bg-indigo-50 text-white px-8 py-4 rounded-full font-bold transition-all hover:scale-105'
                         } 
                     },
                     { 
@@ -341,7 +344,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
              { 
                  id: 'navbar-p', type: 'navbar', name: 'Navbar', 
                  props: { 
-                     isSticky: false,
+                     headerType: 'relative',
                      className: 'flex flex-row justify-between items-center p-4 bg-white',
                      elementClassName: ''
                  },
@@ -414,7 +417,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
               children: [
                   { 
                       id: 'nav-b', type: 'navbar', name: 'Navbar', 
-                      props: { isSticky: true, className: 'flex justify-between items-center p-4 bg-white shadow-sm', elementClassName: '' },
+                      props: { headerType: 'sticky', stickyOffset: 50, className: 'flex justify-between items-center p-4 bg-white shadow-sm', elementClassName: '' },
                       children: [
                           { id: 'b-logo', type: 'logo', name: 'Logo', props: { logoText: 'VANTAGE', href: '#', className: 'font-bold' } },
                           { id: 'b-menu', type: 'menu', name: 'Menu', props: { linkColor: '#333', navLinks: [{ id: 'm1', label: 'Services', href: '#' }, { id: 'm2', label: 'About', href: '#' }], mobileMenuBreakpoint: 'md' } }
@@ -562,7 +565,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
                                 props: {
                                     buttonAction: 'submit',
                                     content: 'Send Message',
-                                    className: 'bg-indigo-600 text-white px-6 py-3 rounded font-bold hover:bg-indigo-700 transition w-full',
+                                    className: 'bg-indigo-600 text-white px-6 py-2 rounded font-bold hover:bg-indigo-700 transition w-full',
                                     elementClassName: ''
                                 }
                             }

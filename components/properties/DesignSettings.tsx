@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { ElementStyle } from '../../types';
 import { ColorPicker } from '../ui/ColorPicker';
@@ -17,7 +16,6 @@ interface DesignSettingsProps {
 const inputClass = "w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-white";
 const labelClass = "block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5";
 const fileInputClass = "block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 mt-2 cursor-pointer";
-const sectionTitleClass = "text-xs font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2 mt-2";
 
 export const DesignSettings: React.FC<DesignSettingsProps> = ({
     style,

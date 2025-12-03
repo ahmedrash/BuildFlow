@@ -415,15 +415,30 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                             <h3 className={sectionTitleClass}>Navbar Container</h3>
                                             <div className="bg-blue-50 p-3 rounded-md text-xs text-blue-700 mb-2"><p>This is a flex container. Add Logo and Menu elements inside.</p></div>
                                             
-                                            <div className="flex items-center justify-between border border-gray-100 bg-gray-50 p-2 rounded">
-                                                <label className="text-[10px] text-gray-600 font-bold">Sticky Header</label>
-                                                <input 
-                                                    type="checkbox"
-                                                    className="accent-indigo-600 w-3 h-3"
-                                                    checked={displayElement.props.isSticky || false}
-                                                    onChange={(e) => onUpdateProps(selectedElement.id, { isSticky: e.target.checked })}
-                                                />
+                                            <div>
+                                                <label className={labelClass}>Header Type</label>
+                                                <select
+                                                    className={inputClass}
+                                                    value={displayElement.props.headerType || 'relative'}
+                                                    onChange={(e) => onUpdateProps(selectedElement.id, { headerType: e.target.value })}
+                                                >
+                                                    <option value="relative">Relative (Normal)</option>
+                                                    <option value="fixed">Fixed (Always Top)</option>
+                                                    <option value="sticky">Sticky (Slide-in)</option>
+                                                </select>
                                             </div>
+
+                                            {displayElement.props.headerType === 'sticky' && (
+                                                <div>
+                                                    <label className={labelClass}>Sticky Scroll Offset (px)</label>
+                                                    <input 
+                                                        type="number"
+                                                        className={inputClass}
+                                                        value={displayElement.props.stickyOffset || 100}
+                                                        onChange={(e) => onUpdateProps(selectedElement.id, { stickyOffset: Number(e.target.value) })}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

@@ -1,4 +1,5 @@
 
+
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -40,6 +41,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const elementRef = useRef<HTMLElement>(null);
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0, visible: false });
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+  const [isStuck, setIsStuck] = useState(false);
   
   const isSelected = selectedId === element.id && !isPreview;
   const isGlobal = element.type === 'global';
@@ -53,11 +55,6 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const isHidden = element.props.isHidden;
 
   // Hiding logic:
-  // 1. If hidden prop is true:
-  //    - In Preview: Completely hide (display: none via 'hidden' class)
-  //    - In Editor: Show with opacity (so it can be edited)
-  // 2. If is target (popup/mega):
-  //    - In Preview: Hide unless it is actively being shown
   let shouldHideClass = '';
   
   if (isHidden) {
@@ -66,6 +63,24 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   } else if (isPreview && isTargetHidden) {
       shouldHideClass = 'hidden';
   }
+
+  // Sticky Header Logic in Editor
+  useEffect(() => {
+     if (element.type !== 'navbar' || element.props.headerType !== 'sticky' || !elementRef.current) return;
+     
+     const scrollContainer = elementRef.current.ownerDocument.defaultView;
+     if (!scrollContainer) return;
+
+     const handleScroll = () => {
+         const offset = element.props.stickyOffset || 100;
+         if (scrollContainer.scrollY > offset) setIsStuck(true);
+         else setIsStuck(false);
+     };
+
+     scrollContainer.addEventListener('scroll', handleScroll);
+     return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [element.type, element.props.headerType, element.props.stickyOffset]);
+
 
   // Position Tracking Logic for Toolbar
   useLayoutEffect(() => {
@@ -208,8 +223,13 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   
   // Navbar positioning logic
   const isNavbar = renderedElement.type === 'navbar';
-  const isSticky = isNavbar && renderedElement.props.isSticky;
-  const stickyClass = isSticky ? 'fixed top-0 left-0 w-full z-50' : 'relative';
+  const headerType = renderedElement.props.headerType || 'relative';
+  
+  let stickyClass = 'relative';
+  if (isNavbar) {
+      if (headerType === 'fixed') stickyClass = 'fixed top-0 left-0 w-full z-50';
+      else if (headerType === 'sticky' && isStuck) stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md';
+  }
 
   // Only clip Slider and Card to allow Dropdowns (in Navbar/Section) to overflow
   const shouldClip = ['slider', 'card'].includes(renderedElement.type);

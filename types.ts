@@ -95,7 +95,7 @@ export interface NavLinkItem {
     target?: '_self' | '_blank';
     type?: 'link' | 'dropdown' | 'popup' | 'mega-menu';
     targetId?: string; // For popup or mega-menu
-    megaMenuPlacement?: 'left' | 'center' | 'right'; // New
+    megaMenuPlacement?: 'left' | 'center' | 'right'; 
     triggerType?: 'click' | 'hover'; // For mega-menu
     children?: NavLinkItem[];
 }
@@ -194,13 +194,12 @@ export interface PageElement {
     checked?: boolean;
 
     // Navbar Specific
+    headerType?: 'relative' | 'fixed' | 'sticky'; // Replaces isSticky for more control
+    stickyOffset?: number; // Scroll amount before sticking
+    
+    // Menu Specific
     navLinks?: NavLinkItem[]; 
-    isSticky?: boolean;
     navOrientation?: 'horizontal' | 'vertical';
-    logoType?: 'text' | 'image';
-    logoText?: string;
-    logoSrc?: string;
-    logoWidth?: string;
     linkColor?: string;
     activeLinkColor?: string;
     hamburgerColor?: string;
@@ -208,6 +207,12 @@ export interface PageElement {
     mobileMenuType?: 'dropdown' | 'slide-left' | 'slide-right';
     mobileMenuIconType?: 'menu' | 'grid' | 'dots';
     menuBackgroundColor?: string;
+
+    // Logo Specific
+    logoType?: 'text' | 'image';
+    logoText?: string;
+    logoSrc?: string;
+    logoWidth?: string;
     
     // Card Specific
     cardTitle?: string;
