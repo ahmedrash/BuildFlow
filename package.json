@@ -1,21 +1,49 @@
+
 {
-  "name": "buildflow---visual-page-builder",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "buildflow-react",
+  "version": "0.1.0",
+  "description": "A powerful visual drag-and-drop website builder for React.",
+  "main": "./dist/buildflow.umd.js",
+  "module": "./dist/buildflow.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/buildflow.es.js",
+      "require": "./dist/buildflow.umd.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "lucide-react": "^0.263.1"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
-  }
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.27",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.5"
+  },
+  "keywords": [
+    "react",
+    "page-builder",
+    "drag-and-drop",
+    "website-builder",
+    "cms"
+  ],
+  "author": "BuildFlow",
+  "license": "MIT"
 }

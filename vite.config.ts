@@ -1,23 +1,27 @@
-import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    return {
-      server: {
-        port: 3000,
-        host: '0.0.0.0',
-      },
-      plugins: [react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    lib: {
+      // The entry file we just created
+      entry: resolve('lib.ts'),
+      name: 'BuildFlow',
+      // Proper extensions for different module formats
+      fileName: (format) => `buildflow.${format}.js`
+    },
+    rollupOptions: {
+      // Externalize deps that shouldn't be bundled into your library
+      external: ['react', 'react-dom', 'tailwindcss'],
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+          tailwindcss: 'tailwindcss'
         }
       }
-    };
+    }
+  }
 });
