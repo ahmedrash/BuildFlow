@@ -28,7 +28,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
         type: 'navbar',
         name: 'Navbar',
         props: {
-          className: 'flex items-center justify-between px-6 py-4 bg-white/95 backdrop-blur shadow-sm border-b border-gray-100',
+          className: 'grid grid-cols-2 lg:flex items-center lg:justify-between px-6 py-4 bg-white/95 backdrop-blur shadow-sm border-b border-gray-100',
           elementClassName: '',
           headerType: 'sticky',
           stickyOffset: 100
@@ -50,7 +50,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
             type: 'menu',
             name: 'Main Menu',
             props: {
-              className: 'md:static',
+              className: 'md:static flex justify-end',
               mobileMenuBreakpoint: 'lg',
               mobileMenuType: 'slide-right',
               mobileMenuIconType: 'menu',
@@ -161,7 +161,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
       type: 'container',
       name: 'Mega Menu Content',
       props: {
-          className: 'max-w-6xl mx-auto lg:bg-white shadow-2xl lg:p-8 rounded-b-xl',
+          className: 'max-w-6xl mx-auto lg:bg-white lg:shadow-2xl lg:p-8 rounded-b-xl',
           elementClassName: ''
       },
       children: [
