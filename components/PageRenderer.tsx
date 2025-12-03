@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -120,22 +118,36 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
     const headerType = props.headerType || 'relative';
     
     const NavbarWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
-        const [isStuck, setIsStuck] = useState(false);
+        const [stickyState, setStickyState] = useState<'idle' | 'stuck' | 'unsticking'>('idle');
         const ref = useRef<HTMLDivElement>(null);
+        const stateRef = useRef(stickyState);
+        useEffect(() => { stateRef.current = stickyState; }, [stickyState]);
         
         useEffect(() => {
             if (headerType !== 'sticky' || !isPreview) return;
             const handleScroll = () => {
                 const offset = props.stickyOffset || 100;
-                if (window.scrollY > offset) setIsStuck(true);
-                else setIsStuck(false);
+                const currentState = stateRef.current;
+                
+                if (window.scrollY > offset) {
+                    if (currentState !== 'stuck') setStickyState('stuck');
+                } else {
+                    if (currentState === 'stuck') {
+                        setStickyState('unsticking');
+                        setTimeout(() => setStickyState(prev => prev === 'unsticking' ? 'idle' : prev), 300);
+                    }
+                }
             };
             window.addEventListener('scroll', handleScroll);
             return () => window.removeEventListener('scroll', handleScroll);
         }, [headerType, props.stickyOffset, isPreview]);
         
-        const stickyClass = headerType === 'fixed' ? 'fixed top-0 left-0 w-full z-50' : 
-                            (headerType === 'sticky' && isStuck) ? 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md' : 'relative';
+        let stickyClass = 'relative';
+        if (headerType === 'fixed') stickyClass = 'fixed top-0 left-0 w-full z-50';
+        else if (headerType === 'sticky') {
+            if (stickyState === 'stuck') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md';
+            else if (stickyState === 'unsticking') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-out-up shadow-md';
+        }
         
         return (
             <div 

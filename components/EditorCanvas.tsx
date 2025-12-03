@@ -1,5 +1,3 @@
-
-
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -41,7 +39,11 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const elementRef = useRef<HTMLElement>(null);
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0, visible: false });
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
-  const [isStuck, setIsStuck] = useState(false);
+  
+  // Sticky State: 'idle' | 'stuck' | 'unsticking'
+  const [stickyState, setStickyState] = useState<'idle' | 'stuck' | 'unsticking'>('idle');
+  const stickyStateRef = useRef(stickyState);
+  useEffect(() => { stickyStateRef.current = stickyState; }, [stickyState]);
   
   const isSelected = selectedId === element.id && !isPreview;
   const isGlobal = element.type === 'global';
@@ -73,8 +75,19 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
      const handleScroll = () => {
          const offset = element.props.stickyOffset || 100;
-         if (scrollContainer.scrollY > offset) setIsStuck(true);
-         else setIsStuck(false);
+         const currentScroll = scrollContainer.scrollY;
+         const currentState = stickyStateRef.current;
+
+         if (currentScroll > offset) {
+             if (currentState !== 'stuck') setStickyState('stuck');
+         } else {
+             if (currentState === 'stuck') {
+                 setStickyState('unsticking');
+                 setTimeout(() => {
+                     setStickyState(prev => prev === 'unsticking' ? 'idle' : prev);
+                 }, 300);
+             }
+         }
      };
 
      scrollContainer.addEventListener('scroll', handleScroll);
@@ -228,7 +241,11 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   let stickyClass = 'relative';
   if (isNavbar) {
       if (headerType === 'fixed') stickyClass = 'fixed top-0 left-0 w-full z-50';
-      else if (headerType === 'sticky' && isStuck) stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md';
+      else if (headerType === 'sticky') {
+          if (stickyState === 'stuck') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md';
+          else if (stickyState === 'unsticking') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-out-up shadow-md';
+          else stickyClass = 'relative'; // idle
+      }
   }
 
   // Only clip Slider and Card to allow Dropdowns (in Navbar/Section) to overflow

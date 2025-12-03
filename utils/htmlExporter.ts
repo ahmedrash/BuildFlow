@@ -44,6 +44,8 @@ export const exportHtml = (
       .animate-slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
       @keyframes slideInDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
       .animate-slide-in-down { animation: slideInDown 0.3s ease-out forwards; }
+      @keyframes slideOutUp { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+      .animate-slide-out-up { animation: slideOutUp 0.3s ease-out forwards; }
     </style>
     ${recaptchaSiteKey ? `<script src="https://www.google.com/recaptcha/api.js" async defer></script>` : ''}
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -531,18 +533,33 @@ export const exportHtml = (
                 const headerType = props.headerType || 'relative';
 
                 const NavbarWrapper = ({ children }) => {
-                     const [isStuck, setIsStuck] = React.useState(false);
+                     const [stickyState, setStickyState] = React.useState('idle');
+                     const stateRef = React.useRef(stickyState);
+                     React.useEffect(() => { stateRef.current = stickyState; }, [stickyState]);
+
                      React.useEffect(() => {
                          if (headerType !== 'sticky') return;
                          const handleScroll = () => {
                              const offset = props.stickyOffset || 100;
-                             if (window.scrollY > offset) setIsStuck(true);
-                             else setIsStuck(false);
+                             const currentState = stateRef.current;
+                             if (window.scrollY > offset) {
+                                 if (currentState !== 'stuck') setStickyState('stuck');
+                             } else {
+                                 if (currentState === 'stuck') {
+                                     setStickyState('unsticking');
+                                     setTimeout(() => setStickyState(prev => prev === 'unsticking' ? 'idle' : prev), 300);
+                                 }
+                             }
                          };
                          window.addEventListener('scroll', handleScroll);
                          return () => window.removeEventListener('scroll', handleScroll);
                      }, [headerType]);
-                     const stickyClass = headerType === 'fixed' ? 'fixed top-0 left-0 w-full z-50' : (headerType === 'sticky' && isStuck) ? 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md' : 'relative';
+                     let stickyClass = 'relative';
+                     if (headerType === 'fixed') stickyClass = 'fixed top-0 left-0 w-full z-50';
+                     else if (headerType === 'sticky') {
+                         if (stickyState === 'stuck') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md';
+                         else if (stickyState === 'unsticking') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-out-up shadow-md';
+                     }
                      return <div id={id} className={\`\${props.className || ''} \${stickyClass}\`} style={props.style}>{children}</div>;
                 };
 
@@ -653,4 +670,4 @@ export const exportHtml = (
     </script>
 </body>
 </html>`;
-};
+}
