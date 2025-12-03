@@ -1,3 +1,5 @@
+
+
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (
@@ -38,10 +40,16 @@ export const exportHtml = (
       .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+      @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+      .animate-fade-out { animation: fadeOut 0.3s ease-out forwards; }
       @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
       .animate-slide-in-left { animation: slideInLeft 0.3s ease-out forwards; }
+      @keyframes slideOutLeft { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+      .animate-slide-out-left { animation: slideOutLeft 0.3s ease-out forwards; }
       @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
       .animate-slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
+      @keyframes slideOutRight { from { transform: translateX(0); } to { transform: translateX(100%); } }
+      .animate-slide-out-right { animation: slideOutRight 0.3s ease-out forwards; }
       @keyframes slideInDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
       .animate-slide-in-down { animation: slideInDown 0.3s ease-out forwards; }
       @keyframes slideOutUp { from { transform: translateY(0); } to { transform: translateY(-100%); } }
@@ -145,7 +153,12 @@ export const exportHtml = (
             const { openPopup } = React.useContext(PopupContext);
             const { findElement } = React.useContext(PageContext);
             const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-            
+            const [isClosing, setIsClosing] = React.useState(false);
+
+            const openMenu = () => { setIsMenuOpen(true); setIsClosing(false); };
+            const closeMenu = () => { setIsClosing(true); setTimeout(() => { setIsMenuOpen(false); setIsClosing(false); }, 300); };
+            const toggleMenu = () => { if (isMenuOpen && !isClosing) closeMenu(); else if (!isMenuOpen) openMenu(); };
+
             const pointerClass = ''; 
             const formFieldClass = "w-full border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 rounded-md bg-white";
             const innerStyle = element.props.elementStyle || {};
@@ -229,7 +242,7 @@ export const exportHtml = (
                     if (link.type === 'popup' && link.targetId) {
                          e.preventDefault();
                          openPopup(link.targetId);
-                         setIsMenuOpen(false);
+                         closeMenu();
                          return;
                     }
                     if (link.href && link.href.startsWith('#')) {
@@ -238,7 +251,7 @@ export const exportHtml = (
                          const el = document.getElementById(id);
                          if (!id) window.scrollTo({ top: 0, behavior: 'smooth' });
                          else if (el) el.scrollIntoView({ behavior: 'smooth' });
-                         setIsMenuOpen(false);
+                         closeMenu();
                     } else if (hasChildren && !link.href) {
                         e.preventDefault();
                         setIsExpanded(!isExpanded);
@@ -263,7 +276,7 @@ export const exportHtml = (
                              <div className="bg-gray-50 p-4 space-y-3">
                                  {link.children?.map((child, i) => (
                                      <a key={i} href={child.href || '#'} className="block text-gray-600 hover:text-indigo-600 pl-2" onClick={(e) => {
-                                         if(child.type === 'popup' && child.targetId) { e.preventDefault(); openPopup(child.targetId); setIsMenuOpen(false); }
+                                         if(child.type === 'popup' && child.targetId) { e.preventDefault(); openPopup(child.targetId); closeMenu(); }
                                      }}>
                                          {child.label}
                                      </a>
@@ -324,7 +337,7 @@ export const exportHtml = (
                              </ul>
                              <button 
                                  className={\`\${mobileToggleClass} p-2 rounded hover:bg-gray-100\`}
-                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                 onClick={toggleMenu}
                                  style={{ color: hamburgerColor || 'inherit' }}
                              >
                                 {mobileMenuIconType === 'grid' ? <Icons.Grid /> : mobileMenuIconType === 'dots' ? <Icons.Dots /> : <Icons.Menu />}
@@ -332,15 +345,15 @@ export const exportHtml = (
                              {isMenuOpen && (
                                 <>
                                 {mobileMenuType === 'dropdown' && (
-                                    <div className={\`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col animate-fade-in z-40 max-h-[80vh] overflow-y-auto \${mobileMenuBreakpoint === 'none' ? 'hidden' : \`\${mobileMenuBreakpoint}:hidden\`}\`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
+                                    <div className={\`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col z-40 max-h-[80vh] overflow-y-auto \${isClosing ? 'animate-fade-out' : 'animate-fade-in'} \${mobileMenuBreakpoint === 'none' ? 'hidden' : \`\${mobileMenuBreakpoint}:hidden\`}\`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
                                         {navLinks.map((link, i) => <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} />)}
                                     </div>
                                 )}
                                 {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
                                     <div className={\`fixed inset-0 z-50 \${mobileMenuBreakpoint === 'none' ? 'hidden' : \`\${mobileMenuBreakpoint}:hidden\`}\`}>
-                                        <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div>
-                                        <div className={\`absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto \${mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right'}\`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
-                                            <div className="flex justify-end p-4"><button onClick={() => setIsMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-700"><Icons.X /></button></div>
+                                        <div className={\`absolute inset-0 bg-black/50 \${isClosing ? 'animate-fade-out' : 'animate-fade-in'}\`} onClick={closeMenu}></div>
+                                        <div className={\`absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto \${mobileMenuType === 'slide-left' ? (isClosing ? 'left-0 animate-slide-out-left' : 'left-0 animate-slide-in-left') : (isClosing ? 'right-0 animate-slide-out-right' : 'right-0 animate-slide-in-right')}\`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
+                                            <div className="flex justify-end p-4"><button onClick={closeMenu} className="p-2 text-gray-500 hover:text-gray-700"><Icons.X /></button></div>
                                             <div className="px-4 pb-8">{navLinks.map((link, i) => <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} />)}</div>
                                         </div>
                                     </div>

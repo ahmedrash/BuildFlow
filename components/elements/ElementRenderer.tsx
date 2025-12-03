@@ -72,7 +72,28 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
   const { googleMapsApiKey, recaptchaSiteKey } = useContext(EditorConfigContext);
   const { openPopup } = useContext(PopupContext);
   const { findElement } = useContext(PageContext);
+  
+  // Menu State
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const openMenu = () => {
+      setIsMenuOpen(true);
+      setIsClosing(false);
+  };
+
+  const closeMenu = () => {
+      setIsClosing(true);
+      setTimeout(() => {
+          setIsMenuOpen(false);
+          setIsClosing(false);
+      }, 300); // Matches CSS animation duration
+  };
+
+  const toggleMenu = () => {
+      if (isMenuOpen && !isClosing) closeMenu();
+      else if (!isMenuOpen) openMenu();
+  };
   
   // Helper to disable pointer events only in editor mode
   const pointerClass = !isPreview ? 'pointer-events-none' : '';
@@ -196,7 +217,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
         if (link.type === 'popup' && link.targetId) {
              e.preventDefault();
              openPopup(link.targetId);
-             setIsMenuOpen(false);
+             closeMenu();
              return;
         }
 
@@ -206,7 +227,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
             const doc = (e.target as HTMLElement).ownerDocument;
             if (!id) doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
             else doc.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-            setIsMenuOpen(false);
+            closeMenu();
         }
       };
 
@@ -234,7 +255,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                        {/* Standard Children */}
                        {link.children?.map((child, i) => (
                            <a key={i} href={child.href || '#'} className="block text-gray-600 hover:text-indigo-600 pl-2" onClick={(e) => {
-                               if(child.type === 'popup' && child.targetId && isPreview) { e.preventDefault(); openPopup(child.targetId); setIsMenuOpen(false); }
+                               if(child.type === 'popup' && child.targetId && isPreview) { e.preventDefault(); openPopup(child.targetId); closeMenu(); }
                            }}>
                                {child.label}
                            </a>
@@ -326,7 +347,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                 {/* Mobile Toggle */}
                 <button 
                     className={`${mobileToggleClass} p-2 rounded hover:bg-gray-100 ${pointerClass}`}
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    onClick={toggleMenu}
                     style={{ color: hamburgerColor || 'inherit' }}
                 >
                     {mobileMenuIconType === 'grid' ? <Icons.Grid /> : 
@@ -339,7 +360,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                    <>
                    {mobileMenuType === 'dropdown' && (
                        <div 
-                           className={`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col animate-fade-in z-40 max-h-[80vh] overflow-y-auto ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}
+                           className={`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col z-40 max-h-[80vh] overflow-y-auto ${isClosing ? 'animate-fade-out' : 'animate-fade-in'} ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}
                            style={{ backgroundColor: menuBackgroundColor || 'white' }}
                        >
                            {navLinks.map((link, i) => (
@@ -350,13 +371,17 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
 
                    {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
                        <div className={`fixed inset-0 z-50 ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}>
-                           <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setIsMenuOpen(false)}></div>
+                           <div className={`absolute inset-0 bg-black/50 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`} onClick={closeMenu}></div>
                            <div 
-                               className={`absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto ${mobileMenuType === 'slide-left' ? 'left-0 animate-slide-in-left' : 'right-0 animate-slide-in-right'}`}
+                               className={`absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto ${
+                                   mobileMenuType === 'slide-left' 
+                                     ? (isClosing ? 'left-0 animate-slide-out-left' : 'left-0 animate-slide-in-left') 
+                                     : (isClosing ? 'right-0 animate-slide-out-right' : 'right-0 animate-slide-in-right')
+                               }`}
                                style={{ backgroundColor: menuBackgroundColor || 'white' }}
                            >
                                <div className="flex justify-end p-4">
-                                   <button onClick={() => setIsMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-700">
+                                   <button onClick={closeMenu} className="p-2 text-gray-500 hover:text-gray-700">
                                        <Icons.X />
                                    </button>
                                </div>
