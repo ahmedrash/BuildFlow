@@ -147,6 +147,31 @@ export const exportHtml = (
             );
         };
 
+        const ChildWrapper = ({ element }) => {
+            const { type, props } = element;
+            const renderBackground = () => {
+                if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
+                const { backgroundImage, backgroundVideo, parallax } = props || {};
+                const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = props.style || {};
+                const finalBgImage = styleBgImage || backgroundImage;
+                const finalBgVideo = styleBgVideo || backgroundVideo;
+                
+                if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
+                if (finalBgImage) {
+                    const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
+                    return <div className={\`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none \${parallax ? 'bg-fixed' : ''}\`} style={{ backgroundImage: \`url(\${url})\` }} />;
+                }
+                return null;
+            };
+
+            return (
+                <div id={element.id} className={\`\${props.className || ''} relative\`} style={props.style}>
+                    {renderBackground()}
+                    <ElementRenderer element={element} />
+                </div>
+            );
+        };
+
         const ElementRenderer = ({ element }) => {
             const { googleMapsApiKey, recaptchaSiteKey } = React.useContext(EditorConfigContext);
             const { openPopup } = React.useContext(PopupContext);
@@ -318,7 +343,7 @@ export const exportHtml = (
                     return (
                         <div id={element.id} className={element.props.className || ''} style={element.props.style}>
                             {renderBackground()}
-                            {element.children?.map(child => <ElementRenderer key={child.id} element={child} />)}
+                            {element.children?.map(child => <ChildWrapper key={child.id} element={child} />)}
                         </div>
                     );
 
@@ -411,7 +436,7 @@ export const exportHtml = (
                 case 'checkbox': 
                     return <div className="flex items-center gap-2"><input type="checkbox" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} required={element.props.fieldRequired} defaultChecked={element.props.checked} className={\`text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded border-gray-300 \${innerClass}\`} style={innerStyle} />{element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}</div>;
                 case 'form': 
-                    if (element.children && element.children.length > 0) return <form className={\`\${element.props.className || ''} relative\`} style={element.props.style} action={element.props.formActionUrl} method="POST"><input type="hidden" name="_next" value={element.props.formThankYouUrl} />{element.children.map(child => <ElementRenderer key={child.id} element={child} />)}</form>;
+                    if (element.children && element.children.length > 0) return <form className={\`\${element.props.className || ''} relative\`} style={element.props.style} action={element.props.formActionUrl} method="POST"><input type="hidden" name="_next" value={element.props.formThankYouUrl} />{element.children.map(child => <ChildWrapper key={child.id} element={child} />)}</form>;
                     // Legacy form renderer omitted for brevity, new form builder preferred
                     return null;
                 case 'video':
@@ -443,9 +468,9 @@ export const exportHtml = (
                      if (testimonialLayout === 'slider') return <TestimonialSlider items={testimonialItems} avatarSize={sizeClass} avatarShape={shapeClass} bubbleColor={testimonialBubbleColor} />;
                      return (<div className={\`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 \${innerClass}\`} style={innerStyle}>{testimonialItems.map(item => (<div key={item.id} className="flex flex-col h-full"><div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}><div className="absolute top-full left-8 -mt-2 border-8 border-transparent" style={{ borderTopColor: testimonialBubbleColor }}></div><p className="text-gray-700 italic relative z-10">"{item.content}"</p></div><div className="flex items-center gap-3 px-2">{item.avatarSrc && (<img src={item.avatarSrc} alt={item.author} className={\`\${sizeClass} \${shapeClass} object-cover bg-gray-200 border border-white shadow-sm\`} />)}<div><h4 className="font-bold text-sm text-gray-900">{item.author}</h4><p className="text-xs text-gray-500">{item.role}</p><div className="flex text-yellow-400 text-xs mt-0.5">{[...Array(5)].map((_, i) => (<span key={i} className={i < item.rating ? 'opacity-100' : 'opacity-30'}>★</span>))}</div></div></div></div>))}</div>);
                 case 'card':
-                     return <div id={element.id} className={\`\${element.props.className || ''} relative\`} style={element.props.style}>{element.props.cardBadge && <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm">{element.props.cardBadge}</div>}{element.children?.map(child => <ElementRenderer key={child.id} element={child} />)}</div>;
+                     return <div id={element.id} className={\`\${element.props.className || ''} relative\`} style={element.props.style}>{element.props.cardBadge && <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm">{element.props.cardBadge}</div>}{element.children?.map(child => <ChildWrapper key={child.id} element={child} />)}</div>;
                 case 'slider':
-                     return <div id={element.id} className={\`\${element.props.className || ''} relative\`} style={element.props.style}>{renderBackground()}<SliderRenderer element={renderedElement} /></div>;
+                     return <div id={element.id} className={\`\${element.props.className || ''} relative\`} style={element.props.style}>{renderBackground()}<SliderRenderer element={element} /></div>;
                 default:
                     return null;
             }
@@ -484,7 +509,7 @@ export const exportHtml = (
                          const pointerEvents = isActive ? '' : 'pointer-events-none';
                          return (
                             <div key={child.id} className={\`\${commonClass} \${posClass} \${effectClass} \${pointerEvents}\`}>
-                                <ElementRenderer element={child} />
+                                <ChildWrapper element={child} />
                             </div>
                          )
                     })}
@@ -542,6 +567,8 @@ export const exportHtml = (
                 const isHiddenTarget = popupTargets.has(id) || megaMenuTargets.has(id);
                 if (isHiddenTarget) return null; // Initially hidden in production
 
+                // NOTE: We do not call renderBackground here for containers that use ChildWrapper recursion in ElementRenderer,
+                // but for the root renderElement calls we do. ChildWrapper handles background for children.
                 const renderBackground = () => {
                     if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
                     const { backgroundImage, backgroundVideo, parallax } = props || {};
@@ -652,27 +679,8 @@ export const exportHtml = (
                                       <button className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors" onClick={() => setActivePopupId(null)}><Icons.X /></button>
                                       <div className="!block [&_.hidden]:!block">
                                          <div style={{ display: 'block !important' }}>
-                                              {/* Manually render popup content structure */}
-                                              {(() => {
-                                                  const { type, children, props } = activePopupElement;
-                                                  const Tag = type === 'section' ? 'section' : 'div';
-                                                  const renderBg = () => {
-                                                       const { backgroundImage } = props || {};
-                                                       const { backgroundImage: styleBgImage } = props.style || {};
-                                                       const finalBgImage = styleBgImage || backgroundImage;
-                                                       if (finalBgImage) {
-                                                           const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
-                                                           return <div className="absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none" style={{ backgroundImage: \`url(\${url})\` }} />;
-                                                       }
-                                                       return null;
-                                                  }
-                                                  return (
-                                                      <Tag className={\`\${props.className || ''} relative\`} style={{ ...props.style, display: 'block' }}>
-                                                          {renderBg()}
-                                                          {children && children.length > 0 ? children.map(child => <ElementRenderer key={child.id} element={child} />) : <ElementRenderer element={activePopupElement} />}
-                                                      </Tag>
-                                                  )
-                                              })()}
+                                              {/* Manually render popup content structure using ChildWrapper for root */}
+                                              <ChildWrapper element={activePopupElement} />
                                          </div>
                                       </div>
                                  </div>

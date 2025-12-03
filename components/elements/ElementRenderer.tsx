@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useContext } from 'react';
 import { PageElement, TestimonialItem, NavLinkItem } from '../../types';
 import { Icons } from '../Icons';
@@ -64,6 +62,34 @@ const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string
                      ))}
                  </div>
              )}
+        </div>
+    );
+};
+
+// Helper to wrap children with their outer styles when ElementRenderer is used recursively (e.g. Mega Menu)
+const ChildWrapper: React.FC<{ element: PageElement; isPreview?: boolean }> = ({ element, isPreview }) => {
+    const { props, type } = element;
+    
+    // Background Rendering Logic (Duplicated for standalone wrapper)
+    const renderBackground = () => {
+        if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
+        const { backgroundImage, backgroundVideo, parallax } = props || {};
+        const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = props.style || {};
+        const finalBgImage = styleBgImage || backgroundImage;
+        const finalBgVideo = styleBgVideo || backgroundVideo;
+        
+        if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
+        if (finalBgImage) {
+            const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
+            return <div className={`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none ${parallax ? 'bg-fixed' : ''}`} style={{ backgroundImage: `url(${url})` }} />;
+        }
+        return null;
+    };
+
+    return (
+        <div id={element.id} className={`${props.className || ''} relative`} style={props.style}>
+            {renderBackground()}
+            <ElementRenderer element={element} isPreview={isPreview} />
         </div>
     );
 };
@@ -144,7 +170,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                  <div className="absolute top-full left-0 w-full opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
                      <div className="max-h-[80vh] overflow-y-auto">
                         <div className={`container ${containerAlignment}`}>
-                            <ElementRenderer element={targetElement} isPreview={isPreview} />
+                            {/* Use ChildWrapper to ensure the root container of mega menu gets its styles, although ElementRenderer handles container root well, its children need wrappers if mapped inside. */}
+                             <ElementRenderer element={targetElement} isPreview={isPreview} />
                         </div>
                      </div>
                  </div>
@@ -298,8 +325,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
     case 'columns':
     case 'navbar': // Navbar is now primarily a container
         const isNavbar = element.type === 'navbar';
-        // Note: Actual sticky behavior is applied in EditorCanvas/PageRenderer wrapper logic for positioning
-        // But we apply the classes here for the inner visual
         
         return (
             <div 
@@ -308,12 +333,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                 style={element.props.style}
             >
                 {renderBackground()}
-                {isNavbar ? (
-                     // Navbar Specific rendering for Children (Flex container usually)
-                     element.children?.map(child => <ElementRenderer key={child.id} element={child} isPreview={isPreview} />)
-                ) : (
-                    element.children?.map(child => <ElementRenderer key={child.id} element={child} isPreview={isPreview} />)
-                )}
+                {/* Note: In Editor/Preview using EditorCanvas, this recursion is NOT used. EditorCanvas maps children to EditorCanvas. 
+                    This recursion IS used when ElementRenderer is called directly (e.g. Mega Menu content) */}
+                {element.children?.map(child => (
+                    <ChildWrapper key={child.id} element={child} isPreview={isPreview} />
+                ))}
             </div>
         );
 
@@ -565,7 +589,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       if (element.children && element.children.length > 0) {
          return (
             <form className={`${element.props.className || ''} relative`} style={element.props.style}>
-               {element.children.map(child => <ElementRenderer key={child.id} element={child} isPreview={isPreview} />)}
+               {element.children.map(child => <ChildWrapper key={child.id} element={child} isPreview={isPreview} />)}
             </form>
          );
       }
@@ -637,7 +661,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
         return (
             <div id={element.id} className={`${element.props.className || ''} relative`} style={element.props.style}>
                  {element.props.cardBadge && <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm pointer-events-none">{element.props.cardBadge}</div>}
-                 {element.children.map(child => <ElementRenderer key={child.id} element={child} isPreview={isPreview} />)}
+                 {element.children.map(child => <ChildWrapper key={child.id} element={child} isPreview={isPreview} />)}
             </div>
         );
     }
@@ -648,7 +672,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                  {renderBackground()}
                 {element.children?.map((child, i) => (
                     <div key={child.id} className={i === 0 ? 'relative' : 'hidden'}>
-                         <ElementRenderer element={child} isPreview={isPreview} />
+                         <ChildWrapper element={child} isPreview={isPreview} />
                     </div>
                 ))}
              </div>
