@@ -1,6 +1,6 @@
 {
   "name": "buildflow-react",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A powerful visual drag-and-drop website builder for React.",
   "main": "./dist/buildflow.umd.js",
   "module": "./dist/buildflow.es.js",
@@ -44,6 +44,10 @@
     "website-builder",
     "cms"
   ],
-  "author": "BuildFlow",
+  "author": {
+    "name": "Rashed Ahmed",
+    "email": "ahmedrash@gmail.com",
+    "url": "https://dynamicflowit.com"
+  },
   "license": "MIT"
 }
