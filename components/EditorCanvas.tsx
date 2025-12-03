@@ -1,3 +1,5 @@
+
+
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -333,13 +335,37 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const renderChildren = () => {
       if (renderedElement.type === 'slider' && renderedElement.children) {
           const activeIndex = renderedElement.props.sliderActiveIndex || 0;
+          const transition = renderedElement.props.sliderTransition || 'fade';
+
           return (
               <>
-                  {renderedElement.children.map((child, index) => (
-                      <div key={child.id} className={`w-full h-full top-0 left-0 transition-opacity duration-500 ease-in-out ${index === activeIndex ? 'relative opacity-100 z-10' : 'absolute opacity-0 -z-10 pointer-events-none'}`}>
-                         <EditorCanvas element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} megaMenuTargets={megaMenuTargets} />
-                      </div>
-                  ))}
+                  {renderedElement.children.map((child, index) => {
+                      const isActive = index === activeIndex;
+                      let effectClass = '';
+                      // Base: absolute for inactive to overlap, relative for active to define height
+                      const posClass = isActive ? 'relative z-10' : 'absolute top-0 left-0 z-0';
+                      const commonClass = 'w-full h-full transition-all duration-700 ease-in-out';
+                      
+                      switch(transition) {
+                          case 'zoom':
+                              effectClass = isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-110';
+                              break;
+                          case 'slide-up':
+                              effectClass = isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8';
+                              break;
+                          case 'fade':
+                          default:
+                              effectClass = isActive ? 'opacity-100' : 'opacity-0';
+                      }
+                      
+                      const pointerEvents = isActive ? '' : 'pointer-events-none';
+
+                      return (
+                           <div key={child.id} className={`${commonClass} ${posClass} ${effectClass} ${pointerEvents}`}>
+                               <EditorCanvas element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} megaMenuTargets={megaMenuTargets} />
+                           </div>
+                      )
+                  })}
                   {renderedElement.children.length > 1 && (
                       <>
                           <button className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition-all" onClick={(e) => { e.stopPropagation(); const prev = (activeIndex - 1 + renderedElement.children!.length) % renderedElement.children!.length; onUpdateProps(element.id, { sliderActiveIndex: prev }); }}>{renderNavIcon('prev')}</button>

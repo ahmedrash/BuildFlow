@@ -241,6 +241,7 @@ export interface PageElement {
     sliderNavType?: 'chevron' | 'arrow' | 'caret';
     sliderActiveIndex?: number;
     sliderShowPagination?: boolean;
+    sliderTransition?: 'fade' | 'zoom' | 'slide-up'; // New
 
     // Styles
     style?: ElementStyle;

@@ -446,7 +446,7 @@ export const exportHtml = (
                 case 'card':
                      return <div id={element.id} className={\`\${element.props.className || ''} relative\`} style={element.props.style}>{element.props.cardBadge && <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full z-10 shadow-sm">{element.props.cardBadge}</div>}{element.children?.map(child => <ElementRenderer key={child.id} element={child} />)}</div>;
                 case 'slider':
-                     return <div id={element.id} className={\`\${element.props.className || ''} relative\`} style={element.props.style}>{renderBackground()}{element.children?.map((child, i) => <div key={child.id} className={i === 0 ? 'relative' : 'hidden'}><ElementRenderer element={child} /></div>)}</div>;
+                     return <div id={element.id} className={\`\${element.props.className || ''} relative\`} style={element.props.style}>{renderBackground()}<SliderRenderer element={renderedElement} /></div>;
                 default:
                     return null;
             }
@@ -454,6 +454,8 @@ export const exportHtml = (
         
         const SliderRenderer = ({ element }) => {
             const [activeIndex, setActiveIndex] = React.useState(0);
+            const transition = element.props.sliderTransition || 'fade';
+            
             React.useEffect(() => {
                 if (element.props.sliderAutoplay && element.children && element.children.length > 1) {
                     const interval = setInterval(() => { setActiveIndex(prev => (prev + 1) % element.children.length); }, element.props.sliderInterval || 3000);
@@ -470,11 +472,23 @@ export const exportHtml = (
             
             return (
                 <React.Fragment>
-                    {element.children.map((child, index) => (
-                        <div key={child.id} className={\`w-full h-full top-0 left-0 transition-opacity duration-500 ease-in-out \${index === activeIndex ? 'relative opacity-100 z-10' : 'absolute opacity-0 -z-10 pointer-events-none'}\`}>
-                            <ElementRenderer element={child} />
-                        </div>
-                    ))}
+                    {element.children.map((child, index) => {
+                         const isActive = index === activeIndex;
+                         let effectClass = '';
+                         const posClass = isActive ? 'relative z-10' : 'absolute top-0 left-0 z-0';
+                         const commonClass = 'w-full h-full transition-all duration-700 ease-in-out';
+                         switch(transition) {
+                             case 'zoom': effectClass = isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-110'; break;
+                             case 'slide-up': effectClass = isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'; break;
+                             case 'fade': default: effectClass = isActive ? 'opacity-100' : 'opacity-0';
+                         }
+                         const pointerEvents = isActive ? '' : 'pointer-events-none';
+                         return (
+                            <div key={child.id} className={\`\${commonClass} \${posClass} \${effectClass} \${pointerEvents}\`}>
+                                <ElementRenderer element={child} />
+                            </div>
+                         )
+                    })}
                     {element.children.length > 1 && (
                         <React.Fragment>
                             <button className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition-all" onClick={() => setActiveIndex((prev) => (prev - 1 + element.children.length) % element.children.length)}>{renderNavIcon('prev')}</button>
