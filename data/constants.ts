@@ -161,7 +161,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
       type: 'container',
       name: 'Mega Menu Content',
       props: {
-          className: 'max-w-6xl mx-auto bg-white shadow-2xl border-t border-gray-100 p-8 rounded-b-xl',
+          className: 'max-w-6xl mx-auto lg:bg-white shadow-2xl lg:p-8 rounded-b-xl',
           elementClassName: ''
       },
       children: [

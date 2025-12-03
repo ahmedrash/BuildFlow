@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';
@@ -49,6 +48,9 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
 
   // Popup State
   const [activePopupId, setActivePopupId] = useState<string | null>(null);
+
+  // Canvas View State
+  const [showHiddenElements, setShowHiddenElements] = useState(true);
 
   // Modals
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
@@ -783,6 +785,8 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 onRedo={handleRedo}
                 canUndo={history.past.length > 0 && !editingTemplateId}
                 canRedo={history.future.length > 0 && !editingTemplateId}
+                showHiddenElements={showHiddenElements}
+                setShowHiddenElements={setShowHiddenElements}
             />
             
             {editingTemplateId && (
@@ -843,6 +847,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                                 getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
                                 popupTargets={popupTargets}
                                 megaMenuTargets={megaMenuTargets}
+                                showHiddenElements={showHiddenElements}
                             />
                         ))}
                         

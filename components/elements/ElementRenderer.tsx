@@ -401,7 +401,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                    )}
 
                    {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
-                       <div className={`fixed inset-0 z-50 ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}>
+                       <div className={`fixed inset-0 z-50 h-[100vh] ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}>
                            <div className={`absolute inset-0 bg-black/50 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`} onClick={closeMenu}></div>
                            <div 
                                className={`absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto ${

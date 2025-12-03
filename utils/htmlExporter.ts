@@ -378,7 +378,7 @@ export const exportHtml = (
                                     </div>
                                 )}
                                 {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
-                                    <div className={\`fixed inset-0 z-50 \${mobileMenuBreakpoint === 'none' ? 'hidden' : \`\${mobileMenuBreakpoint}:hidden\`}\`}>
+                                    <div className={\`fixed inset-0 z-50 h-[100vh] \${mobileMenuBreakpoint === 'none' ? 'hidden' : \`\${mobileMenuBreakpoint}:hidden\`}\`}>
                                         <div className={\`absolute inset-0 bg-black/50 \${isClosing ? 'animate-fade-out' : 'animate-fade-in'}\`} onClick={closeMenu}></div>
                                         <div className={\`absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto \${mobileMenuType === 'slide-left' ? (isClosing ? 'left-0 animate-slide-out-left' : 'left-0 animate-slide-in-left') : (isClosing ? 'right-0 animate-slide-out-right' : 'right-0 animate-slide-in-right')}\`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
                                             <div className="flex justify-end p-4"><button onClick={closeMenu} className="p-2 text-gray-500 hover:text-gray-700"><Icons.X /></button></div>

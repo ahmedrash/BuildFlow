@@ -15,12 +15,15 @@ interface TopbarProps {
     onRedo: () => void;
     canUndo: boolean;
     canRedo: boolean;
+    showHiddenElements: boolean;
+    setShowHiddenElements: (show: boolean) => void;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ 
     viewMode, setViewMode, isPreview, setIsPreview, 
     onOpenTemplates, onOpenSettings, onSave, onExportHtml,
-    onUndo, onRedo, canUndo, canRedo
+    onUndo, onRedo, canUndo, canRedo,
+    showHiddenElements, setShowHiddenElements
 }) => {
   return (
     <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 z-30 relative shadow-sm">
@@ -47,6 +50,16 @@ export const Topbar: React.FC<TopbarProps> = ({
           </div>
 
           <div className="flex items-center gap-1 ml-2">
+             <button 
+                onClick={() => setShowHiddenElements(!showHiddenElements)}
+                className={`p-2 rounded-lg transition-colors ${showHiddenElements ? 'text-indigo-600 bg-indigo-50 border border-indigo-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                title={showHiddenElements ? "Hide Hidden Elements" : "Show Hidden Elements"}
+             >
+                 {showHiddenElements ? <Icons.Eye width={16} height={16} /> : <Icons.EyeOff width={16} height={16} />}
+             </button>
+
+             <div className="w-px h-4 bg-gray-200 mx-1"></div>
+
              <button 
                 onClick={onUndo} 
                 disabled={!canUndo}

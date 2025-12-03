@@ -1,5 +1,4 @@
 
-
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -20,6 +19,7 @@ interface EditorCanvasProps {
   popupTargets?: Set<string>;
   megaMenuTargets?: Set<string>;
   isPopupContent?: boolean;
+  showHiddenElements?: boolean;
 }
 
 export const EditorCanvas: React.FC<EditorCanvasProps> = ({ 
@@ -35,7 +35,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   isLocked,
   popupTargets,
   megaMenuTargets,
-  isPopupContent
+  isPopupContent,
+  showHiddenElements = true
 }) => {
   const [dropPosition, setDropPosition] = useState<'inside' | 'top' | 'bottom' | null>(null);
   const elementRef = useRef<HTMLElement>(null);
@@ -62,10 +63,25 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   let shouldHideClass = '';
   
   if (isHidden) {
-      if (isPreview) shouldHideClass = 'hidden';
-      else shouldHideClass = 'opacity-40 grayscale filter border border-dashed border-gray-300';
-  } else if (isPreview && isTargetHidden) {
-      shouldHideClass = 'hidden';
+      if (isPreview) {
+          shouldHideClass = 'hidden';
+      } else {
+          // In Editor Mode
+          if (showHiddenElements) {
+               shouldHideClass = 'opacity-40 grayscale filter border border-dashed border-gray-300';
+          } else {
+               shouldHideClass = 'hidden';
+          }
+      }
+  } else if (isTargetHidden) {
+      if (isPreview) {
+          shouldHideClass = 'hidden';
+      } else {
+          // In Editor Mode: Hide targets if toggle is off
+          if (!showHiddenElements) {
+              shouldHideClass = 'hidden';
+          }
+      }
   }
 
   // Sticky Header Logic in Editor
@@ -362,7 +378,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
                       return (
                            <div key={child.id} className={`${commonClass} ${posClass} ${effectClass} ${pointerEvents}`}>
-                               <EditorCanvas element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} megaMenuTargets={megaMenuTargets} />
+                               <EditorCanvas element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} megaMenuTargets={megaMenuTargets} showHiddenElements={showHiddenElements} />
                            </div>
                       )
                   })}
@@ -384,7 +400,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       }
       if (renderedElement.children && renderedElement.children.length > 0) {
           return renderedElement.children.map(child => (
-            <EditorCanvas key={child.id} element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} megaMenuTargets={megaMenuTargets} />
+            <EditorCanvas key={child.id} element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} megaMenuTargets={megaMenuTargets} showHiddenElements={showHiddenElements} />
           ));
       }
       return (
@@ -417,7 +433,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       {!isPreview && isPopupTarget && !isMegaMenuTarget && <div className="absolute top-0 right-0 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">POPUP CONTENT</div>}
       {!isPreview && isMegaMenuTarget && <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">MEGA MENU CONTENT</div>}
 
-      {!isPreview && isHidden && <div className="absolute top-0 left-0 bg-gray-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-br pointer-events-none"><Icons.EyeOff width={10} height={10} className="inline mr-1"/>HIDDEN</div>}
+      {!isPreview && isHidden && showHiddenElements && <div className="absolute top-0 left-0 bg-gray-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-br pointer-events-none"><Icons.EyeOff width={10} height={10} className="inline mr-1"/>HIDDEN</div>}
 
       {renderBackground()}
       <LinkWrapper>{renderChildren()}</LinkWrapper>
