@@ -50,7 +50,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
             type: 'menu',
             name: 'Main Menu',
             props: {
-              className: '',
+              className: 'md:static',
               mobileMenuBreakpoint: 'lg',
               mobileMenuType: 'slide-right',
               mobileMenuIconType: 'menu',
@@ -161,7 +161,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
       type: 'container',
       name: 'Mega Menu Content',
       props: {
-          className: 'w-full bg-white shadow-2xl border-t border-gray-100 p-8 rounded-b-xl',
+          className: 'max-w-6xl mx-auto bg-white shadow-2xl border-t border-gray-100 p-8 rounded-b-xl',
           elementClassName: ''
       },
       children: [
