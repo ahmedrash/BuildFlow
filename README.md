@@ -11,7 +11,7 @@ BuildFlow is a comprehensive, React-based visual website builder. It enables use
 *   **Layer Management**: Dedicated "Layers" tree for navigating and selecting complex nested structures.
 *   **Real-time Styling**: Instant visual feedback for padding, margins, colors, typography, borders, and shadows.
 *   **Tailwind Integration**: Built-in autocomplete for Tailwind CSS classes allowing for unlimited styling possibilities.
-*   **Visibility Control**: Toggle the visibility of hidden elements (like Popups and Mega Menus) directly in the editor canvas.
+*   **Visibility Control**: **New!** Toggle the visibility of hidden elements (like Popups and Mega Menus) directly in the editor canvas using the Eye icon in the top bar.
 *   **History**: Full Undo/Redo capabilities.
 
 ### 🧩 Rich Component Library
@@ -25,12 +25,13 @@ BuildFlow comes with a diverse set of pre-built components:
     *   **Sliders**: Advanced carousel with autoplay, custom intervals, multiple transitions (Fade, Zoom, Slide Up), and navigation styles.
     *   **Galleries**: Create stunning image displays with **Grid**, **Masonry**, or **Justified (Flex)** layouts.
     *   **Maps**: Google Maps integration with address resolution and zoom control.
+    *   **Logos**: specialized image/text component for branding.
 *   **Forms**: 
     *   **Granular Builder**: Drag and drop individual form elements (Input, Textarea, Select, Radio, Checkbox, Button).
     *   **Smart Container**: Handles form submission endpoints, success messages, and reCAPTCHA integration.
 *   **Navigation**: 
     *   **Navbar**: Sticky/Fixed/Relative positioning.
-    *   **Menus**: Responsive menus with support for Dropdowns, Slide-out Drawers, and **Mega Menus** (embed full containers inside navigation items).
+    *   **Menus**: Responsive menus with support for Dropdowns, Slide-out Drawers, and **Mega Menus** (embed full layouts inside navigation items).
 *   **Interaction**: 
     *   **Popups**: Turn any container into a popup triggered by buttons or links.
     *   **Testimonials**: Display reviews in **Grid** or **Slider** formats.
@@ -44,6 +45,46 @@ BuildFlow comes with a diverse set of pre-built components:
 ### 📤 Export
 *   **One-Click Export**: Generate a standalone, production-ready `index.html` file.
 *   **Zero Dependencies**: The exported file is self-contained with Tailwind CSS (CDN) and a lightweight React runtime to handle interactivity (Sliders, Mobile Menus, Popups) without a build step.
+
+## 🔌 Extending BuildFlow (Developer Guide)
+
+BuildFlow now supports a modular **Registry Pattern**, allowing developers to easily add custom components without modifying the core editor logic.
+
+### How to add a Custom Component
+
+1.  **Define the Component**: Create a definition object that implements `ComponentDefinition`.
+2.  **Register**: Add it to the system using `ComponentRegistry.register()`.
+
+**Example:**
+
+```tsx
+import { ComponentRegistry } from './components/registry';
+import { Icons } from './components/Icons';
+
+// Register a new "Alert Box" component
+ComponentRegistry.register({
+  type: 'custom-alert',
+  name: 'Alert Box',
+  icon: Icons.MessageSquare, // Use any React SVG component
+  group: 'basic', // 'layout' | 'basic' | 'media' | 'form' | 'advanced'
+  
+  // Define how it renders in the editor & preview
+  render: ({ element, isPreview }) => (
+    <div 
+      className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4"
+      role="alert"
+    >
+      <p class="font-bold">Be Warned</p>
+      <p>{element.props.content || 'Something happened.'}</p>
+    </div>
+  ),
+
+  // (Optional) Define a custom properties panel for the sidebar
+  // If omitted, it uses the default properties panel
+});
+```
+
+The component will automatically appear in the Sidebar under the specified group and be fully draggable, editable, and exportable.
 
 ## 💻 Component API
 
@@ -110,13 +151,13 @@ import { BuildFlowRenderer } from './components/BuildFlowRenderer';
 ### 3. Mega Menus & Popups
 *   **Mega Menus**: 
     1. Create a Container with your desired menu layout (columns, links, images).
-    2. Note its ID.
+    2. Note its ID (visible in the Layers tree or Properties panel).
     3. Select your Menu element, add a link, set type to "Mega Menu", and paste the Target ID.
 *   **Popups**: 
     1. Create a Container for your popup.
     2. Note its ID.
     3. Select a Button, set Action to "Popup", and paste the Target ID.
-    4. Use the **Eye Icon** in the top bar to toggle visibility of these hidden elements while editing.
+    4. **Tip:** Use the **Eye Icon** in the top bar to toggle visibility of these hidden targets while you edit the rest of the page.
 
 ### 4. Global Components
 1.  Select an element (e.g., Navbar).
