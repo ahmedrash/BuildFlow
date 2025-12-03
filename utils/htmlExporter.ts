@@ -13,7 +13,7 @@ export const exportHtml = (
   const templatesJson = JSON.stringify(templates).replace(/<\/script>/g, '<\\/script>');
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="overflow-x-hidden">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,7 +59,7 @@ export const exportHtml = (
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-white text-slate-900">
+<body class="bg-white text-slate-900 overflow-x-hidden">
     <div id="root"></div>
 
     <script type="text/babel">
