@@ -33,26 +33,55 @@ module.exports = {
 
 ### 2. Using the Editor
 
-The `BuildFlowEditor` is the main interface for creating pages.
+The `BuildFlowEditor` is the main interface. It handles page editing, template management, and image uploading.
 
 ```tsx
 import React, { useState } from 'react';
-import { BuildFlowEditor, PageElement } from 'buildflow-react';
+import { BuildFlowEditor, PageElement, SavedTemplate } from 'buildflow-react';
 
 const MyBuilderApp = () => {
   const [data, setData] = useState<PageElement[]>([]);
+  const [templates, setTemplates] = useState<SavedTemplate[]>([]);
 
+  // 1. Handle Saving the Page
   const handleSave = (elements: PageElement[]) => {
     console.log('Saved page data:', elements);
     setData(elements);
+    // API call to save to database...
+  };
+
+  // 2. Handle Saving Reusable Templates
+  const handleSaveTemplate = (template: SavedTemplate) => {
+    setTemplates(prev => [...prev, template]);
+    // API call to save template...
+  };
+
+  // 3. Handle Deleting Templates
+  const handleDeleteTemplate = (id: string) => {
+    setTemplates(prev => prev.filter(t => t.id !== id));
+  };
+
+  // 4. Handle Image Uploads
+  const handleUploadImage = async (file: File): Promise<string> => {
+    // Mock upload - replace with actual API call (e.g., S3, Cloudinary)
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+    });
   };
 
   return (
     <div style={{ height: '100vh' }}>
       <BuildFlowEditor 
         initialData={data}
+        savedTemplates={templates}
         onSave={handleSave}
-        googleMapsApiKey="YOUR_KEY" // Optional
+        onSaveTemplate={handleSaveTemplate}
+        onDeleteTemplate={handleDeleteTemplate}
+        onUploadImage={handleUploadImage}
+        googleMapsApiKey="YOUR_GOOGLE_MAPS_KEY" // Optional
+        recaptchaSiteKey="YOUR_RECAPTCHA_KEY"   // Optional
       />
     </div>
   );
@@ -61,15 +90,18 @@ const MyBuilderApp = () => {
 
 ### 3. Using the Renderer
 
-The `BuildFlowRenderer` displays the saved pages to your end users.
+The `BuildFlowRenderer` displays the saved content to your end users. It supports all the interactive elements (sliders, popups, forms) created in the editor.
 
 ```tsx
 import { BuildFlowRenderer } from 'buildflow-react';
 
-const MyPage = ({ pageData }) => {
+const MyPage = ({ pageData, templates }) => {
   return (
     <BuildFlowRenderer 
       initialData={pageData} 
+      savedTemplates={templates}
+      googleMapsApiKey="YOUR_GOOGLE_MAPS_KEY" // Optional: Needed for Map element
+      recaptchaSiteKey="YOUR_RECAPTCHA_KEY"   // Optional: Needed for Form Recaptcha
     />
   );
 };
@@ -80,7 +112,7 @@ const MyPage = ({ pageData }) => {
 *   **Responsive Design**: Toggle between Desktop, Tablet, and Mobile views.
 *   **Real-time Styling**: Instant visual feedback for padding, margins, colors, typography.
 *   **Visibility Control**: Toggle hidden elements (Popups, Mega Menus) in the canvas.
-*   **Export**: Generate a standalone `index.html` file.
+*   **Export**: Generate a standalone `index.html` file directly from the editor.
 
 ## 🧩 Component Library
 *   **Layout**: Sections, Containers, Columns.
@@ -91,12 +123,12 @@ const MyPage = ({ pageData }) => {
 
 ## 🔌 Extending (Developer Guide)
 
-BuildFlow supports a **Registry Pattern** for adding custom components.
+BuildFlow supports a **Registry Pattern** for adding custom components without forking the library.
 
 **Example:**
 ```tsx
 import { ComponentRegistry } from 'buildflow-react';
-import { Star } from 'lucide-react';
+import { Star } from 'lucide-react'; // Or your own icon
 
 ComponentRegistry.register({
   type: 'custom-alert',
@@ -104,12 +136,40 @@ ComponentRegistry.register({
   icon: Star,
   group: 'basic',
   render: ({ element }) => (
-    <div className="bg-red-100 p-4 border-l-4 border-red-500">
-      {element.props.content}
+    <div className="bg-red-100 p-4 border-l-4 border-red-500 text-red-700">
+      <h3 className="font-bold">Alert!</h3>
+      <p>{element.props.content || 'Default warning text'}</p>
     </div>
   )
 });
 ```
+
+## 💻 Local Development
+
+If you want to run this repository locally to contribute or modify the source code:
+
+1.  **Clone the repo**:
+    ```bash
+    git clone https://github.com/your-username/buildflow-react.git
+    cd buildflow-react
+    ```
+
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+
+3.  **Start Dev Server**:
+    Runs the demo app (`App.tsx`) with Hot Module Replacement.
+    ```bash
+    npm run dev
+    ```
+
+4.  **Build Library**:
+    Compiles the project into a distributable library in `dist/`.
+    ```bash
+    npm run build
+    ```
 
 ## 🛠 Tech Stack
 *   **Frontend**: React, TypeScript
