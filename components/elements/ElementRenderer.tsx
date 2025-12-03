@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useContext } from 'react';
 import { PageElement, TestimonialItem, NavLinkItem } from '../../types';
 import { Icons } from '../Icons';
@@ -278,11 +277,13 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
     case 'navbar': // Navbar is now primarily a container
         const isNavbar = element.type === 'navbar';
         const isSticky = isNavbar && element.props.isSticky;
+        // Use fixed for sticky behavior to avoid nesting issues
+        const stickyClass = isSticky ? 'fixed top-0 left-0 w-full z-50' : 'relative';
         
         return (
             <div 
                 id={element.id} 
-                className={`${element.props.className || ''} relative ${isSticky ? 'sticky top-0 z-50' : ''}`} 
+                className={`${element.props.className || ''} ${stickyClass}`} 
                 style={element.props.style}
             >
                 {renderBackground()}

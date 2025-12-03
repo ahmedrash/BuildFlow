@@ -205,9 +205,19 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   }
 
   const commonStyle = { ...renderedElement.props.style };
+  
+  // Navbar positioning logic
+  const isNavbar = renderedElement.type === 'navbar';
+  const isSticky = isNavbar && renderedElement.props.isSticky;
+  const stickyClass = isSticky ? 'fixed top-0 left-0 w-full z-50' : 'relative';
+
   // Only clip Slider and Card to allow Dropdowns (in Navbar/Section) to overflow
   const shouldClip = ['slider', 'card'].includes(renderedElement.type);
-  const containerClasses = shouldClip ? 'relative overflow-hidden' : 'relative';
+  const overflowClass = shouldClip ? 'overflow-hidden' : '';
+  
+  // Use stickyClass for positioning if sticky, otherwise default relative
+  const containerClasses = `${stickyClass} ${overflowClass}`;
+
   const selectionClass = isSelected 
     ? 'ring-2 ring-indigo-500 ring-offset-2 z-[100] cursor-pointer' 
     : isPreview || isLocked ? '' : 'hover:ring-1 hover:ring-indigo-300 cursor-pointer';
@@ -317,7 +327,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       return (
           <>
             <ElementRenderer element={renderedElement} isPreview={isPreview} />
-            {!isPreview && ['container', 'section', 'columns', 'form'].includes(renderedElement.type) && (!renderedElement.children || renderedElement.children.length === 0) && (
+            {!isPreview && ['container', 'section', 'columns', 'navbar', 'form'].includes(renderedElement.type) && (!renderedElement.children || renderedElement.children.length === 0) && (
                  <div className="p-4 text-center text-gray-300 italic border-2 border-dashed border-gray-200 rounded select-none pointer-events-none bg-white/50">Empty {renderedElement.name}</div>
             )}
           </>

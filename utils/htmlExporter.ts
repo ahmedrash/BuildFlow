@@ -1,5 +1,4 @@
 
-
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (
@@ -303,7 +302,7 @@ export const exportHtml = (
                 case 'navbar': 
                     const isSticky = element.props.isSticky;
                     return (
-                        <div id={element.id} className={(element.props.className || '') + ' relative ' + (isSticky ? 'sticky top-0 z-50' : '')} style={element.props.style}>
+                        <div id={element.id} className={(element.props.className || '') + ' ' + (isSticky ? 'fixed top-0 left-0 w-full z-50' : 'relative')} style={element.props.style}>
                             {renderBackground()}
                             {element.children?.map(child => <ElementRenderer key={child.id} element={child} />)}
                         </div>
@@ -531,7 +530,7 @@ export const exportHtml = (
                 if (type === 'navbar') {
                      const isSticky = props.isSticky;
                      return (
-                         <div id={id} className={(props.className || '') + ' relative ' + (isSticky ? 'sticky top-0 z-50' : '')} style={props.style}>
+                         <div id={id} className={(props.className || '') + ' ' + (isSticky ? 'fixed top-0 left-0 w-full z-50' : 'relative')} style={props.style}>
                             {renderBackground()}
                             <LinkWrapper>
                                 {children && children.length > 0 ? children.map(child => renderElement(child)) : <ElementRenderer element={renderedElement} />}

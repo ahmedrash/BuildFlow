@@ -785,12 +785,12 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 )}
 
                 <main 
-                    className="flex-1 overflow-y-auto bg-gray-200/50 relative p-8 scroll-smooth flex justify-center"
+                    className={`flex-1 bg-gray-200/50 relative flex justify-center ${isPreview ? 'overflow-hidden p-0 items-center' : 'overflow-y-auto p-8 items-start scroll-smooth'}`}
                     onClick={() => setSelectedId(null)}
                 >
                 <PreviewFrame
                     width={viewportWidth}
-                    className={`transition-all duration-500 ease-in-out h-fit min-h-[800px] bg-white shadow-2xl ${isPreview ? '' : 'ring-1 ring-gray-200'}`}
+                    className={`transition-all duration-500 ease-in-out bg-white shadow-2xl ${isPreview ? 'w-full h-full border-0 rounded-none' : 'h-fit min-h-[800px] ring-1 ring-gray-200'}`}
                 >
                     <div 
                         id="canvas-root" 

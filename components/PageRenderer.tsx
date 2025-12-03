@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -113,9 +114,13 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         return null;
     };
 
-    const containerClasses = ['slider', 'card'].includes(type) 
-        ? 'relative overflow-hidden' 
-        : 'relative';
+    // Navbar positioning logic
+    const isNavbar = type === 'navbar';
+    const isSticky = isNavbar && props.isSticky;
+    const stickyClass = isSticky ? 'fixed top-0 left-0 w-full z-50' : 'relative';
+    const overflowClass = ['slider', 'card'].includes(type) ? 'overflow-hidden' : '';
+
+    const containerClasses = `${stickyClass} ${overflowClass}`;
 
     const classNameToApply = type === 'button' ? '' : (props.className || '');
     const hiddenClass = isHiddenTarget ? ' hidden' : '';
