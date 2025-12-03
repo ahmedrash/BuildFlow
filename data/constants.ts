@@ -19,321 +19,650 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
   {
     name: "SaaS Landing",
     elements: [
+  {
+    id: 'nav-sec',
+    type: 'section',
+    name: 'Navigation',
+    props: {
+      className: 'p-0 h-[108px]',
+      elementClassName: ''
+    },
+    children: [
       {
-        id: 'nav-sec',
-        type: 'section',
-        name: 'Navigation',
-        props: { className: 'p-0', elementClassName: '' },
-        children: [
-           { 
-               id: 'navbar', type: 'navbar', name: 'Navbar', 
-               props: { 
-                   headerType: 'sticky',
-                   stickyOffset: 100,
-                   className: 'flex flex-row justify-between items-center p-4 bg-white shadow-sm transition-all',
-                   elementClassName: ''
-               },
-               children: [
-                   {
-                       id: 'nav-logo', type: 'logo', name: 'Logo',
-                       props: { logoText: 'BuildFlow', logoType: 'text', href: '#', className: 'text-xl font-bold' }
-                   },
-                   {
-                       id: 'nav-menu', type: 'menu', name: 'Menu',
-                       props: {
-                           navLinks: [{ id: 'nav-1', label: 'Features', href: '#features' }, { id: 'nav-2', label: 'Pricing', href: '#pricing' }, { id: 'nav-3', label: 'Login', href: '#' }],
-                           mobileMenuBreakpoint: 'md',
-                           mobileMenuType: 'slide-right',
-                           mobileMenuIconType: 'menu'
-                       }
-                   }
-               ]
-           }
-        ]
-      },
-      {
-        id: 'hero',
-        type: 'section',
-        name: 'Hero',
+        id: 'navbar',
+        type: 'navbar',
+        name: 'Navbar',
         props: {
-          className: 'min-h-[600px] flex flex-col justify-center items-center bg-slate-900 text-white p-10 text-center relative overflow-hidden',
+          className: 'lg:grid lg:grid-cols-3  items-center px-4 py-10 bg-white flex justify-between ',
           elementClassName: '',
-          style: { fontFamily: 'Inter' }
+          headerType: 'fixed',
+          stickyOffset: 150
         },
         children: [
-            { 
-                id: 'h1', type: 'heading', name: 'Headline', 
-                props: { 
-                    level: 1, 
-                    content: 'Ship Faster with AI', 
-                    className: 'mb-6', // Container margin
-                    elementClassName: 'text-5xl md:text-7xl font-extrabold tracking-tight' // Typography
-                } 
-            },
-            { 
-                id: 'sub', type: 'text', name: 'Subtext', 
-                props: { 
-                    content: 'The ultimate builder for developers and designers. Drag, drop, and deploy in record time.', 
-                    className: 'max-w-2xl mb-10', // Container width & margin
-                    elementClassName: 'text-xl text-slate-300' // Typography color
-                } 
-            },
-            { 
-                id: 'btn-group', type: 'container', name: 'Button Group', 
-                props: { className: 'flex gap-4', elementClassName: '' },
-                children: [
-                    { 
-                        id: 'btn-1', type: 'button', name: 'Primary CTA', 
-                        props: { 
-                            content: 'Join Waitlist', 
-                            buttonAction: 'popup', 
-                            popupTargetId: 'waitlist-popup', 
-                            className: '',
-                            elementClassName: 'bg-indigo-600 hover:bg-indigo-50 text-white px-8 py-4 rounded-full font-bold transition-all hover:scale-105'
-                        } 
-                    },
-                    { 
-                        id: 'btn-2', type: 'button', name: 'Secondary CTA', 
-                        props: { 
-                            content: 'View Demo', 
-                            className: '',
-                            elementClassName: 'bg-transparent border border-slate-600 hover:bg-slate-800 text-white px-8 py-4 rounded-full font-bold transition-all'
-                        } 
-                    }
-                ]
-            }
-        ]
-      },
-      {
-        id: 'features',
-        type: 'section',
-        name: 'Features',
-        props: { className: 'py-24 px-6 bg-white', elementClassName: '' },
-        children: [
-           { 
-               id: 'feat-head', type: 'heading', name: 'Section Title', 
-               props: { 
-                   level: 2, 
-                   content: 'Why Choose Us', 
-                   className: 'mb-16', 
-                   elementClassName: 'text-3xl font-bold text-center' 
-               } 
-           },
-           { 
-             id: 'grid', type: 'columns', name: 'Feature Grid', 
-             props: { className: 'grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto', elementClassName: '' },
-             children: [
-                { 
-                    id: 'c1', type: 'card', name: 'Feature 1', 
-                    props: { 
-                        className: 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden flex flex-col items-start',
-                        elementClassName: '',
-                        cardHoverEffect: 'lift'
-                    },
-                    children: [
-                        {
-                            id: 'c1-img', type: 'image', name: 'Icon',
-                            props: {
-                                src: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-                                alt: 'Visual Editing',
-                                className: 'w-16 h-16 m-6 mb-0', // Wrapper Layout
-                                elementClassName: 'object-contain opacity-80', // Inner Image Style
-                                style: { borderRadius: '0' },
-                                imageObjectFit: 'contain'
-                            }
-                        },
-                        {
-                            id: 'c1-body', type: 'container', name: 'Body',
-                            props: { className: 'p-6', elementClassName: '' },
-                            children: [
-                                { 
-                                    id: 'c1-h', type: 'heading', name: 'Title', 
-                                    props: { level: 3, content: 'Visual Editing', className: 'mb-2', elementClassName: 'text-xl font-bold text-gray-900' } 
-                                },
-                                { 
-                                    id: 'c1-t', type: 'text', name: 'Text', 
-                                    props: { content: 'Edit your site visually with our powerful drag and drop builder. No coding required.', className: 'mb-4', elementClassName: 'text-gray-600 text-sm leading-relaxed' } 
-                                },
-                                { 
-                                    id: 'c1-b', type: 'button', name: 'Link', 
-                                    props: { content: 'Learn more →', buttonAction: 'link', className: '', elementClassName: 'text-indigo-600 font-medium text-sm p-0 bg-transparent hover:bg-transparent' } 
-                                }
-                            ]
-                        }
-                    ]
+          {
+            id: 'nav-menu',
+            type: 'menu',
+            name: 'Menu',
+            props: {
+              navLinks: [
+                {
+                  id: 'm-1',
+                  label: 'Home',
+                  href: '#'
                 },
-                { 
-                    id: 'c2', type: 'card', name: 'Feature 2', 
-                    props: { 
-                        className: 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden flex flex-col items-start',
-                        elementClassName: '',
-                        cardHoverEffect: 'lift'
-                    },
-                    children: [
-                        {
-                            id: 'c2-img', type: 'image', name: 'Icon',
-                            props: {
-                                src: 'https://cdn-icons-png.flaticon.com/512/2103/2103633.png',
-                                alt: 'Fast Performance',
-                                className: 'w-16 h-16 m-6 mb-0',
-                                elementClassName: 'object-contain opacity-80',
-                                style: { borderRadius: '0' },
-                                imageObjectFit: 'contain'
-                            }
-                        },
-                        {
-                            id: 'c2-body', type: 'container', name: 'Body',
-                            props: { className: 'p-6', elementClassName: '' },
-                            children: [
-                                { 
-                                    id: 'c2-h', type: 'heading', name: 'Title', 
-                                    props: { level: 3, content: 'Fast Performance', className: 'mb-2', elementClassName: 'text-xl font-bold text-gray-900' } 
-                                },
-                                { 
-                                    id: 'c2-t', type: 'text', name: 'Text', 
-                                    props: { content: 'Optimized for speed and SEO. Your sites will load instantly on any device.', className: 'mb-4', elementClassName: 'text-gray-600 text-sm leading-relaxed' } 
-                                },
-                                { 
-                                    id: 'c2-b', type: 'button', name: 'Link', 
-                                    props: { content: 'View Specs →', buttonAction: 'link', className: 'text-indigo-600 font-medium text-sm p-0 bg-transparent hover:bg-transparent', elementClassName: '' } 
-                                }
-                            ]
-                        }
-                    ]
+                {
+                  id: 'm-2',
+                  label: 'About',
+                  href: '#about'
                 },
-                { 
-                    id: 'c3', type: 'card', name: 'Feature 3', 
-                    props: { 
-                        className: 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden flex flex-col items-start',
-                        elementClassName: '',
-                        cardHoverEffect: 'lift'
-                    },
-                    children: [
-                        {
-                            id: 'c3-img', type: 'image', name: 'Icon',
-                            props: {
-                                src: 'https://cdn-icons-png.flaticon.com/512/1055/1055666.png',
-                                alt: 'Responsive',
-                                className: 'w-16 h-16 m-6 mb-0',
-                                elementClassName: 'object-contain opacity-80',
-                                style: { borderRadius: '0' },
-                                imageObjectFit: 'contain'
-                            }
-                        },
-                        {
-                            id: 'c3-body', type: 'container', name: 'Body',
-                            props: { className: 'p-6', elementClassName: '' },
-                            children: [
-                                { 
-                                    id: 'c3-h', type: 'heading', name: 'Title', 
-                                    props: { level: 3, content: 'Fully Responsive', className: 'mb-2', elementClassName: 'text-xl font-bold text-gray-900' } 
-                                },
-                                { 
-                                    id: 'c3-t', type: 'text', name: 'Text', 
-                                    props: { content: 'Looks perfect on desktops, tablets, and mobile devices automatically.', className: 'mb-4', elementClassName: 'text-gray-600 text-sm leading-relaxed' } 
-                                },
-                                { 
-                                    id: 'c3-b', type: 'button', name: 'Link', 
-                                    props: { content: 'See Demo →', buttonAction: 'link', className: 'text-indigo-600 font-medium text-sm p-0 bg-transparent hover:bg-transparent', elementClassName: '' } 
-                                }
-                            ]
-                        }
-                    ]
+                {
+                  id: 'm-3',
+                  label: 'Contact',
+                  href: '#contact'
                 }
-             ]
-           }
-        ]
-      },
-      {
-        id: 'contact',
-        type: 'section',
-        name: 'Contact',
-        props: { className: 'py-20 bg-gray-50', elementClassName: '' },
-        children: [
-            { 
-                id: 'contact-cols', type: 'columns', name: 'Contact Layout',
-                props: { className: 'grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto items-center', elementClassName: '' },
-                children: [
-                    {
-                        id: 'info', type: 'container', name: 'Info',
-                        props: { className: '', elementClassName: '' },
-                        children: [
-                            { id: 'ch1', type: 'heading', name: 'Title', props: { level: 2, content: 'Stay in the loop', className: 'mb-4', elementClassName: 'text-3xl font-bold' } },
-                            { id: 'ct1', type: 'text', name: 'Text', props: { content: 'Join our newsletter to get the latest updates and news directly in your inbox.', className: 'mb-6', elementClassName: 'text-gray-600' } },
-                            { id: 'clist', type: 'list', name: 'Benefits', props: { items: ['Weekly updates', 'No spam', 'Unsubscribe anytime'], listType: 'ul', className: '', elementClassName: 'text-gray-700' } }
-                        ]
-                    },
-                    {
-                        id: 'form-wrap', type: 'container', name: 'Form Wrapper',
-                        props: { className: '', elementClassName: '' },
-                        children: [
-                            { 
-                                id: 'sub-form', type: 'form', name: 'Newsletter Form',
-                                props: {
-                                    className: 'flex flex-col gap-4',
-                                    elementClassName: '',
-                                    formSuccessMessage: "Thanks for subscribing!"
-                                },
-                                children: [
-                                    {
-                                        id: 'f-input-email', type: 'input', name: 'Email Field',
-                                        props: {
-                                            inputType: 'email',
-                                            fieldLabel: 'Email Address',
-                                            fieldName: 'email',
-                                            fieldPlaceholder: 'you@example.com',
-                                            fieldRequired: true,
-                                            className: '',
-                                            elementClassName: ''
-                                        }
-                                    },
-                                    {
-                                        id: 'f-btn-sub', type: 'button', name: 'Submit Button',
-                                        props: {
-                                            buttonAction: 'submit',
-                                            content: 'Subscribe Now',
-                                            className: 'w-full bg-black text-white px-6 py-2 rounded hover:opacity-90 transition font-medium',
-                                            elementClassName: '',
-                                            elementStyle: { backgroundColor: '#000000', color: '#ffffff' }
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
+              ],
+              mobileMenuBreakpoint: 'lg',
+              className: 'lg:block hidden ',
+              elementClassName: 'lg:justify-end justify-start',
+              mobileMenuIconType: 'dots',
+              mobileMenuType: 'slide-left'
             }
-        ]
-      },
-      // Popup Content (Hidden by default, targeted by ID)
-      {
-          id: 'waitlist-popup',
-          type: 'container',
-          name: 'Waitlist Popup',
-          props: {
-              className: 'bg-white p-8 rounded-xl w-full max-w-md mx-auto relative flex flex-col gap-4 shadow-2xl',
-              elementClassName: '',
-              style: { backgroundColor: '#ffffff' } 
           },
-          children: [
-            { id: 'pp-h', type: 'heading', name: 'Title', props: { level: 3, content: 'Join the Waitlist', className: 'mb-2', elementClassName: 'text-2xl font-bold text-center text-gray-900' } },
-            { id: 'pp-t', type: 'text', name: 'Text', props: { content: 'Get early access to BuildFlow. We will notify you when we launch!', className: 'mb-6', elementClassName: 'text-gray-500 text-center text-sm' } },
-            {
-               id: 'pp-form', type: 'form', name: 'Popup Form', props: { className: 'flex flex-col gap-4', elementClassName: '' },
-               children: [
-                  { 
-                      id: 'pp-email', type: 'input', name: 'Email', 
-                      props: { inputType: 'email', fieldName: 'email', fieldLabel: 'Email Address', fieldPlaceholder: 'Enter your email', fieldRequired: true, className: '', elementClassName: '' } 
-                  },
-                  { 
-                      id: 'pp-sub', type: 'button', name: 'Submit', 
-                      props: { buttonAction: 'submit', content: 'Join Now', className: '', elementClassName: 'w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition' } 
-                  }
-               ]
+          {
+            id: 'nav-logo',
+            type: 'logo',
+            name: 'Logo',
+            props: {
+              logoText: 'BuildFlow',
+              logoType: 'text',
+              href: '#',
+              className: 'text-xl font-bold text-center '
             }
-          ]
+          },
+          {
+            id: 'el-1764715994596-0w194s6bt',
+            type: 'menu',
+            name: 'Menu',
+            props: {
+              navLinks: [
+                {
+                  id: 'm-4',
+                  label: 'Solutions',
+                  href: '#solutions'
+                },
+                {
+                  id: 'm-6',
+                  label: 'Resources',
+                  href: '#resources'
+                },
+                {
+                  id: 'm-7',
+                  label: 'Login',
+                  href: '#login'
+                }
+              ],
+              mobileMenuBreakpoint: 'lg',
+              elementClassName: 'lg:justify-start justify-end',
+              mobileMenuType: 'slide-right',
+              mobileMenuIconType: 'dots',
+              className: 'lg:block hidden'
+            }
+          },
+          {
+            id: 'el-1764722944213-sk65n6opb',
+            type: 'menu',
+            name: 'Mobile Menu',
+            props: {
+              navLinks: [
+                {
+                  id: 'm-1',
+                  label: 'Home',
+                  href: '#'
+                },
+                {
+                  id: 'm-2',
+                  label: 'About',
+                  href: '#about'
+                },
+                {
+                  id: 'm-3',
+                  label: 'Contact',
+                  href: '#contact'
+                },
+                {
+                  id: 'nav-1764758086531',
+                  label: 'Solution',
+                  href: '#',
+                  type: 'link'
+                },
+                {
+                  id: 'nav-1764758099659',
+                  label: 'Resources',
+                  href: '#',
+                  type: 'link'
+                },
+                {
+                  id: 'nav-1764758120327',
+                  label: 'Login',
+                  href: '#',
+                  type: 'link'
+                }
+              ],
+              mobileMenuBreakpoint: 'lg',
+              elementClassName: 'lg:justify-start justify-end',
+              mobileMenuType: 'slide-right',
+              mobileMenuIconType: 'menu',
+              className: 'lg:hidden '
+            }
+          }
+        ]
       }
     ]
+  },
+  {
+    id: 'hero',
+    type: 'section',
+    name: 'Hero',
+    props: {
+      className: 'min-h-[600px] flex flex-col justify-center items-center bg-slate-900 text-white p-10 text-center relative overflow-hidden',
+      elementClassName: '',
+      style: {
+        fontFamily: 'Inter'
+      }
+    },
+    children: [
+      {
+        id: 'h1',
+        type: 'heading',
+        name: 'Headline',
+        props: {
+          level: 1,
+          content: 'Ship Faster with AI',
+          className: 'mb-6',
+          elementClassName: 'text-5xl md:text-7xl font-extrabold tracking-tight'
+        }
+      },
+      {
+        id: 'sub',
+        type: 'text',
+        name: 'Subtext',
+        props: {
+          content: 'The ultimate builder for developers and designers. Drag, drop, and deploy in record time.',
+          className: 'max-w-2xl mb-10',
+          elementClassName: 'text-xl text-slate-300'
+        }
+      },
+      {
+        id: 'btn-group',
+        type: 'container',
+        name: 'Button Group',
+        props: {
+          className: 'flex gap-4 flex-col md:flex-row',
+          elementClassName: ''
+        },
+        children: [
+          {
+            id: 'btn-1',
+            type: 'button',
+            name: 'Primary CTA',
+            props: {
+              content: 'Join Waitlist',
+              buttonAction: 'popup',
+              popupTargetId: 'waitlist-popup',
+              className: '',
+              elementClassName: 'bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-bold transition-all hover:scale-105'
+            }
+          },
+          {
+            id: 'btn-2',
+            type: 'button',
+            name: 'Secondary CTA',
+            props: {
+              content: 'View Demo',
+              className: '',
+              elementClassName: 'bg-transparent border border-slate-600 hover:bg-slate-800 text-white px-8 py-4 rounded-full font-bold transition-all'
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'features',
+    type: 'section',
+    name: 'Features',
+    props: {
+      className: 'py-24 px-6 bg-white',
+      elementClassName: ''
+    },
+    children: [
+      {
+        id: 'feat-head',
+        type: 'heading',
+        name: 'Section Title',
+        props: {
+          level: 2,
+          content: 'Why Choose Us',
+          className: 'mb-16',
+          elementClassName: 'text-3xl font-bold text-center'
+        }
+      },
+      {
+        id: 'grid',
+        type: 'columns',
+        name: 'Feature Grid',
+        props: {
+          className: 'grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto',
+          elementClassName: ''
+        },
+        children: [
+          {
+            id: 'c1',
+            type: 'card',
+            name: 'Feature 1',
+            props: {
+              className: 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden flex flex-col items-start',
+              elementClassName: '',
+              cardHoverEffect: 'lift'
+            },
+            children: [
+              {
+                id: 'c1-img',
+                type: 'image',
+                name: 'Icon',
+                props: {
+                  src: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+                  alt: 'Visual Editing',
+                  className: 'w-16 h-16 m-6 mb-0',
+                  elementClassName: 'object-contain opacity-80',
+                  style: {
+                    borderRadius: '0'
+                  },
+                  imageObjectFit: 'contain'
+                }
+              },
+              {
+                id: 'c1-body',
+                type: 'container',
+                name: 'Body',
+                props: {
+                  className: 'p-6',
+                  elementClassName: ''
+                },
+                children: [
+                  {
+                    id: 'c1-h',
+                    type: 'heading',
+                    name: 'Title',
+                    props: {
+                      level: 3,
+                      content: 'Visual Editing',
+                      className: 'mb-2',
+                      elementClassName: 'text-xl font-bold text-gray-900'
+                    }
+                  },
+                  {
+                    id: 'c1-t',
+                    type: 'text',
+                    name: 'Text',
+                    props: {
+                      content: 'Edit your site visually with our powerful drag and drop builder. No coding required.',
+                      className: 'mb-4',
+                      elementClassName: 'text-gray-600 text-sm leading-relaxed'
+                    }
+                  },
+                  {
+                    id: 'c1-b',
+                    type: 'button',
+                    name: 'Link',
+                    props: {
+                      content: 'Learn more →',
+                      buttonAction: 'link',
+                      className: '',
+                      elementClassName: 'text-indigo-600 font-medium text-sm p-0 bg-transparent hover:bg-transparent'
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: 'c2',
+            type: 'card',
+            name: 'Feature 2',
+            props: {
+              className: 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden flex flex-col items-start',
+              elementClassName: '',
+              cardHoverEffect: 'lift'
+            },
+            children: [
+              {
+                id: 'c2-img',
+                type: 'image',
+                name: 'Icon',
+                props: {
+                  src: 'https://cdn-icons-png.flaticon.com/512/2103/2103633.png',
+                  alt: 'Fast Performance',
+                  className: 'w-16 h-16 m-6 mb-0',
+                  elementClassName: 'object-contain opacity-80',
+                  style: {
+                    borderRadius: '0'
+                  },
+                  imageObjectFit: 'contain'
+                }
+              },
+              {
+                id: 'c2-body',
+                type: 'container',
+                name: 'Body',
+                props: {
+                  className: 'p-6',
+                  elementClassName: ''
+                },
+                children: [
+                  {
+                    id: 'c2-h',
+                    type: 'heading',
+                    name: 'Title',
+                    props: {
+                      level: 3,
+                      content: 'Fast Performance',
+                      className: 'mb-2',
+                      elementClassName: 'text-xl font-bold text-gray-900'
+                    }
+                  },
+                  {
+                    id: 'c2-t',
+                    type: 'text',
+                    name: 'Text',
+                    props: {
+                      content: 'Optimized for speed and SEO. Your sites will load instantly on any device.',
+                      className: 'mb-4',
+                      elementClassName: 'text-gray-600 text-sm leading-relaxed'
+                    }
+                  },
+                  {
+                    id: 'c2-b',
+                    type: 'button',
+                    name: 'Link',
+                    props: {
+                      content: 'View Specs →',
+                      buttonAction: 'link',
+                      className: 'text-indigo-600 font-medium text-sm p-0 bg-transparent hover:bg-transparent',
+                      elementClassName: ''
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: 'c3',
+            type: 'card',
+            name: 'Feature 3',
+            props: {
+              className: 'bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden flex flex-col items-start',
+              elementClassName: '',
+              cardHoverEffect: 'lift'
+            },
+            children: [
+              {
+                id: 'c3-img',
+                type: 'image',
+                name: 'Icon',
+                props: {
+                  src: 'https://cdn-icons-png.flaticon.com/512/1055/1055666.png',
+                  alt: 'Responsive',
+                  className: 'w-16 h-16 m-6 mb-0',
+                  elementClassName: 'object-contain opacity-80',
+                  style: {
+                    borderRadius: '0'
+                  },
+                  imageObjectFit: 'contain'
+                }
+              },
+              {
+                id: 'c3-body',
+                type: 'container',
+                name: 'Body',
+                props: {
+                  className: 'p-6',
+                  elementClassName: ''
+                },
+                children: [
+                  {
+                    id: 'c3-h',
+                    type: 'heading',
+                    name: 'Title',
+                    props: {
+                      level: 3,
+                      content: 'Fully Responsive',
+                      className: 'mb-2',
+                      elementClassName: 'text-xl font-bold text-gray-900'
+                    }
+                  },
+                  {
+                    id: 'c3-t',
+                    type: 'text',
+                    name: 'Text',
+                    props: {
+                      content: 'Looks perfect on desktops, tablets, and mobile devices automatically.',
+                      className: 'mb-4',
+                      elementClassName: 'text-gray-600 text-sm leading-relaxed'
+                    }
+                  },
+                  {
+                    id: 'c3-b',
+                    type: 'button',
+                    name: 'Link',
+                    props: {
+                      content: 'See Demo →',
+                      buttonAction: 'link',
+                      className: 'text-indigo-600 font-medium text-sm p-0 bg-transparent hover:bg-transparent',
+                      elementClassName: ''
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'contact',
+    type: 'section',
+    name: 'Contact',
+    props: {
+      className: 'py-20 bg-gray-50',
+      elementClassName: ''
+    },
+    children: [
+      {
+        id: 'contact-cols',
+        type: 'columns',
+        name: 'Contact Layout',
+        props: {
+          className: 'grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto items-center px-10 lg:px-0',
+          elementClassName: ''
+        },
+        children: [
+          {
+            id: 'info',
+            type: 'container',
+            name: 'Info',
+            props: {
+              className: '',
+              elementClassName: ''
+            },
+            children: [
+              {
+                id: 'ch1',
+                type: 'heading',
+                name: 'Title',
+                props: {
+                  level: 2,
+                  content: 'Stay in the loop',
+                  className: 'mb-4',
+                  elementClassName: 'text-3xl font-bold'
+                }
+              },
+              {
+                id: 'ct1',
+                type: 'text',
+                name: 'Text',
+                props: {
+                  content: 'Join our newsletter to get the latest updates and news directly in your inbox.',
+                  className: 'mb-6',
+                  elementClassName: 'text-gray-600'
+                }
+              },
+              {
+                id: 'clist',
+                type: 'list',
+                name: 'Benefits',
+                props: {
+                  items: [
+                    'Weekly updates',
+                    'No spam',
+                    'Unsubscribe anytime'
+                  ],
+                  listType: 'ul',
+                  className: '',
+                  elementClassName: 'text-gray-700'
+                }
+              }
+            ]
+          },
+          {
+            id: 'form-wrap',
+            type: 'container',
+            name: 'Form Wrapper',
+            props: {
+              className: '',
+              elementClassName: ''
+            },
+            children: [
+              {
+                id: 'sub-form',
+                type: 'form',
+                name: 'Newsletter Form',
+                props: {
+                  className: 'flex flex-col gap-4',
+                  elementClassName: '',
+                  formSuccessMessage: 'Thanks for subscribing!'
+                },
+                children: [
+                  {
+                    id: 'f-input-email',
+                    type: 'input',
+                    name: 'Email Field',
+                    props: {
+                      inputType: 'email',
+                      fieldLabel: 'Email Address',
+                      fieldName: 'email',
+                      fieldPlaceholder: 'you@example.com',
+                      fieldRequired: true,
+                      className: '',
+                      elementClassName: ''
+                    }
+                  },
+                  {
+                    id: 'f-btn-sub',
+                    type: 'button',
+                    name: 'Submit Button',
+                    props: {
+                      buttonAction: 'submit',
+                      content: 'Subscribe Now',
+                      className: 'w-full bg-black text-white px-6 py-2 rounded hover:opacity-90 transition font-medium',
+                      elementClassName: '',
+                      elementStyle: {
+                        backgroundColor: '#000000',
+                        color: '#ffffff'
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'waitlist-popup',
+    type: 'container',
+    name: 'Waitlist Popup',
+    props: {
+      className: 'bg-white p-8 rounded-xl w-full max-w-md mx-auto relative flex flex-col gap-4 shadow-2xl',
+      elementClassName: '',
+      style: {
+        backgroundColor: '#ffffff'
+      }
+    },
+    children: [
+      {
+        id: 'pp-h',
+        type: 'heading',
+        name: 'Title',
+        props: {
+          level: 3,
+          content: 'Join the Waitlist',
+          className: 'mb-2',
+          elementClassName: 'text-2xl font-bold text-center text-gray-900'
+        }
+      },
+      {
+        id: 'pp-t',
+        type: 'text',
+        name: 'Text',
+        props: {
+          content: 'Get early access to BuildFlow. We will notify you when we launch!',
+          className: 'mb-6',
+          elementClassName: 'text-gray-500 text-center text-sm'
+        }
+      },
+      {
+        id: 'pp-form',
+        type: 'form',
+        name: 'Popup Form',
+        props: {
+          className: 'flex flex-col gap-4',
+          elementClassName: ''
+        },
+        children: [
+          {
+            id: 'pp-email',
+            type: 'input',
+            name: 'Email',
+            props: {
+              inputType: 'email',
+              fieldName: 'email',
+              fieldLabel: 'Email Address',
+              fieldPlaceholder: 'Enter your email',
+              fieldRequired: true,
+              className: '',
+              elementClassName: ''
+            }
+          },
+          {
+            id: 'pp-sub',
+            type: 'button',
+            name: 'Submit',
+            props: {
+              buttonAction: 'submit',
+              content: 'Join Now',
+              className: '',
+              elementClassName: 'w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition'
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
   },
   {
     name: "Creative Portfolio",
