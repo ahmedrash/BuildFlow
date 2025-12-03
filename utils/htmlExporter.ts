@@ -1,4 +1,3 @@
-
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (
@@ -704,4 +703,4 @@ export const exportHtml = (
     </script>
 </body>
 </html>`;
-}
+};

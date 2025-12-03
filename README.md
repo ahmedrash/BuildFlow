@@ -91,7 +91,7 @@ import { BuildFlowRenderer } from './components/BuildFlowRenderer';
 *   **Frontend**: React, TypeScript
 *   **Styling**: Tailwind CSS
 *   **Icons**: Custom SVG System
-*   **Architecture**: Component-based recursive rendering
+*   **Architecture**: Component-based recursive rendering with Registry Pattern.
 
 ## 📖 Usage Guide
 

@@ -1,4 +1,3 @@
-
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -315,6 +314,25 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       return <Icons.ChevronDown className={direction === 'prev' ? 'rotate-90' : '-rotate-90'} />;
   };
 
+  // Tag resolution handled inside ElementRenderer or here. 
+  // However, for Containers we want EditorCanvas wrapper to be the container.
+  // But since we use ElementRenderer inside, we must be careful not to double render.
+  // EditorCanvas renders a Wrapper Div (or Section). 
+  // ElementRenderer renders CONTENT. 
+  // If ElementRenderer renders the container div itself, EditorCanvas wrapper is redundant.
+  // BUT EditorCanvas logic relies on wrapper for drag events and selection.
+  // Solution: EditorCanvas renders the container div. ElementRenderer renders CHILDREN.
+  
+  // Wait, my new Registry pattern makes Definitions handle the root element.
+  // If Definition handles root element, EditorCanvas wrapping it creates double wrapping.
+  // FIX: EditorCanvas should render ElementRenderer directly if possible, attaching props to it?
+  // React doesn't allow attaching props easily to a functional component result without cloning.
+  
+  // Workaround: 
+  // EditorCanvas IS the wrapper. It renders children recursively.
+  // ElementRenderer is used for LEAF nodes or specific complex logic.
+  // For 'container', 'section', etc, EditorCanvas renders the div, and inside it maps children to EditorCanvas.
+  
   const Tag = (renderedElement.type === 'section' ? 'section' : renderedElement.type === 'form' ? 'form' : 'div') as any;
 
   const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
@@ -431,7 +449,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       {isLocked && !isPreview && <div className="absolute inset-0 z-10 bg-transparent cursor-pointer" onClick={handleClick}></div>}
       
       {!isPreview && isPopupTarget && !isMegaMenuTarget && <div className="absolute top-0 right-0 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">POPUP CONTENT</div>}
-      {!isPreview && isMegaMenuTarget && <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">MEGA MENU CONTENT</div>}
+      {!isPreview && isMegaMenuTarget && <div className="absolute top-0 right-0 bg-indigo-50 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">MEGA MENU CONTENT</div>}
 
       {!isPreview && isHidden && showHiddenElements && <div className="absolute top-0 left-0 bg-gray-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-br pointer-events-none"><Icons.EyeOff width={10} height={10} className="inline mr-1"/>HIDDEN</div>}
 

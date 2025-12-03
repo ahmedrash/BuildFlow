@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';

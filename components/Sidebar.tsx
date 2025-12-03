@@ -1,15 +1,13 @@
-
-
 import React, { useState } from 'react';
 import { ElementType, PageElement } from '../types';
 import { Icons } from './Icons';
+import { ComponentRegistry } from './registry';
 
 interface SidebarProps {
     onDragStart: (e: React.DragEvent, type: ElementType) => void;
     elements: PageElement[];
     selectedId: string | null;
     onSelect: (id: string) => void;
-    // Layer actions
     onDelete: (id: string) => void;
     onDuplicate: (id: string) => void;
     onUpdateProps: (id: string, props: any) => void;
@@ -29,32 +27,22 @@ const SidebarItem = ({ type, icon: Icon, label, onDragStart }: { type: ElementTy
      </div>
  );
 
+// Helper for Tree View Icons
 const getIconForType = (type: ElementType) => {
+    const def = ComponentRegistry.get(type);
+    if (def) return def.icon;
+
     switch (type) {
-        case 'section': return Icons.Layout;
-        case 'container': return Icons.Box;
-        case 'columns': return Icons.Layout;
-        case 'text': return Icons.Type;
-        case 'heading': return Icons.Heading;
-        case 'image': return Icons.Image;
-        case 'button': return Icons.Button;
-        case 'video': return Icons.Video;
+        case 'slider': return Icons.Slider;
         case 'list': return Icons.List;
         case 'map': return Icons.Map;
-        case 'form': return Icons.Form;
-        case 'input': return Icons.Input;
         case 'select': return Icons.Select;
-        case 'textarea': return Icons.Textarea;
         case 'radio': return Icons.Radio;
         case 'checkbox': return Icons.Checkbox;
         case 'gallery': return Icons.Grid;
-        case 'navbar': return Icons.Menu;
         case 'menu': return Icons.NavMenu;
         case 'testimonial': return Icons.MessageSquare;
-        case 'card': return Icons.Square;
-        case 'slider': return Icons.Slider;
         case 'customCode': return Icons.Code;
-        case 'logo': return Icons.Star;
         default: return Icons.Box;
     }
 };
@@ -103,8 +91,6 @@ const LayerNode: React.FC<LayerNodeProps> = ({
         const y = e.clientY - rect.top;
         const height = rect.height;
         
-        // Logic similar to EditorCanvas but adapted for Tree items
-        // Top 25% = before, Bottom 25% = after, Middle = inside (if container)
         const isContainer = ['section', 'container', 'columns', 'navbar', 'slider', 'card', 'form'].includes(element.type);
         
         if (y < height * 0.25) {
@@ -112,7 +98,7 @@ const LayerNode: React.FC<LayerNodeProps> = ({
         } else if (y > height * 0.75) {
             setDropPosition('bottom');
         } else {
-            setDropPosition(isContainer ? 'inside' : 'bottom'); // If not container, middle defaults to bottom (after)
+            setDropPosition(isContainer ? 'inside' : 'bottom'); 
         }
         
         e.dataTransfer.dropEffect = 'move';
@@ -137,7 +123,6 @@ const LayerNode: React.FC<LayerNodeProps> = ({
         if (dropPosition === 'top') position = 'before';
         if (dropPosition === 'bottom') position = 'after';
 
-        // Prepare data
         let data: any = {};
         if (type === 'new') data = { elementType: e.dataTransfer.getData('elementType') };
         else if (type === 'move') data = { id: draggedId };
@@ -160,7 +145,6 @@ const LayerNode: React.FC<LayerNodeProps> = ({
                     onSelect(element.id);
                 }}
             >
-                {/* Drop Indicators */}
                 {dropPosition === 'top' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
                 {dropPosition === 'bottom' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
                 {dropPosition === 'inside' && <div className="absolute inset-0 border-2 border-blue-500 bg-blue-50/20 z-10 rounded-sm pointer-events-none" />}
@@ -184,7 +168,6 @@ const LayerNode: React.FC<LayerNodeProps> = ({
                     <span className="truncate">{element.name}</span>
                 </div>
 
-                {/* Layer Actions */}
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-white border border-gray-100 shadow-sm rounded px-1 z-20">
                     <button 
                         className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded"
@@ -252,9 +235,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'elements' | 'layers'>('elements');
 
+  const registeredComponents = ComponentRegistry.getAll();
+  
+  const renderGroup = (group: string, title: string) => {
+      // 1. Get from Registry
+      const regItems = registeredComponents.filter(c => c.group === group);
+      
+      // 2. Legacy Fallback (for items not yet in registry)
+      const legacyItems: {type: ElementType, label: string, icon: any}[] = [];
+      if (group === 'basic') {
+          if (!regItems.find(c => c.type === 'list')) legacyItems.push({ type: 'list', label: 'List', icon: Icons.List });
+      } else if (group === 'media') {
+          if (!regItems.find(c => c.type === 'slider')) legacyItems.push({ type: 'slider', label: 'Slider', icon: Icons.Slider });
+          if (!regItems.find(c => c.type === 'map')) legacyItems.push({ type: 'map', label: 'Map', icon: Icons.Map });
+          if (!regItems.find(c => c.type === 'gallery')) legacyItems.push({ type: 'gallery', label: 'Gallery', icon: Icons.Grid });
+      } else if (group === 'form') {
+           // Basic inputs moved to registry, keep selects/checkboxes fallback if needed
+           if (!regItems.find(c => c.type === 'select')) legacyItems.push({ type: 'select', label: 'Select', icon: Icons.Select });
+           if (!regItems.find(c => c.type === 'checkbox')) legacyItems.push({ type: 'checkbox', label: 'Checkbox', icon: Icons.Checkbox });
+           if (!regItems.find(c => c.type === 'radio')) legacyItems.push({ type: 'radio', label: 'Radio', icon: Icons.Radio });
+      } else if (group === 'advanced') {
+          if (!regItems.find(c => c.type === 'menu')) legacyItems.push({ type: 'menu', label: 'Menu', icon: Icons.NavMenu });
+          if (!regItems.find(c => c.type === 'testimonial')) legacyItems.push({ type: 'testimonial', label: 'Testimonial', icon: Icons.MessageSquare });
+          if (!regItems.find(c => c.type === 'customCode')) legacyItems.push({ type: 'customCode', label: 'Code', icon: Icons.Code });
+      }
+
+      if (regItems.length === 0 && legacyItems.length === 0) return null;
+
+      return (
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{title}</h3>
+            <div className="grid grid-cols-3 gap-2">
+                {regItems.map(item => (
+                    <SidebarItem key={item.type} type={item.type as ElementType} icon={item.icon} label={item.name} onDragStart={onDragStart} />
+                ))}
+                {legacyItems.map(item => (
+                    <SidebarItem key={item.type} type={item.type} icon={item.icon} label={item.label} onDragStart={onDragStart} />
+                ))}
+            </div>
+          </div>
+      );
+  };
+
   return (
     <aside className="w-72 bg-slate-50 border-r border-gray-200 flex flex-col shrink-0 h-full">
-      {/* Tabs */}
       <div className="flex border-b border-gray-200 bg-white">
           <button 
             className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'elements' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
@@ -273,59 +297,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'elements' ? (
             <div className="p-4 space-y-6">
-                <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Structure</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                    <SidebarItem type="section" icon={Icons.Layout} label="Section" onDragStart={onDragStart} />
-                    <SidebarItem type="container" icon={Icons.Box} label="Container" onDragStart={onDragStart} />
-                    <SidebarItem type="columns" icon={Icons.Layout} label="Columns" onDragStart={onDragStart} />
-                    </div>
-                </div>
-
-                <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Basic</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                    <SidebarItem type="heading" icon={Icons.Heading} label="Heading" onDragStart={onDragStart} />
-                    <SidebarItem type="text" icon={Icons.Type} label="Text" onDragStart={onDragStart} />
-                    <SidebarItem type="button" icon={Icons.Button} label="Button" onDragStart={onDragStart} />
-                    <SidebarItem type="list" icon={Icons.List} label="List" onDragStart={onDragStart} />
-                    <SidebarItem type="card" icon={Icons.Square} label="Card" onDragStart={onDragStart} />
-                    </div>
-                </div>
-
-                <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Forms</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                    <SidebarItem type="input" icon={Icons.Input} label="Input" onDragStart={onDragStart} />
-                    <SidebarItem type="textarea" icon={Icons.Textarea} label="Textarea" onDragStart={onDragStart} />
-                    <SidebarItem type="select" icon={Icons.Select} label="Select" onDragStart={onDragStart} />
-                    <SidebarItem type="checkbox" icon={Icons.Checkbox} label="Checkbox" onDragStart={onDragStart} />
-                    <SidebarItem type="radio" icon={Icons.Radio} label="Radio" onDragStart={onDragStart} />
-                    </div>
-                </div>
-
-                <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Media</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                    <SidebarItem type="image" icon={Icons.Image} label="Image" onDragStart={onDragStart} />
-                    <SidebarItem type="video" icon={Icons.Video} label="Video" onDragStart={onDragStart} />
-                    <SidebarItem type="slider" icon={Icons.Slider} label="Slider" onDragStart={onDragStart} />
-                    <SidebarItem type="map" icon={Icons.Map} label="Map" onDragStart={onDragStart} />
-                    <SidebarItem type="gallery" icon={Icons.Grid} label="Gallery" onDragStart={onDragStart} />
-                    <SidebarItem type="logo" icon={Icons.Star} label="Logo" onDragStart={onDragStart} />
-                    </div>
-                </div>
-
-                <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Advanced</h3>
-                    <div className="grid grid-cols-3 gap-2">
-                    <SidebarItem type="form" icon={Icons.Form} label="Smart Form" onDragStart={onDragStart} />
-                    <SidebarItem type="navbar" icon={Icons.Menu} label="Navbar" onDragStart={onDragStart} />
-                    <SidebarItem type="menu" icon={Icons.NavMenu} label="Menu" onDragStart={onDragStart} />
-                    <SidebarItem type="testimonial" icon={Icons.MessageSquare} label="Testimonial" onDragStart={onDragStart} />
-                    <SidebarItem type="customCode" icon={Icons.Code} label="Code" onDragStart={onDragStart} />
-                    </div>
-                </div>
+                {renderGroup('layout', 'Structure')}
+                {renderGroup('basic', 'Basic')}
+                {renderGroup('form', 'Forms')}
+                {renderGroup('media', 'Media')}
+                {renderGroup('advanced', 'Advanced')}
             </div>
         ) : (
             <div className="py-2">
