@@ -51,9 +51,7 @@
   "bugs":{
     "url": "git+https://github.com/ahmedrash/BuildFlow"
   },
-  "homepage":{
-    "url":"git+https://github.com/ahmedrash/BuildFlow"
-  },
+  "homepage":"git+https://github.com/ahmedrash/BuildFlow",
   "author": {
     "name": "Rashed Ahmed",
     "email": "ahmedrash@gmail.com",
