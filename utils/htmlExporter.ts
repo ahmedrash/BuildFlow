@@ -149,6 +149,11 @@ export const exportHtml = (
 
         const ChildWrapper = ({ element }) => {
             const { type, props } = element;
+            const isSelfContained = ['section', 'container', 'columns', 'navbar', 'slider', 'card', 'form'].includes(type);
+            if (isSelfContained) {
+                 return <ElementRenderer element={element} />;
+            }
+            
             const renderBackground = () => {
                 if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
                 const { backgroundImage, backgroundVideo, parallax } = props || {};
@@ -220,7 +225,7 @@ export const exportHtml = (
                              <div className="absolute top-full left-0 w-full opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
                                  <div className="max-h-[80vh] overflow-y-auto">
                                     <div className={\`container \${containerAlignment}\`}>
-                                        <ElementRenderer element={targetElement} />
+                                        <ChildWrapper element={targetElement} />
                                     </div>
                                  </div>
                              </div>
@@ -310,7 +315,7 @@ export const exportHtml = (
                                      if (!targetElement) return null;
                                      return (
                                          <div className="border-t border-gray-200 pt-2">
-                                             <ElementRenderer element={targetElement} />
+                                             <ChildWrapper element={targetElement} />
                                          </div>
                                      )
                                  })()}
@@ -339,7 +344,6 @@ export const exportHtml = (
                 case 'container':
                 case 'columns':
                 case 'navbar':
-                    const isNavbar = element.type === 'navbar';
                     return (
                         <div id={element.id} className={element.props.className || ''} style={element.props.style}>
                             {renderBackground()}
@@ -534,7 +538,6 @@ export const exportHtml = (
                 const scan = (els) => {
                     els.forEach(el => {
                         if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) popups.add(el.props.popupTargetId);
-                        // FIX: Scan both Navbar (legacy) AND Menu elements
                         if ((el.type === 'navbar' || el.type === 'menu') && el.props.navLinks) {
                              const scanLinks = (links) => { links.forEach(l => { if (l.type === 'popup' && l.targetId) popups.add(l.targetId); if (l.type === 'mega-menu' && l.targetId) megas.add(l.targetId); if (l.children) scanLinks(l.children); }); };
                              scanLinks(el.props.navLinks);
@@ -567,8 +570,6 @@ export const exportHtml = (
                 const isHiddenTarget = popupTargets.has(id) || megaMenuTargets.has(id);
                 if (isHiddenTarget) return null; // Initially hidden in production
 
-                // NOTE: We do not call renderBackground here for containers that use ChildWrapper recursion in ElementRenderer,
-                // but for the root renderElement calls we do. ChildWrapper handles background for children.
                 const renderBackground = () => {
                     if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
                     const { backgroundImage, backgroundVideo, parallax } = props || {};
@@ -652,7 +653,6 @@ export const exportHtml = (
                      )
                 }
                 
-                // Link wrapper for cards
                 const LinkWrapper = ({children}) => {
                      if (type === 'card' && props.cardLink) return <a href={props.cardLink} className="block h-full no-underline text-inherit">{children}</a>;
                      return <React.Fragment>{children}</React.Fragment>;
@@ -679,7 +679,6 @@ export const exportHtml = (
                                       <button className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800 transition-colors" onClick={() => setActivePopupId(null)}><Icons.X /></button>
                                       <div className="!block [&_.hidden]:!block">
                                          <div style={{ display: 'block !important' }}>
-                                              {/* Manually render popup content structure using ChildWrapper for root */}
                                               <ChildWrapper element={activePopupElement} />
                                          </div>
                                       </div>

@@ -70,6 +70,13 @@ const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string
 const ChildWrapper: React.FC<{ element: PageElement; isPreview?: boolean }> = ({ element, isPreview }) => {
     const { props, type } = element;
     
+    // Fix: Prevent double wrapping for container elements that handle their own styles
+    const isSelfContained = ['section', 'container', 'columns', 'navbar', 'slider', 'card', 'form'].includes(type);
+    
+    if (isSelfContained) {
+         return <ElementRenderer element={element} isPreview={isPreview} />;
+    }
+
     // Background Rendering Logic (Duplicated for standalone wrapper)
     const renderBackground = () => {
         if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
@@ -170,8 +177,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                  <div className="absolute top-full left-0 w-full opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
                      <div className="max-h-[80vh] overflow-y-auto">
                         <div className={`container ${containerAlignment}`}>
-                            {/* Use ChildWrapper to ensure the root container of mega menu gets its styles, although ElementRenderer handles container root well, its children need wrappers if mapped inside. */}
-                             <ElementRenderer element={targetElement} isPreview={isPreview} />
+                            {/* Use ChildWrapper to ensure the root container of mega menu gets its styles */}
+                             <ChildWrapper element={targetElement} isPreview={isPreview} />
                         </div>
                      </div>
                  </div>
@@ -294,7 +301,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                            if (!targetElement) return null;
                            return (
                                <div className="border-t border-gray-200 pt-2">
-                                   <ElementRenderer element={targetElement} isPreview={isPreview} />
+                                   <ChildWrapper element={targetElement} isPreview={isPreview} />
                                </div>
                            )
                        })()}
