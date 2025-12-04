@@ -1,6 +1,6 @@
 {
   "name": "buildflow-react",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A powerful visual drag-and-drop website builder for React.",
   "main": "./dist/buildflow.umd.js",
   "module": "./dist/buildflow.es.js",
@@ -9,7 +9,8 @@
       "types": "./dist/lib.d.ts",
       "import": "./dist/buildflow.es.js",
       "require": "./dist/buildflow.umd.js"
-    }
+    },
+    "./dist/style.css": "./dist/style.css"
   },
   "types": "./dist/lib.d.ts",
   "files": [

@@ -60,7 +60,7 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                    setTimeout(() => {
                        if (doc.body) doc.body.style.opacity = '1';
                        setIsReady(true);
-                   }, 400);
+                   }, 800);
                 };
                 script.onerror = () => setIsReady(true); // Fallback to show anyway
                 
@@ -70,7 +70,7 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                  setTimeout(() => {
                      if (doc.body) doc.body.style.opacity = '1';
                      setIsReady(true);
-                 }, 300);
+                 }, 400);
             }
 
             // Inject Fonts
@@ -89,7 +89,7 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                 styleEl.id = 'base-styles';
                 styleEl.innerHTML = `
                     html { scroll-behavior: smooth; }
-                    body { font-family: 'Inter', sans-serif; background-color: white; overflow-x: hidden; }
+                    body { font-family: 'Inter', sans-serif; background-color: white; overflow-x: hidden; min-height: 100vh; }
                     /* Custom scrollbar for webkit */
                     ::-webkit-scrollbar { width: 6px; height: 6px; }
                     ::-webkit-scrollbar-track { background: transparent; }
