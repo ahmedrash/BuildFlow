@@ -20,12 +20,14 @@ export default defineConfig({
     },
     rollupOptions: {
       // Externalize deps that shouldn't be bundled into your library
-      external: ['react', 'react-dom', 'tailwindcss'],
+      // IMPORTANT: 'react/jsx-runtime' must be externalized to avoid duplicate React instances
+      external: ['react', 'react-dom', 'tailwindcss', 'react/jsx-runtime'],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
-          tailwindcss: 'tailwindcss'
+          tailwindcss: 'tailwindcss',
+          'react/jsx-runtime': 'jsxRuntime'
         }
       }
     }

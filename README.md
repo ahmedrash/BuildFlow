@@ -33,11 +33,14 @@ module.exports = {
 
 ### 2. Using the Editor
 
-The `BuildFlowEditor` is the main interface. It handles page editing, template management, and image uploading.
+Import the CSS and the `BuildFlowEditor` component.
 
 ```tsx
 import React, { useState } from 'react';
 import { BuildFlowEditor, PageElement, SavedTemplate } from 'buildflow-react';
+
+// Import BuildFlow styles (Required for animations & layout)
+import 'buildflow-react/dist/style.css'; 
 
 const MyBuilderApp = () => {
   const [data, setData] = useState<PageElement[]>([]);
@@ -94,6 +97,7 @@ The `BuildFlowRenderer` displays the saved content to your end users. It support
 
 ```tsx
 import { BuildFlowRenderer } from 'buildflow-react';
+import 'buildflow-react/dist/style.css'; 
 
 const MyPage = ({ pageData, templates }) => {
   return (

@@ -1,3 +1,5 @@
+// Styles
+import './components/styles.css';
 
 // Core Components
 export { BuildFlowEditor } from './components/BuildFlowEditor';
