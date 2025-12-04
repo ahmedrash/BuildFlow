@@ -240,7 +240,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
             id: 'pp-sub',
             type: 'button',
             name: 'Submit',
-            props: { buttonAction: 'submit', content: 'Join Waitlist', className: 'w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition mt-2' }
+            props: { buttonAction: 'submit', content: 'Join Waitlist', className: '', elementClassName: 'w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition mt-2' }
           }
         ]
       }

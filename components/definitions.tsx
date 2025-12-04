@@ -184,17 +184,33 @@ ComponentRegistry.register({
     icon: Icons.Form,
     group: 'advanced',
     render: ({ element, isPreview }) => (
-        <form className={`${element.props.className || ''} relative`} style={element.props.style} onSubmit={(e) => e.preventDefault()}>
+        <form 
+            className={`${element.props.className || ''} relative`} 
+            style={element.props.style} 
+            action={element.props.formActionUrl}
+            method="POST"
+            onSubmit={(e) => !isPreview && e.preventDefault()}
+        >
+             {element.props.formThankYouUrl && <input type="hidden" name="_next" value={element.props.formThankYouUrl} />}
             {element.children?.map(child => <ChildWrapper key={child.id} element={child} isPreview={isPreview} />)}
         </form>
     )
 });
 
 // --- Form Fields ---
-const InputRenderer: React.FC<{ element: PageElement }> = ({ element }) => (
+const InputRenderer: React.FC<{ element: PageElement; isPreview: boolean }> = ({ element, isPreview }) => (
     <div className={`w-full ${element.props.fieldHidden ? 'hidden' : ''}`}>
         {element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
-        <input type={element.props.inputType || 'text'} placeholder={element.props.fieldPlaceholder} className={`w-full border-gray-300 shadow-sm p-2 border rounded-md bg-white ${element.props.elementClassName}`} style={element.props.elementStyle} disabled />
+        <input 
+            type={element.props.inputType || 'text'} 
+            name={element.props.fieldName}
+            placeholder={element.props.fieldPlaceholder} 
+            required={element.props.fieldRequired}
+            defaultValue={element.props.fieldDefaultValue}
+            className={`w-full border-gray-300 shadow-sm p-2 border rounded-md bg-white ${element.props.elementClassName || ''}`} 
+            style={element.props.elementStyle} 
+            disabled={!isPreview} 
+        />
     </div>
 );
 ComponentRegistry.register({ type: 'input', name: 'Input', icon: Icons.Input, group: 'form', render: InputRenderer });
@@ -204,10 +220,19 @@ ComponentRegistry.register({
     name: 'Textarea',
     icon: Icons.Textarea,
     group: 'form',
-    render: ({ element }) => (
+    render: ({ element, isPreview }) => (
         <div className={`w-full ${element.props.fieldHidden ? 'hidden' : ''}`}>
             {element.props.fieldLabel && <label className="block text-sm font-medium text-gray-700 mb-1">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}
-            <textarea placeholder={element.props.fieldPlaceholder} rows={element.props.fieldRows || 4} className={`w-full border-gray-300 shadow-sm p-2 border rounded-md bg-white ${element.props.elementClassName}`} style={element.props.elementStyle} disabled />
+            <textarea 
+                name={element.props.fieldName}
+                placeholder={element.props.fieldPlaceholder} 
+                required={element.props.fieldRequired}
+                defaultValue={element.props.fieldDefaultValue}
+                rows={element.props.fieldRows || 4} 
+                className={`w-full border-gray-300 shadow-sm p-2 border rounded-md bg-white ${element.props.elementClassName || ''}`} 
+                style={element.props.elementStyle} 
+                disabled={!isPreview} 
+            />
         </div>
     )
 });
@@ -221,7 +246,7 @@ ComponentRegistry.register({
     render: ({ element, isPreview }) => {
         const { logoType, logoSrc, logoText, logoWidth, elementStyle, elementClassName, href } = element.props;
         const content = logoType === 'image' ? (
-            <img src={logoSrc} alt="Logo" style={{ width: logoWidth || 'auto', ...elementStyle }} className={elementClassName} />
+            <img src={logoSrc} alt={element.props.alt} style={{ width: logoWidth || 'auto', ...elementStyle }} className={elementClassName} />
         ) : (
             <span style={elementStyle} className={elementClassName}>{logoText || 'Logo'}</span>
         );
