@@ -39,6 +39,10 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
   const [isPreview, setIsPreview] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   
+  // Sidebar Visibility State
+  const [showLeftSidebar, setShowLeftSidebar] = useState(true);
+  const [showRightSidebar, setShowRightSidebar] = useState(true);
+
   // Template State
   const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>(externalTemplates);
   
@@ -786,6 +790,10 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 canRedo={history.future.length > 0 && !editingTemplateId}
                 showHiddenElements={showHiddenElements}
                 setShowHiddenElements={setShowHiddenElements}
+                showLeftSidebar={showLeftSidebar}
+                setShowLeftSidebar={setShowLeftSidebar}
+                showRightSidebar={showRightSidebar}
+                setShowRightSidebar={setShowRightSidebar}
             />
             
             {editingTemplateId && (
@@ -796,7 +804,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
             )}
 
             <div className="flex flex-1 overflow-hidden">
-                {!isPreview && (
+                {!isPreview && showLeftSidebar && (
                 <Sidebar 
                     onDragStart={handleSidebarDragStart} 
                     elements={activeElements}
@@ -898,7 +906,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 </PreviewFrame>
                 </main>
 
-                {!isPreview && (
+                {!isPreview && showRightSidebar && (
                 <PropertiesPanel
                     selectedElement={selectedElement}
                     onUpdateId={handleUpdateId}

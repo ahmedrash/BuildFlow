@@ -12,6 +12,9 @@ export type { ComponentDefinition } from './components/registry';
 // Utilities
 export { exportHtml } from './utils/htmlExporter';
 
+//Templates
+export { TEMPLATES } from './data/constants';
+
 // Types
 export * from './types';
 

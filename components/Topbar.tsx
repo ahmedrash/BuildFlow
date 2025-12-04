@@ -16,18 +16,33 @@ interface TopbarProps {
     canRedo: boolean;
     showHiddenElements: boolean;
     setShowHiddenElements: (show: boolean) => void;
+    showLeftSidebar: boolean;
+    setShowLeftSidebar: (show: boolean) => void;
+    showRightSidebar: boolean;
+    setShowRightSidebar: (show: boolean) => void;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ 
     viewMode, setViewMode, isPreview, setIsPreview, 
     onOpenTemplates, onOpenSettings, onSave, onExportHtml,
     onUndo, onRedo, canUndo, canRedo,
-    showHiddenElements, setShowHiddenElements
+    showHiddenElements, setShowHiddenElements,
+    showLeftSidebar, setShowLeftSidebar,
+    showRightSidebar, setShowRightSidebar
 }) => {
   return (
     <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 z-30 relative shadow-sm">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
+            {!isPreview && (
+                <button 
+                    onClick={() => setShowLeftSidebar(!showLeftSidebar)}
+                    className={`p-1.5 rounded transition-colors ${showLeftSidebar ? 'bg-indigo-50 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                    title="Toggle Left Sidebar"
+                >
+                    <Icons.PanelLeft width={20} height={20} />
+                </button>
+            )}
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-indigo-200 shadow-lg">
               BF
             </div>
@@ -114,6 +129,15 @@ export const Topbar: React.FC<TopbarProps> = ({
           >
             <Icons.Save /> Save
           </button>
+          {!isPreview && (
+              <button 
+                  onClick={() => setShowRightSidebar(!showRightSidebar)}
+                  className={`p-2 rounded transition-colors ${showRightSidebar ? 'bg-indigo-50 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  title="Toggle Right Sidebar"
+              >
+                  <Icons.PanelRight width={20} height={20} />
+              </button>
+          )}
         </div>
       </header>
   );
