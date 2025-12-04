@@ -1,8 +1,10 @@
-import React from 'react';
+
+import React, { useContext } from 'react';
 import { PageElement } from '../types';
 import { Icons } from './Icons';
 import { ComponentRegistry } from './registry';
 import { ChildWrapper } from './elements/ElementRenderer';
+import { PopupContext } from './EditorConfigContext';
 
 // --- Basic Components ---
 
@@ -38,6 +40,7 @@ ComponentRegistry.register({
     icon: Icons.Button,
     group: 'basic',
     render: ({ element, isPreview }) => {
+        const { openPopup } = useContext(PopupContext);
         const { buttonAction, href, target, content, style, elementStyle, className, elementClassName } = element.props;
         const finalStyle = { ...style, ...elementStyle };
         const finalClass = `px-4 py-2 rounded transition inline-block text-center ${className || ''} ${elementClassName || ''}`;
@@ -49,9 +52,20 @@ ComponentRegistry.register({
              );
         }
         if (buttonAction === 'popup') {
-             // Popup triggering handled by context in wrapper/renderer if needed, here just UI
              return (
-                <button type="button" className={finalClass} style={finalStyle} onClick={e => !isPreview && e.preventDefault()}>{content || 'Button'}</button>
+                <button 
+                    type="button" 
+                    className={`${finalClass} cursor-pointer`} 
+                    style={finalStyle} 
+                    onClick={e => {
+                        e.preventDefault();
+                        if (isPreview && element.props.popupTargetId) {
+                             openPopup(element.props.popupTargetId);
+                        }
+                    }}
+                >
+                    {content || 'Button'}
+                </button>
              );
         }
         return <button type="submit" className={finalClass} style={finalStyle}>{content || 'Button'}</button>;

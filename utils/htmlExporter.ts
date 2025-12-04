@@ -1,3 +1,4 @@
+
 import { PageElement, SavedTemplate } from "../types";
 
 export const exportHtml = (
@@ -412,7 +413,7 @@ export const exportHtml = (
                         }}>{element.props.content}</a>;
                     }
                     if (action === 'popup') {
-                         return <button type="button" className={\`px-4 py-2 rounded transition \${customClass} \${innerClass}\`} style={{...element.props.style, ...innerStyle}} onClick={(e) => { e.preventDefault(); if(element.props.popupTargetId) openPopup(element.props.popupTargetId); }}>{element.props.content}</button>;
+                         return <button type="button" className={\`px-4 py-2 rounded transition cursor-pointer \${customClass} \${innerClass}\`} style={{...element.props.style, ...innerStyle}} onClick={(e) => { e.preventDefault(); if(element.props.popupTargetId) openPopup(element.props.popupTargetId); }}>{element.props.content}</button>;
                     }
                     return <button type="submit" className={\`px-4 py-2 rounded transition \${customClass} \${innerClass}\`} style={{...element.props.style, ...innerStyle}}>{element.props.content}</button>;
                 case 'logo':
@@ -703,4 +704,4 @@ export const exportHtml = (
     </script>
 </body>
 </html>`;
-};
+}

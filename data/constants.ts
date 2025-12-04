@@ -51,7 +51,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
             name: 'Main Menu',
             props: {
               className: 'md:static flex justify-end',
-              mobileMenuBreakpoint: 'lg',
+              mobileMenuBreakpoint: 'md',
               mobileMenuType: 'slide-right',
               mobileMenuIconType: 'menu',
               linkColor: '#4b5563',
