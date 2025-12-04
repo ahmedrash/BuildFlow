@@ -1,8 +1,18 @@
+
 import React from 'react';
 
 type IconProps = React.SVGProps<SVGSVGElement>;
 
 export const Icons = {
+  BrandLogo: (props: IconProps) => (
+    <svg width="32" height="32" viewBox="0 0 232 232" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M0 2C0 0.895428 0.895431 0 2 0H230C231.105 0 232 0.895431 232 2V230C232 231.105 231.105 232 230 232H2C0.895428 232 0 231.105 0 230V2Z" fill="#4F46E5"/>
+      <path d="M113.721 201.102H90.2207L70.2207 180.602H95.7698L134.221 37.1021H157.221L177.221 57.6021H152.171L113.721 201.102Z" fill="white"/>
+      <path d="M95.7227 98.1025H140.923L157.723 119.103H112.523L95.7227 98.1025Z" fill="white"/>
+      <path d="M69.7539 96.6831L59.3494 135.513L75.2857 157.176L85.6902 118.346L69.7539 96.6831Z" fill="white"/>
+      <path d="M107.637 36.4351L97.2322 75.2653L72.5996 86.0576L83.0041 47.2274L107.637 36.4351Z" fill="white"/>
+    </svg>
+  ),
   Plus: (props: IconProps) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 12h14"/><path d="M12 5v14"/></svg>
   ),

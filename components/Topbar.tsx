@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Icons } from './Icons';
 
@@ -43,9 +44,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                     <Icons.PanelLeft width={20} height={20} />
                 </button>
             )}
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-indigo-200 shadow-lg">
-              BF
-            </div>
+            <Icons.BrandLogo className="w-8 h-8 text-indigo-600 shadow-indigo-200 shadow-lg rounded-[5px]" />
             <span className="font-bold text-xl tracking-tight text-gray-800 hidden sm:block">BuildFlow</span>
           </div>
           
