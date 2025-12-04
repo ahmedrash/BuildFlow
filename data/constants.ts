@@ -86,7 +86,8 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
               name: 'Get Started',
               props: {
                   content: 'Get Started',
-                  className: 'hidden lg:block bg-indigo-600 text-white px-5 py-2 rounded-full font-medium hover:bg-indigo-700 transition shadow-md hover:shadow-lg',
+                  className: '',
+                  elementClassName: 'hidden lg:block bg-indigo-600 text-white px-5 py-2 rounded-full font-medium hover:bg-indigo-700 transition shadow-md hover:shadow-lg'
                   buttonAction: 'popup',
                   popupTargetId: 'contact-popup'
               }
