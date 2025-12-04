@@ -207,7 +207,7 @@ const InputRenderer: React.FC<{ element: PageElement; isPreview: boolean }> = ({
             placeholder={element.props.fieldPlaceholder} 
             required={element.props.fieldRequired}
             defaultValue={element.props.fieldDefaultValue}
-            className={`w-full border-gray-300 shadow-sm p-2 border rounded-md bg-white ${element.props.elementClassName || ''}`} 
+            className={`w-full border-gray-300 shadow-sm p-2 border rounded-md bg-white ${element.props.elementClassName || ''} ${!isPreview ? 'pointer-events-none' : ''}`} 
             style={element.props.elementStyle} 
             disabled={!isPreview} 
         />
@@ -229,7 +229,7 @@ ComponentRegistry.register({
                 required={element.props.fieldRequired}
                 defaultValue={element.props.fieldDefaultValue}
                 rows={element.props.fieldRows || 4} 
-                className={`w-full border-gray-300 shadow-sm p-2 border rounded-md bg-white ${element.props.elementClassName || ''}`} 
+                className={`w-full border-gray-300 shadow-sm p-2 border rounded-md bg-white ${element.props.elementClassName || ''} ${!isPreview ? 'pointer-events-none' : ''}`} 
                 style={element.props.elementStyle} 
                 disabled={!isPreview} 
             />

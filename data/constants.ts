@@ -21,7 +21,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
     id: 'nav-wrapper',
     type: 'section',
     name: 'Navigation',
-    props: { className: 'p-0 relative z-40', elementClassName: '' },
+    props: { className: 'p-0 relative z-40 h-[73px]', elementClassName: '' },
     children: [
       {
         id: 'navbar',
@@ -30,7 +30,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
         props: {
           className: 'grid grid-cols-2 lg:flex items-center lg:justify-between px-6 py-4 bg-white/95 backdrop-blur shadow-sm border-b border-gray-100',
           elementClassName: '',
-          headerType: 'sticky',
+          headerType: 'fixed',
           stickyOffset: 100
         },
         children: [
@@ -228,7 +228,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
         id: 'pp-form',
         type: 'form',
         name: 'Popup Form',
-        props: { className: 'flex flex-col gap-4', formSuccessMessage: 'You are on the list!' },
+        props: { className: 'flex flex-col gap-4', formSuccessMessage: 'You are on the list!', formActionUrl: '#' },
         children: [
           {
             id: 'pp-email',
