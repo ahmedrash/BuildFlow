@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -21,10 +22,13 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
     const setupIframe = () => {
         const doc = iframe.contentWindow?.document;
         if (doc) {
-            // Ensure the document has a basic structure
+            // Ensure the document has a basic structure with hidden body
             if (!doc.body) {
-                 doc.write('<!DOCTYPE html><html><head></head><body style="margin:0; opacity: 0; transition: opacity 0.3s;"></body></html>');
+                 doc.write('<!DOCTYPE html><html><head></head><body style="margin:0; opacity: 0; transition: opacity 0.4s ease-in;"></body></html>');
                  doc.close();
+            } else {
+                 // Reset opacity if reusing body
+                 doc.body.style.opacity = '0';
             }
 
             // Inject Meta Viewport
@@ -49,36 +53,11 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                 doc.head.appendChild(script);
             }
             
-            // Inject Tailwind with Load Handler
-            if (!doc.getElementById('tailwind-script')) {
-                const script = doc.createElement('script');
-                script.id = 'tailwind-script';
-                script.src = 'https://cdn.tailwindcss.com';
-                
-                script.onload = () => {
-                   // Delay to allow JIT to parse the DOM
-                   setTimeout(() => {
-                       if (doc.body) doc.body.style.opacity = '1';
-                       setIsReady(true);
-                   }, 800);
-                };
-                script.onerror = () => setIsReady(true); // Fallback to show anyway
-                
-                doc.head.appendChild(script);
-            } else {
-                // If script exists, just give a small delay for re-rendering
-                 setTimeout(() => {
-                     if (doc.body) doc.body.style.opacity = '1';
-                     setIsReady(true);
-                 }, 400);
-            }
-
             // Inject Fonts
             if (!doc.getElementById('font-inter')) {
                 const link = doc.createElement('link');
                 link.id = 'font-inter';
                 link.rel = 'stylesheet';
-                // Added multiple font families
                 link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lato:wght@300;400;700&family=Merriweather:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Oswald:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Raleway:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap';
                 doc.head.appendChild(link);
             }
@@ -88,9 +67,8 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                 const styleEl = doc.createElement('style');
                 styleEl.id = 'base-styles';
                 styleEl.innerHTML = `
-                    html { scroll-behavior: smooth; }
-                    body { font-family: 'Inter', sans-serif; background-color: white; overflow-x: hidden; min-height: 100vh; }
-                    /* Custom scrollbar for webkit */
+                    html { scroll-behavior: smooth; height: 100%; }
+                    body { font-family: 'Inter', sans-serif; background-color: white; overflow-x: hidden; min-height: 100vh; height: 100%; }
                     ::-webkit-scrollbar { width: 6px; height: 6px; }
                     ::-webkit-scrollbar-track { background: transparent; }
                     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -98,17 +76,71 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                 `;
                 doc.head.appendChild(styleEl);
             }
-            
-            setMountNode(doc.body);
+
+            // Helper to start the content polling
+            const startPollingForContent = () => {
+                setMountNode(doc.body);
+
+                // We poll for the existence of the React root div inside the iframe
+                let attempts = 0;
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    const hasContent = doc.body && (doc.body.children.length > 0 || doc.getElementById('canvas-root'));
+                    
+                    // Stop polling if content found OR timeout (approx 2s)
+                    if (hasContent || attempts > 40) {
+                        clearInterval(checkInterval);
+                        
+                        // Content detected. Now give Tailwind JIT a moment to observe and generate styles.
+                        setTimeout(() => {
+                            if (doc.body) {
+                                // Force a layout reflow to ensure new styles are applied before we show it
+                                const _ = doc.body.offsetHeight;
+                                doc.body.style.opacity = '1';
+                            }
+                            setIsReady(true);
+                        }, 500); // 500ms safety buffer for Tailwind compilation
+                    }
+                }, 50); // Check every 50ms
+            };
+
+            // Inject Tailwind
+            if (!doc.getElementById('tailwind-script')) {
+                const script = doc.createElement('script');
+                script.id = 'tailwind-script';
+                script.src = 'https://cdn.tailwindcss.com';
+                
+                script.onload = () => {
+                   // Tailwind loaded. Start React mount and polling.
+                   startPollingForContent();
+                };
+                
+                script.onerror = () => {
+                    // Fallback in case of error
+                    setMountNode(doc.body);
+                    setIsReady(true);
+                    if (doc.body) doc.body.style.opacity = '1';
+                };
+                
+                doc.head.appendChild(script);
+            } else {
+                // If script is already there (hot reload or re-mount)
+                startPollingForContent();
+            }
         }
     };
 
     setupIframe();
     
-    // Safety timeout in case onload doesn't fire as expected (e.g. cached/race)
-    const safetyTimer = setTimeout(() => setIsReady(true), 2000);
+    // Safety timer to force show content if polling fails completely
+    const safetyTimer = setTimeout(() => {
+        if (!isReady && iframe.contentWindow?.document.body) {
+             setMountNode(iframe.contentWindow.document.body);
+             iframe.contentWindow.document.body.style.opacity = '1';
+             setIsReady(true);
+        }
+    }, 4000);
 
-    // Re-setup on load if needed (though usually synchronous write works)
     iframe.addEventListener('load', setupIframe);
     return () => {
         iframe.removeEventListener('load', setupIframe);
@@ -126,7 +158,7 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
           width, 
           height, 
           border: 'none', 
-          transition: 'width 0.3s ease-in-out, opacity 0.5s ease-in-out',
+          transition: 'width 0.3s ease-in-out, opacity 0.4s ease-in-out',
           opacity: isReady ? 1 : 0 
       }}
       title="Editor Preview"
