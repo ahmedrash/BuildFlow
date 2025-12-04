@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BuildFlow - Visual Page Builder</title>
+    <style>
+      /* Hide body initially to prevent Flash Of Unstyled Content (FOUC) while Tailwind JIT compiles */
+      body { opacity: 0; transition: opacity 0.3s ease-in-out; }
+    </style>
     <script>
       // Suppress Tailwind CDN warning since we use it for dynamic compilation in the builder.
       // For a dynamic builder, the CDN (JIT compiler) is required in the browser.
@@ -106,5 +110,13 @@
   <body class="bg-gray-50 text-slate-900 h-screen overflow-hidden selection:bg-indigo-100 selection:text-indigo-700">
     <div id="root" class="h-full"></div>
     <script type="module" src="./index.tsx"></script>
+    <script>
+      // Reveal body after a short delay to allow Tailwind JIT to catch up with React hydration
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          document.body.style.opacity = '1';
+        }, 150);
+      });
+    </script>
   </body>
 </html>

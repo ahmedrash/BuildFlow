@@ -13,6 +13,7 @@ interface PreviewFrameProps {
 export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, height = '100%', className, style }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [mountNode, setMountNode] = useState<HTMLElement | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -49,12 +50,21 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                 doc.head.appendChild(script);
             }
             
-            // Inject Tailwind
+            // Inject Tailwind with Load Handler
             if (!doc.getElementById('tailwind-script')) {
                 const script = doc.createElement('script');
                 script.id = 'tailwind-script';
                 script.src = 'https://cdn.tailwindcss.com';
+                
+                script.onload = () => {
+                   // Small delay to allow JIT to parse the DOM
+                   setTimeout(() => setIsReady(true), 100);
+                };
+                script.onerror = () => setIsReady(true); // Fallback to show anyway
+                
                 doc.head.appendChild(script);
+            } else {
+                setIsReady(true);
             }
 
             // Inject Fonts
@@ -89,9 +99,15 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
 
     setupIframe();
     
+    // Safety timeout in case onload doesn't fire as expected (e.g. cached/race)
+    const safetyTimer = setTimeout(() => setIsReady(true), 1500);
+
     // Re-setup on load if needed (though usually synchronous write works)
     iframe.addEventListener('load', setupIframe);
-    return () => iframe.removeEventListener('load', setupIframe);
+    return () => {
+        iframe.removeEventListener('load', setupIframe);
+        clearTimeout(safetyTimer);
+    };
 
   }, []);
 
@@ -99,7 +115,14 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
     <iframe
       ref={iframeRef}
       className={className}
-      style={{ ...style, width, height, border: 'none', transition: 'width 0.3s ease-in-out' }}
+      style={{ 
+          ...style, 
+          width, 
+          height, 
+          border: 'none', 
+          transition: 'width 0.3s ease-in-out, opacity 0.3s ease-in-out',
+          opacity: isReady ? 1 : 0 
+      }}
       title="Editor Preview"
     >
       {mountNode && createPortal(children, mountNode)}
