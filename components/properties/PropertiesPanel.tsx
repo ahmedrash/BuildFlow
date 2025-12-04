@@ -5,6 +5,7 @@ import { ColorPicker } from '../ui/ColorPicker';
 import { FONT_FAMILIES, MENU_PRESETS } from '../../data/constants';
 import { TAILWIND_CLASSES } from '../../data/tailwindClasses';
 import { DesignSettings } from './DesignSettings';
+import { ComponentRegistry } from '../registry';
 
 interface PropertiesPanelProps {
     selectedElement: PageElement | null;
@@ -203,6 +204,9 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
     const isLayoutElement = displayElement ? LAYOUT_TYPES.includes(displayElement.type) : false;
 
+    // Registry Lookup
+    const definition = displayElement ? ComponentRegistry.get(displayElement.type) : undefined;
+
     useEffect(() => {
         if (isLayoutElement && activeTab === 'element') {
             setActiveTab('content');
@@ -399,6 +403,17 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                             {/* --- CONTENT TAB --- */}
                             {activeTab === 'content' && (
                                 <div className="space-y-6">
+                                    {/* Custom Properties Panel from Registry */}
+                                    {definition?.propertiesPanel && (
+                                         <div className="space-y-4 border-b border-gray-100 pb-4">
+                                             <h3 className={sectionTitleClass}>{definition.name} Settings</h3>
+                                             <definition.propertiesPanel 
+                                                 element={displayElement} 
+                                                 onUpdateProps={(id, props) => onUpdateProps(id, props)} 
+                                             />
+                                         </div>
+                                    )}
+
                                     {/* Save as Template Button */}
                                     <button 
                                         onClick={() => onSaveTemplate(selectedElement.id)}

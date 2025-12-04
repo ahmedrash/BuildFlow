@@ -144,25 +144,105 @@ const MyPage = ({ pageData, templates }) => {
 
 ## 🔌 Extending (Developer Guide)
 
-BuildFlow supports a **Registry Pattern** for adding custom components without forking the library.
+BuildFlow supports a **Registry Pattern** for adding custom components. This allows you to introduce unique elements with custom rendering logic and property controls.
 
-**Example:**
+### Example: Registering a Custom "Alert" Component
+
+This example demonstrates how to:
+1.  Define the **Renderer** (what shows up on the canvas).
+2.  Define the **Properties Panel** (the form controls in the sidebar).
+3.  **Register** the component so it appears in the editor.
+
 ```tsx
-import { ComponentRegistry } from 'buildflow-react';
-import { Star } from 'lucide-react'; // Or your own icon
+import { ComponentRegistry, PageElement } from 'buildflow-react';
+import { Star } from 'lucide-react'; // Example icon library
 
-ComponentRegistry.register({
-  type: 'custom-alert',
-  name: 'Alert Box',
-  icon: Star,
-  group: 'basic',
-  render: ({ element }) => (
-    <div className="bg-red-100 p-4 border-l-4 border-red-500 text-red-700">
-      <h3 className="font-bold">Alert!</h3>
-      <p>{element.props.content || 'Default warning text'}</p>
+// 1. Define the Renderer
+const AlertBox = ({ element }: { element: PageElement }) => {
+  const { title, content, variant } = element.props;
+  
+  // Dynamic styling based on props
+  const colors = variant === 'error' 
+    ? 'bg-red-50 border-red-500 text-red-700' 
+    : 'bg-blue-50 border-blue-500 text-blue-700';
+
+  return (
+    <div className={`p-4 border-l-4 rounded ${colors} ${element.props.className}`} style={element.props.style}>
+      <h3 className="font-bold mb-1">{title || 'Alert'}</h3>
+      <p>{content || 'Notification text...'}</p>
     </div>
-  )
+  );
+};
+
+// 2. Define the Properties Panel (Optional)
+// This React component will be rendered in the sidebar when the element is selected.
+const AlertProps = ({ element, onUpdateProps }: { element: PageElement; onUpdateProps: (id: string, props: any) => void }) => (
+  <div className="space-y-3">
+    <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Title</label>
+        <input 
+          className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none" 
+          value={element.props.title || ''} 
+          onChange={(e) => onUpdateProps(element.id, { title: e.target.value })} 
+          placeholder="Enter title..."
+        />
+    </div>
+    <div>
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Variant</label>
+        <select 
+          className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+          value={element.props.variant || 'info'}
+          onChange={(e) => onUpdateProps(element.id, { variant: e.target.value })}
+        >
+          <option value="info">Info (Blue)</option>
+          <option value="error">Error (Red)</option>
+        </select>
+    </div>
+  </div>
+);
+
+// 3. Register the Component
+ComponentRegistry.register({
+  type: 'custom-alert',   // Unique ID
+  name: 'Alert Box',      // Display Name
+  icon: Star,             // Icon Component
+  group: 'basic',         // Sidebar Group
+  render: AlertBox,       // The Renderer
+  propertiesPanel: AlertProps // The Custom Settings Panel
 });
+```
+
+### Exporting HTML
+
+You can programmatically trigger the HTML export (for example, via a custom toolbar button in your wrapper app). This utility generates a standalone `index.html` file containing the page structure and Tailwind CSS CDN.
+
+```tsx
+import { exportHtml } from 'buildflow-react';
+
+const handleExport = () => {
+    // 1. Prepare Data
+    const htmlContent = exportHtml(
+        elements,           // Current page elements (state)
+        savedTemplates,     // Saved templates (state)
+        "My Website",       // Page Title
+        "Generated Site",   // Page Description
+        "MAPS_API_KEY",     // (Optional) Google Maps API Key
+        "RECAPTCHA_KEY"     // (Optional) Google Recaptcha v2 Site Key
+    );
+    
+    // 2. Trigger Download
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'index.html';
+    document.body.appendChild(a);
+    a.click();
+    
+    // 3. Cleanup
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
 ```
 
 ## 💻 Local Development
