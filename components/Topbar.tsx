@@ -21,6 +21,7 @@ interface TopbarProps {
     setShowLeftSidebar: (show: boolean) => void;
     showRightSidebar: boolean;
     setShowRightSidebar: (show: boolean) => void;
+    onLaunchLivePreview: () => void;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ 
@@ -29,7 +30,8 @@ export const Topbar: React.FC<TopbarProps> = ({
     onUndo, onRedo, canUndo, canRedo,
     showHiddenElements, setShowHiddenElements,
     showLeftSidebar, setShowLeftSidebar,
-    showRightSidebar, setShowRightSidebar
+    showRightSidebar, setShowRightSidebar,
+    onLaunchLivePreview
 }) => {
   return (
     <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 z-30 relative shadow-sm">
@@ -114,6 +116,13 @@ export const Topbar: React.FC<TopbarProps> = ({
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isPreview ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}
           >
             {isPreview ? <><Icons.EyeOff /> Edit</> : <><Icons.Eye /> Preview</>}
+          </button>
+          <button 
+            onClick={onLaunchLivePreview}
+            className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium border border-gray-200"
+            title="Open Live Page in new tab"
+          >
+            <Icons.ExternalLink /> <span className="hidden sm:inline">Live</span>
           </button>
           <button 
             onClick={onExportHtml}

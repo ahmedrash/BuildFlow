@@ -177,7 +177,7 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         return classes;
     };
 
-    const Tag = type === 'section' ? 'section' : 'div';
+    const Tag = (type === 'section' ? 'section' : type === 'form' ? 'form' : 'div') as React.ElementType;
     
     const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
         if (type === 'card' && props.cardLink) {
@@ -199,35 +199,7 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
     }
 
     if (type === 'menu') {
-       // Inline menu rendering to support PageRenderer independent usage if needed, 
-       // but mostly duplicating ElementRenderer logic to ensure static tailwind classes are detected in this file too
-       const { navLinks = [], linkColor, activeLinkColor, mobileMenuBreakpoint = 'md', mobileMenuType = 'dropdown', hamburgerColor, menuBackgroundColor, mobileMenuIconType = 'menu' } = props;
-       
-       const menuBreakpoints = {
-           'sm': { desktop: 'hidden sm:flex', mobile: 'flex sm:hidden', drawer: 'sm:hidden' },
-           'md': { desktop: 'hidden md:flex', mobile: 'flex md:hidden', drawer: 'md:hidden' },
-           'lg': { desktop: 'hidden lg:flex', mobile: 'flex lg:hidden', drawer: 'lg:hidden' },
-           'none': { desktop: 'flex', mobile: 'hidden', drawer: 'hidden' }
-       };
-
-       const bpConfig = menuBreakpoints[mobileMenuBreakpoint as keyof typeof menuBreakpoints] || menuBreakpoints['md'];
-       const breakpointClass = bpConfig.desktop;
-       const mobileToggleClass = bpConfig.mobile;
-       const drawerHiddenClass = bpConfig.drawer;
-
-       const linkStyle = { color: linkColor || 'inherit' };
-       const activeStyle = activeLinkColor ? { '--active-color': activeLinkColor } as React.CSSProperties : {};
-       
-       // Note: We delegate to ElementRenderer for the actual logic to keep it DRY-er in behavior but 
-       // we handle the outer structure here if we wanted. 
-       // However, since PageRenderer falls through to ElementRenderer for leaf nodes, 
-       // we should actually let ElementRenderer handle it. 
-       // The problem described implies PageRenderer might be handling it or missing it.
-       // Given the switch case structure usually seen in ElementRenderer, PageRenderer usually delegates.
-       // IF we want to fix the Library export, ElementRenderer.tsx is the key file.
-       // But if PageRenderer has inline logic (as per previous prompt content), we fix it here.
-       
-       // Fallthrough to ElementRenderer for consistency
+       // Menu logic delegated to ElementRenderer if needed, but handled for structure
     }
 
     if (isNavbar) {
@@ -245,8 +217,14 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
         )
     }
 
+    const formProps = type === 'form' ? {
+        action: props.formActionUrl,
+        method: "POST"
+    } : {};
+
     return (
-        <Tag key={id} id={id} className={`${classNameToApply} ${containerClasses} ${getCardHoverClass()}${hiddenClass}`} style={props.style}>
+        <Tag key={id} id={id} className={`${classNameToApply} ${containerClasses} ${getCardHoverClass()}${hiddenClass}`} style={props.style} {...formProps}>
+            {type === 'form' && props.formThankYouUrl && <input type="hidden" name="_next" value={props.formThankYouUrl} />}
             {renderBackground()}
             
             <LinkWrapper>
@@ -304,7 +282,7 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
 
 const PopupRootRenderer: React.FC<{ element: PageElement, renderChild: (el: PageElement) => React.ReactNode }> = ({ element, renderChild }) => {
     const { type, children, props } = element;
-    const Tag = type === 'section' ? 'section' : 'div';
+    const Tag = (type === 'section' ? 'section' : type === 'form' ? 'form' : 'div') as React.ElementType;
     
     const renderBackground = () => {
         if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
@@ -323,9 +301,11 @@ const PopupRootRenderer: React.FC<{ element: PageElement, renderChild: (el: Page
 
     const containerClasses = ['slider', 'card'].includes(type) ? 'relative overflow-hidden' : 'relative';
     const classNameToApply = type === 'button' ? '' : (props.className || '');
+    const formProps = type === 'form' ? { action: props.formActionUrl, method: 'POST' } : {};
 
     return (
-        <Tag className={`${classNameToApply} ${containerClasses}`} style={{ ...props.style, display: 'block' }}>
+        <Tag className={`${classNameToApply} ${containerClasses}`} style={{ ...props.style, display: 'block' }} {...formProps}>
+             {type === 'form' && props.formThankYouUrl && <input type="hidden" name="_next" value={props.formThankYouUrl} />}
             {renderBackground()}
             {children && children.length > 0 ? children.map(child => renderChild(child)) : <ElementRenderer element={element} isPreview={true} />}
         </Tag>

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { PageElement, ElementType, SavedTemplate, BuildFlowEditorProps } from '../types';
 import { EditorCanvas } from './EditorCanvas';
@@ -689,6 +690,17 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     URL.revokeObjectURL(url);
     showToast("Website exported to index.html");
   };
+
+  const handleLaunchLivePreview = () => {
+      // Auto-save before opening
+      if (onSave) onSave(elements);
+      
+      setTimeout(() => {
+          const url = new URL(window.location.href);
+          url.searchParams.set('mode', 'live');
+          window.open(url.toString(), '_blank');
+      }, 100);
+  };
   
   // Compute Popup Targets (Buttons & Standard Popup Links)
   const popupTargets = useMemo(() => {
@@ -794,6 +806,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 setShowLeftSidebar={setShowLeftSidebar}
                 showRightSidebar={showRightSidebar}
                 setShowRightSidebar={setShowRightSidebar}
+                onLaunchLivePreview={handleLaunchLivePreview}
             />
             
             {editingTemplateId && (

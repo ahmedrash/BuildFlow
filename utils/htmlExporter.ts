@@ -333,8 +333,8 @@ export const exportHtml = (
                 const finalBgVideo = styleBgVideo || backgroundVideo;
                 if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
                 if (finalBgImage) {
-                    const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
-                    return <div className={\`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none \${parallax ? 'bg-fixed' : ''}\`} style={{ backgroundImage: \`url(\${url})\` }} />;
+                     const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
+                     return <div className={\`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none \${parallax ? 'bg-fixed' : ''}\`} style={{ backgroundImage: \`url(\${url})\` }} />;
                 }
                 return null;
             };
@@ -633,7 +633,7 @@ export const exportHtml = (
                      return classes;
                 };
 
-                const Tag = type === 'section' ? 'section' : 'div';
+                const Tag = type === 'section' ? 'section' : type === 'form' ? 'form' : 'div';
                 
                 if (type === 'slider' && children) {
                     return (
@@ -658,8 +658,11 @@ export const exportHtml = (
                      return <React.Fragment>{children}</React.Fragment>;
                 }
 
+                const formProps = type === 'form' ? { action: props.formActionUrl, method: 'POST' } : {};
+
                 return (
-                    <Tag key={id} id={id} className={\`\${classNameToApply} \${containerClasses} \${getCardHoverClass()}\`} style={props.style}>
+                    <Tag key={id} id={id} className={\`\${classNameToApply} \${containerClasses} \${getCardHoverClass()}\`} style={props.style} {...formProps}>
+                         {type === 'form' && props.formThankYouUrl && <input type="hidden" name="_next" value={props.formThankYouUrl} />}
                          {renderBackground()}
                          <LinkWrapper>
                              {children && children.length > 0 ? children.map(child => renderElement(child)) : <ElementRenderer element={renderedElement} />}
