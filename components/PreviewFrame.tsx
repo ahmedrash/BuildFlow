@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -24,7 +23,7 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
         if (doc) {
             // Ensure the document has a basic structure
             if (!doc.body) {
-                 doc.write('<!DOCTYPE html><html><head></head><body style="margin:0;"></body></html>');
+                 doc.write('<!DOCTYPE html><html><head></head><body style="margin:0; opacity: 0; transition: opacity 0.3s;"></body></html>');
                  doc.close();
             }
 
@@ -57,14 +56,21 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                 script.src = 'https://cdn.tailwindcss.com';
                 
                 script.onload = () => {
-                   // Small delay to allow JIT to parse the DOM
-                   setTimeout(() => setIsReady(true), 100);
+                   // Delay to allow JIT to parse the DOM
+                   setTimeout(() => {
+                       if (doc.body) doc.body.style.opacity = '1';
+                       setIsReady(true);
+                   }, 400);
                 };
                 script.onerror = () => setIsReady(true); // Fallback to show anyway
                 
                 doc.head.appendChild(script);
             } else {
-                setIsReady(true);
+                // If script exists, just give a small delay for re-rendering
+                 setTimeout(() => {
+                     if (doc.body) doc.body.style.opacity = '1';
+                     setIsReady(true);
+                 }, 300);
             }
 
             // Inject Fonts
@@ -100,7 +106,7 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
     setupIframe();
     
     // Safety timeout in case onload doesn't fire as expected (e.g. cached/race)
-    const safetyTimer = setTimeout(() => setIsReady(true), 1500);
+    const safetyTimer = setTimeout(() => setIsReady(true), 2000);
 
     // Re-setup on load if needed (though usually synchronous write works)
     iframe.addEventListener('load', setupIframe);
@@ -120,7 +126,7 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
           width, 
           height, 
           border: 'none', 
-          transition: 'width 0.3s ease-in-out, opacity 0.3s ease-in-out',
+          transition: 'width 0.3s ease-in-out, opacity 0.5s ease-in-out',
           opacity: isReady ? 1 : 0 
       }}
       title="Editor Preview"

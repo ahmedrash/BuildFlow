@@ -3,6 +3,8 @@
 
 BuildFlow is a comprehensive, React-based visual website builder. It enables users to construct responsive, high-performance web pages using an intuitive drag-and-drop interface.
 
+**[Live Demo](https://buildfloweditor.netlify.app)**
+
 ## 📦 Installation
 
 Install BuildFlow via npm or yarn:
@@ -37,48 +39,63 @@ Import the CSS and the `BuildFlowEditor` component.
 
 ```tsx
 import React, { useState } from 'react';
-import { BuildFlowEditor, PageElement, SavedTemplate } from 'buildflow-react';
+import { BuildFlowEditor, type PageElement, type SavedTemplate, TEMPLATES } from 'buildflow-react';
 
 // Import BuildFlow styles (Required for animations & layout)
 import 'buildflow-react/dist/style.css'; 
 
 const MyBuilderApp = () => {
-  const [data, setData] = useState<PageElement[]>([]);
-  const [templates, setTemplates] = useState<SavedTemplate[]>([]);
+  // Demo Implementation: Load initial data from localStorage or fallback to default template
+  const [initialData] = useState<PageElement[]>(() => {
+    const saved = localStorage.getItem('buildflow_demo_page');
+    return saved ? JSON.parse(saved) : TEMPLATES[0].elements;
+  });
 
-  // 1. Handle Saving the Page
+  const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>(() => {
+    const saved = localStorage.getItem('buildflow_templates');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Handle saving the page layout
   const handleSave = (elements: PageElement[]) => {
-    console.log('Saved page data:', elements);
-    setData(elements);
-    // API call to save to database...
+    localStorage.setItem('buildflow_demo_page', JSON.stringify(elements));
+    console.log('Saved to local storage:', elements);
   };
 
-  // 2. Handle Saving Reusable Templates
+  // Handle saving templates
   const handleSaveTemplate = (template: SavedTemplate) => {
-    setTemplates(prev => [...prev, template]);
-    // API call to save template...
+    const newTemplates = [...savedTemplates, template];
+    setSavedTemplates(newTemplates);
+    localStorage.setItem('buildflow_templates', JSON.stringify(newTemplates));
   };
 
-  // 3. Handle Deleting Templates
+  // Handle deleting templates
   const handleDeleteTemplate = (id: string) => {
-    setTemplates(prev => prev.filter(t => t.id !== id));
+    const newTemplates = savedTemplates.filter(t => t.id !== id);
+    setSavedTemplates(newTemplates);
+    localStorage.setItem('buildflow_templates', JSON.stringify(newTemplates));
   };
 
-  // 4. Handle Image Uploads
-  const handleUploadImage = async (file: File): Promise<string> => {
-    // Mock upload - replace with actual API call (e.g., S3, Cloudinary)
-    return new Promise((resolve) => {
+  // Handle image upload (Simple Base64 implementation for demo)
+  const handleUploadImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
         reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
     });
   };
+
+  // --- API Configuration ---
+  // In a real app, these would come from environment variables or a configuration endpoint.
+  const GOOGLE_MAPS_API_KEY = ""; 
+  const RECAPTCHA_SITE_KEY = "";
 
   return (
     <div style={{ height: '100vh' }}>
       <BuildFlowEditor 
-        initialData={data}
-        savedTemplates={templates}
+        initialData={initialData}
+        savedTemplates={savedTemplates}
         onSave={handleSave}
         onSaveTemplate={handleSaveTemplate}
         onDeleteTemplate={handleDeleteTemplate}

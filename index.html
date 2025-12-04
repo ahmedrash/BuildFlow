@@ -6,7 +6,7 @@
     <title>BuildFlow - Visual Page Builder</title>
     <style>
       /* Hide body initially to prevent Flash Of Unstyled Content (FOUC) while Tailwind JIT compiles */
-      body { opacity: 0; transition: opacity 0.3s ease-in-out; }
+      body { opacity: 0; transition: opacity 0.5s ease-in-out; }
     </style>
     <script>
       // Suppress Tailwind CDN warning since we use it for dynamic compilation in the builder.
@@ -115,7 +115,7 @@
       window.addEventListener('load', function() {
         setTimeout(function() {
           document.body.style.opacity = '1';
-        }, 150);
+        }, 500);
       });
     </script>
   </body>
