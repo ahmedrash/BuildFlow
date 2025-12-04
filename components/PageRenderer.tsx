@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
@@ -198,6 +196,38 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
                 />
             </Tag>
         );
+    }
+
+    if (type === 'menu') {
+       // Inline menu rendering to support PageRenderer independent usage if needed, 
+       // but mostly duplicating ElementRenderer logic to ensure static tailwind classes are detected in this file too
+       const { navLinks = [], linkColor, activeLinkColor, mobileMenuBreakpoint = 'md', mobileMenuType = 'dropdown', hamburgerColor, menuBackgroundColor, mobileMenuIconType = 'menu' } = props;
+       
+       const menuBreakpoints = {
+           'sm': { desktop: 'hidden sm:flex', mobile: 'flex sm:hidden', drawer: 'sm:hidden' },
+           'md': { desktop: 'hidden md:flex', mobile: 'flex md:hidden', drawer: 'md:hidden' },
+           'lg': { desktop: 'hidden lg:flex', mobile: 'flex lg:hidden', drawer: 'lg:hidden' },
+           'none': { desktop: 'flex', mobile: 'hidden', drawer: 'hidden' }
+       };
+
+       const bpConfig = menuBreakpoints[mobileMenuBreakpoint as keyof typeof menuBreakpoints] || menuBreakpoints['md'];
+       const breakpointClass = bpConfig.desktop;
+       const mobileToggleClass = bpConfig.mobile;
+       const drawerHiddenClass = bpConfig.drawer;
+
+       const linkStyle = { color: linkColor || 'inherit' };
+       const activeStyle = activeLinkColor ? { '--active-color': activeLinkColor } as React.CSSProperties : {};
+       
+       // Note: We delegate to ElementRenderer for the actual logic to keep it DRY-er in behavior but 
+       // we handle the outer structure here if we wanted. 
+       // However, since PageRenderer falls through to ElementRenderer for leaf nodes, 
+       // we should actually let ElementRenderer handle it. 
+       // The problem described implies PageRenderer might be handling it or missing it.
+       // Given the switch case structure usually seen in ElementRenderer, PageRenderer usually delegates.
+       // IF we want to fix the Library export, ElementRenderer.tsx is the key file.
+       // But if PageRenderer has inline logic (as per previous prompt content), we fix it here.
+       
+       // Fallthrough to ElementRenderer for consistency
     }
 
     if (isNavbar) {

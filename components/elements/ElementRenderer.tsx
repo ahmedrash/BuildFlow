@@ -264,8 +264,20 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
   switch (element.type) {
     case 'menu':
        const { navLinks = [], linkColor, activeLinkColor, mobileMenuBreakpoint = 'md', mobileMenuType = 'dropdown', hamburgerColor, menuBackgroundColor, mobileMenuIconType = 'menu' } = element.props;
-       const breakpointClass = mobileMenuBreakpoint === 'none' ? 'flex' : `hidden ${mobileMenuBreakpoint}:flex`;
-       const mobileToggleClass = mobileMenuBreakpoint === 'none' ? 'hidden' : `flex ${mobileMenuBreakpoint}:hidden`;
+       
+       // Lookup table for static class generation to ensure Tailwind scans them correctly during build
+       const menuBreakpoints = {
+           'sm': { desktop: 'hidden sm:flex', mobile: 'flex sm:hidden', drawer: 'sm:hidden' },
+           'md': { desktop: 'hidden md:flex', mobile: 'flex md:hidden', drawer: 'md:hidden' },
+           'lg': { desktop: 'hidden lg:flex', mobile: 'flex lg:hidden', drawer: 'lg:hidden' },
+           'none': { desktop: 'flex', mobile: 'hidden', drawer: 'hidden' }
+       };
+
+       const bpConfig = menuBreakpoints[mobileMenuBreakpoint as keyof typeof menuBreakpoints] || menuBreakpoints['md'];
+       const breakpointClass = bpConfig.desktop;
+       const mobileToggleClass = bpConfig.mobile;
+       const drawerHiddenClass = bpConfig.drawer;
+
        const linkStyle = { color: linkColor || 'inherit' };
        const activeStyle = activeLinkColor ? { '--active-color': activeLinkColor } as React.CSSProperties : {};
        return (
@@ -279,12 +291,12 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                 {isMenuOpen && (
                    <>
                    {mobileMenuType === 'dropdown' && (
-                       <div className={`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col z-40 max-h-[80vh] overflow-y-auto ${isClosing ? 'animate-fade-out' : 'animate-fade-in'} ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
+                       <div className={`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col z-40 max-h-[80vh] overflow-y-auto ${isClosing ? 'animate-fade-out' : 'animate-fade-in'} ${drawerHiddenClass}`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
                            {navLinks.map((link, i) => <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} />)}
                        </div>
                    )}
                    {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
-                       <div className={`fixed inset-0 z-50 h-[100vh] ${mobileMenuBreakpoint === 'none' ? 'hidden' : `${mobileMenuBreakpoint}:hidden`}`}>
+                       <div className={`fixed inset-0 z-50 h-[100vh] ${drawerHiddenClass}`}>
                            <div className={`absolute inset-0 bg-black/50 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`} onClick={closeMenu}></div>
                            <div className={`absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto ${mobileMenuType === 'slide-left' ? (isClosing ? 'left-0 animate-slide-out-left' : 'left-0 animate-slide-in-left') : (isClosing ? 'right-0 animate-slide-out-right' : 'right-0 animate-slide-in-right')}`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
                                <div className="flex justify-end p-4"><button onClick={closeMenu} className="p-2 text-gray-500 hover:text-gray-700"><Icons.X /></button></div>
