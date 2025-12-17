@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { PageElement, SavedTemplate, ElementType, NavLinkItem, ListItem, AnimationSettings, TestimonialItem, GalleryImage } from '../../types';
 import { Icons } from '../Icons';
@@ -52,26 +53,9 @@ const EASING_TYPES = [
     { label: 'Linear', value: 'none' },
 ];
 
-// Fix: Destructure onUpdateNavLink and onUpdateSlide from props
 export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ 
-    selectedElement, 
-    onUpdateId, 
-    onUpdateName, 
-    onDelete, 
-    onDuplicate, 
-    onUpdateProps, 
-    onUpdateStyle, 
-    onFileUpload, 
-    onAddNavLink, 
-    onUpdateNavLink, 
-    onRemoveNavLink, 
-    onAddSlide, 
-    onUpdateSlide, 
-    onRemoveSlide, 
-    onSaveTemplate, 
-    onDetach, 
-    onEditTemplate, 
-    savedTemplates 
+    selectedElement, onUpdateId, onUpdateName, onDelete, onDuplicate, onUpdateProps, onUpdateStyle, onFileUpload, 
+    onAddNavLink, onUpdateNavLink, onRemoveNavLink, onAddSlide, onUpdateSlide, onRemoveSlide, onSaveTemplate, onDetach, onEditTemplate, savedTemplates 
 }) => {
     const [activeTab, setActiveTab] = useState<'content' | 'element' | 'container'>('content');
 
@@ -140,18 +124,15 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                 <div className="space-y-6">
                                     <div className="space-y-4">
                                         <h3 className={sectionTitleClass}>Element Data</h3>
-                                        
-                                        {/* TEXT & HEADING */}
-                                        {(displayElement.type === 'text' || displayElement.type === 'heading') && (
+                                        {displayElement.type === 'text' && (
+                                            <div><label className={labelClass}>Text Content</label><textarea className={inputClass} rows={4} value={displayElement.props.content || ''} onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })} /></div>
+                                        )}
+                                        {displayElement.type === 'heading' && (
                                             <div className="space-y-3">
-                                                {displayElement.type === 'heading' && (
-                                                    <div><label className={labelClass}>Level</label><select className={inputClass} value={displayElement.props.level || 2} onChange={(e) => onUpdateProps(selectedElement.id, { level: parseInt(e.target.value) })}><option value={1}>H1</option><option value={2}>H2</option><option value={3}>H3</option><option value={4}>H4</option><option value={5}>H5</option><option value={6}>H6</option></select></div>
-                                                )}
-                                                <div><label className={labelClass}>Content</label><textarea className={inputClass} rows={4} value={displayElement.props.content || ''} onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })} /></div>
+                                                <div><label className={labelClass}>Level</label><select className={inputClass} value={displayElement.props.level || 2} onChange={(e) => onUpdateProps(selectedElement.id, { level: parseInt(e.target.value) })}><option value={1}>H1</option><option value={2}>H2</option><option value={3}>H3</option><option value={4}>H4</option><option value={5}>H5</option><option value={6}>H6</option></select></div>
+                                                <div><label className={labelClass}>Heading Text</label><input className={inputClass} value={displayElement.props.content || ''} onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })} /></div>
                                             </div>
                                         )}
-
-                                        {/* BUTTON */}
                                         {displayElement.type === 'button' && (
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between mb-1">
@@ -173,213 +154,111 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                                 </div>
                                             </div>
                                         )}
-
-                                        {/* LOGO */}
+                                        {/* Logo and Menu Properties */}
                                         {displayElement.type === 'logo' && (
                                             <div className="space-y-3">
                                                 <div><label className={labelClass}>Logo Type</label><select className={inputClass} value={displayElement.props.logoType || 'text'} onChange={(e) => onUpdateProps(selectedElement.id, { logoType: e.target.value })}><option value="text">Text</option><option value="image">Image</option></select></div>
                                                 {displayElement.props.logoType === 'image' ? (
-                                                    <>
-                                                        <div><label className={labelClass}>Image URL</label><input className={inputClass} value={displayElement.props.logoSrc || ''} onChange={(e) => onUpdateProps(selectedElement.id, { logoSrc: e.target.value })} /></div>
-                                                        <div><label className={labelClass}>Width</label><input className={inputClass} value={displayElement.props.logoWidth || ''} onChange={(e) => onUpdateProps(selectedElement.id, { logoWidth: e.target.value })} placeholder="e.g. 120px" /></div>
-                                                    </>
+                                                    <div><label className={labelClass}>Src</label><input className={inputClass} value={displayElement.props.logoSrc || ''} onChange={(e) => onUpdateProps(selectedElement.id, { logoSrc: e.target.value })} /></div>
                                                 ) : (
                                                     <div><label className={labelClass}>Text</label><input className={inputClass} value={displayElement.props.logoText || ''} onChange={(e) => onUpdateProps(selectedElement.id, { logoText: e.target.value })} /></div>
                                                 )}
-                                                <div><label className={labelClass}>Link (Href)</label><input className={inputClass} value={displayElement.props.href || ''} onChange={(e) => onUpdateProps(selectedElement.id, { href: e.target.value })} /></div>
+                                                <div><label className={labelClass}>Width</label><input className={inputClass} value={displayElement.props.logoWidth || ''} onChange={(e) => onUpdateProps(selectedElement.id, { logoWidth: e.target.value })} placeholder="120px" /></div>
+                                                <div><label className={labelClass}>Link Href</label><input className={inputClass} value={displayElement.props.href || ''} onChange={(e) => onUpdateProps(selectedElement.id, { href: e.target.value })} /></div>
                                             </div>
                                         )}
-
-                                        {/* NAVBAR */}
-                                        {displayElement.type === 'navbar' && (
-                                            <div className="space-y-3">
-                                                <div><label className={labelClass}>Position Mode</label><select className={inputClass} value={displayElement.props.headerType || 'relative'} onChange={(e) => onUpdateProps(selectedElement.id, { headerType: e.target.value })}><option value="relative">Relative</option><option value="fixed">Fixed Top</option><option value="sticky">Sticky on Scroll</option></select></div>
-                                                {displayElement.props.headerType === 'sticky' && (
-                                                    <div><label className={labelClass}>Sticky Offset (px)</label><input type="number" className={inputClass} value={displayElement.props.stickyOffset || 100} onChange={(e) => onUpdateProps(selectedElement.id, { stickyOffset: parseInt(e.target.value) })} /></div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* MENU */}
                                         {displayElement.type === 'menu' && (
                                             <div className="space-y-4">
-                                                <div><label className={labelClass}>Mobile Breakpoint</label><select className={inputClass} value={displayElement.props.mobileMenuBreakpoint || 'md'} onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuBreakpoint: e.target.value })}><option value="sm">Small (Mobile)</option><option value="md">Medium (Tablet)</option><option value="lg">Large (Desktop)</option><option value="none">None (Always Desktop)</option></select></div>
-                                                <div><label className={labelClass}>Menu Icon</label><select className={inputClass} value={displayElement.props.mobileMenuIconType || 'menu'} onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuIconType: e.target.value })}><option value="menu">Hamburger</option><option value="grid">Grid</option><option value="dots">Dots</option></select></div>
+                                                <div><label className={labelClass}>Mobile Breakpoint</label><select className={inputClass} value={displayElement.props.mobileMenuBreakpoint || 'md'} onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuBreakpoint: e.target.value })}><option value="sm">sm</option><option value="md">md</option><option value="lg">lg</option><option value="none">None</option></select></div>
                                                 <div className="pt-2 border-t border-gray-100">
-                                                    <label className={labelClass}>Links</label>
+                                                    <label className={labelClass}>Nav Links</label>
                                                     <div className="space-y-2">
                                                         {(displayElement.props.navLinks || []).map((link: NavLinkItem, i: number) => (
-                                                            <div key={link.id} className="border border-gray-200 rounded p-2 bg-gray-50 space-y-2">
-                                                                <input className={inputClass} placeholder="Label" value={link.label} onChange={(e) => onUpdateNavLink(selectedElement.id!, i, 'label', e.target.value)} />
-                                                                <select className={inputClass} value={link.type || 'link'} onChange={(e) => onUpdateNavLink(selectedElement.id!, i, 'type', e.target.value)}><option value="link">Link</option><option value="popup">Popup Trigger</option><option value="mega-menu">Mega Menu</option></select>
-                                                                {link.type === 'link' ? (
-                                                                    <input className={inputClass} placeholder="Href (#about)" value={link.href || ''} onChange={(e) => onUpdateNavLink(selectedElement.id!, i, 'href', e.target.value)} />
-                                                                ) : (
-                                                                    <input className={inputClass} placeholder="Target Container ID" value={link.targetId || ''} onChange={(e) => onUpdateNavLink(selectedElement.id!, i, 'targetId', e.target.value)} />
-                                                                )}
+                                                            <div key={link.id} className="bg-gray-50 border p-2 rounded flex flex-col gap-2">
+                                                                <input className={inputClass} value={link.label} onChange={(e) => onUpdateNavLink(selectedElement.id, i, 'label', e.target.value)} />
+                                                                <input className={inputClass} placeholder="Href" value={link.href || ''} onChange={(e) => onUpdateNavLink(selectedElement.id, i, 'href', e.target.value)} />
                                                                 <button onClick={() => onRemoveNavLink(selectedElement.id, i)} className="text-[10px] text-red-500 font-bold uppercase hover:bg-red-50 p-1 rounded">Remove</button>
                                                             </div>
                                                         ))}
-                                                        <button onClick={() => onAddNavLink(selectedElement.id)} className="w-full py-2 border border-dashed border-gray-300 text-gray-400 text-xs font-bold hover:border-indigo-400 hover:text-indigo-400 rounded">+ Add Link</button>
+                                                        <button onClick={() => onAddNavLink(selectedElement.id)} className="w-full py-2 border border-dashed border-gray-300 text-gray-400 text-xs font-bold rounded">+ Add Link</button>
                                                     </div>
                                                 </div>
                                             </div>
                                         )}
-
-                                        {/* SLIDER */}
-                                        {displayElement.type === 'slider' && (
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-2">
-                                                    <input type="checkbox" checked={displayElement.props.sliderAutoplay || false} onChange={(e) => onUpdateProps(selectedElement.id, { sliderAutoplay: e.target.checked })} />
-                                                    <label className={labelClass}>Autoplay</label>
-                                                </div>
-                                                {displayElement.props.sliderAutoplay && (
-                                                    <div><label className={labelClass}>Interval (ms)</label><input type="number" className={inputClass} value={displayElement.props.sliderInterval || 3000} onChange={(e) => onUpdateProps(selectedElement.id, { sliderInterval: parseInt(e.target.value) })} /></div>
-                                                )}
-                                                <div><label className={labelClass}>Transition</label><select className={inputClass} value={displayElement.props.sliderTransition || 'fade'} onChange={(e) => onUpdateProps(selectedElement.id, { sliderTransition: e.target.value })}><option value="fade">Fade</option><option value="zoom">Zoom</option><option value="slide-up">Slide Up</option></select></div>
-                                                <div><label className={labelClass}>Nav Style</label><select className={inputClass} value={displayElement.props.sliderNavType || 'chevron'} onChange={(e) => onUpdateProps(selectedElement.id, { sliderNavType: e.target.value })}><option value="chevron">Chevron</option><option value="arrow">Arrow</option><option value="caret">Caret</option></select></div>
-                                                <button onClick={() => onAddSlide(selectedElement.id)} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded">+ Add Slide</button>
-                                            </div>
-                                        )}
-
-                                        {/* GALLERY */}
-                                        {displayElement.type === 'gallery' && (
-                                            <div className="space-y-4">
-                                                <div><label className={labelClass}>Layout</label><select className={inputClass} value={displayElement.props.galleryLayout || 'grid'} onChange={(e) => onUpdateProps(selectedElement.id, { galleryLayout: e.target.value })}><option value="grid">Grid</option><option value="masonry">Masonry</option><option value="flex">Flex (Row)</option></select></div>
-                                                <div><label className={labelClass}>Columns</label><input type="number" min={1} max={6} className={inputClass} value={displayElement.props.galleryColumnCount || 3} onChange={(e) => onUpdateProps(selectedElement.id, { galleryColumnCount: parseInt(e.target.value) })} /></div>
-                                                <div><label className={labelClass}>Gap (px/rem)</label><input className={inputClass} value={displayElement.props.galleryGap || '1rem'} onChange={(e) => onUpdateProps(selectedElement.id, { galleryGap: e.target.value })} /></div>
-                                                <div><label className={labelClass}>Aspect Ratio</label><select className={inputClass} value={displayElement.props.galleryAspectRatio || 'aspect-square'} onChange={(e) => onUpdateProps(selectedElement.id, { galleryAspectRatio: e.target.value })}><option value="aspect-square">Square (1:1)</option><option value="aspect-video">Video (16:9)</option><option value="auto">Auto (Original)</option></select></div>
-                                                <div className="pt-2 border-t border-gray-100">
-                                                    <label className={labelClass}>Images</label>
-                                                    <div className="space-y-2">
-                                                        {(displayElement.props.galleryImages || []).map((img: GalleryImage, i: number) => (
-                                                            <div key={img.id} className="border border-gray-200 rounded p-2 bg-gray-50 flex gap-2 items-center">
-                                                                <img src={img.src} className="w-8 h-8 rounded object-cover" />
-                                                                <input className="flex-1 text-[10px] bg-white border border-gray-200 rounded px-1.5 py-1" value={img.src} onChange={(e) => {
-                                                                    const imgs = [...(displayElement!.props.galleryImages || [])];
-                                                                    imgs[i] = { ...imgs[i], src: e.target.value };
-                                                                    onUpdateProps(selectedElement.id, { galleryImages: imgs });
-                                                                }} />
-                                                                <button onClick={() => {
-                                                                    const imgs = [...(displayElement!.props.galleryImages || [])];
-                                                                    imgs.splice(i, 1);
-                                                                    onUpdateProps(selectedElement.id, { galleryImages: imgs });
-                                                                }} className="text-red-500 hover:bg-red-50 p-1 rounded"><Icons.Trash width={12} height={12} /></button>
-                                                            </div>
-                                                        ))}
-                                                        <button onClick={() => {
-                                                            const imgs = [...(displayElement!.props.galleryImages || [])];
-                                                            imgs.push({ id: `img-${Date.now()}`, src: 'https://picsum.photos/400/300?random=' + (imgs.length + 1) });
-                                                            onUpdateProps(selectedElement.id, { galleryImages: imgs });
-                                                        }} className="w-full py-1.5 border border-dashed border-gray-300 text-[10px] text-gray-400 font-bold hover:text-indigo-600 rounded">+ Add Image</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* TESTIMONIAL */}
-                                        {displayElement.type === 'testimonial' && (
-                                            <div className="space-y-4">
-                                                <div><label className={labelClass}>Layout</label><select className={inputClass} value={displayElement.props.testimonialLayout || 'grid'} onChange={(e) => onUpdateProps(selectedElement.id, { testimonialLayout: e.target.value })}><option value="grid">Grid</option><option value="slider">Slider</option></select></div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div><label className={labelClass}>Avatar Shape</label><select className={inputClass} value={displayElement.props.testimonialAvatarShape || 'circle'} onChange={(e) => onUpdateProps(selectedElement.id, { testimonialAvatarShape: e.target.value })}><option value="circle">Circle</option><option value="square">Square</option><option value="rounded">Rounded</option></select></div>
-                                                    <div><label className={labelClass}>Avatar Size</label><select className={inputClass} value={displayElement.props.testimonialAvatarSize || 'md'} onChange={(e) => onUpdateProps(selectedElement.id, { testimonialAvatarSize: e.target.value })}><option value="sm">Small</option><option value="md">Medium</option><option value="lg">Large</option></select></div>
-                                                </div>
-                                                <div><label className={labelClass}>Bubble Color</label><ColorPicker value={displayElement.props.testimonialBubbleColor} onChange={(v) => onUpdateProps(selectedElement.id, { testimonialBubbleColor: v })} /></div>
-                                                <div className="pt-2 border-t border-gray-100">
-                                                    <label className={labelClass}>Testimonials</label>
-                                                    <div className="space-y-2">
-                                                        {(displayElement.props.testimonialItems || []).map((item: TestimonialItem, i: number) => (
-                                                            <div key={item.id} className="border border-gray-200 rounded p-2 bg-gray-50 space-y-2 text-[10px]">
-                                                                <input className={inputClass} placeholder="Author" value={item.author} onChange={(e) => {
-                                                                    const items = [...(displayElement!.props.testimonialItems || [])];
-                                                                    items[i] = { ...items[i], author: e.target.value };
-                                                                    onUpdateProps(selectedElement.id, { testimonialItems: items });
-                                                                }} />
-                                                                <textarea className={inputClass} rows={2} placeholder="Content" value={item.content} onChange={(e) => {
-                                                                    const items = [...(displayElement!.props.testimonialItems || [])];
-                                                                    items[i] = { ...items[i], content: e.target.value };
-                                                                    onUpdateProps(selectedElement.id, { testimonialItems: items });
-                                                                }} />
-                                                                <button onClick={() => {
-                                                                    const items = [...(displayElement!.props.testimonialItems || [])];
-                                                                    items.splice(i, 1);
-                                                                    onUpdateProps(selectedElement.id, { testimonialItems: items });
-                                                                }} className="text-red-500 hover:bg-red-50 p-1 rounded font-bold">REMOVE</button>
-                                                            </div>
-                                                        ))}
-                                                        <button onClick={() => {
-                                                            const items = [...(displayElement!.props.testimonialItems || [])];
-                                                            items.push({ id: `t-${Date.now()}`, author: "Name", content: "Review content...", role: "Customer", rating: 5 });
-                                                            onUpdateProps(selectedElement.id, { testimonialItems: items });
-                                                        }} className="w-full py-1.5 border border-dashed border-gray-300 text-gray-400 font-bold rounded">+ Add Testimonial</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* FORM CONTAINER */}
-                                        {displayElement.type === 'form' && (
-                                            <div className="space-y-3">
-                                                <div><label className={labelClass}>Submit Action URL</label><input className={inputClass} value={displayElement.props.formActionUrl || ''} onChange={(e) => onUpdateProps(selectedElement.id, { formActionUrl: e.target.value })} placeholder="e.g. https://formspree.io/..." /></div>
-                                                <div><label className={labelClass}>Redirect URL (After Success)</label><input className={inputClass} value={displayElement.props.formThankYouUrl || ''} onChange={(e) => onUpdateProps(selectedElement.id, { formThankYouUrl: e.target.value })} placeholder="https://..." /></div>
-                                            </div>
-                                        )}
-
-                                        {/* FORM FIELD ELEMENTS (INPUT, SELECT, ETC) */}
+                                        {/* Form Field Properties */}
                                         {(displayElement.type === 'input' || displayElement.type === 'textarea' || displayElement.type === 'select' || displayElement.type === 'radio' || displayElement.type === 'checkbox') && (
-                                            <div className="space-y-4">
+                                            <div className="space-y-4 pt-4 border-t border-gray-100">
+                                                <h3 className={sectionTitleClass}>Field Settings</h3>
                                                 <div className="grid grid-cols-2 gap-3">
-                                                    <div><label className={labelClass}>Field Label</label><input className={inputClass} value={displayElement.props.fieldLabel || ''} onChange={(e) => onUpdateProps(selectedElement.id, { fieldLabel: e.target.value })} /></div>
-                                                    <div><label className={labelClass}>Field Name (ID)</label><input className={inputClass} value={displayElement.props.fieldName || ''} onChange={(e) => onUpdateProps(selectedElement.id, { fieldName: e.target.value })} placeholder="user_email" /></div>
-                                                </div>
-                                                <div className="flex items-center gap-4 py-2 bg-gray-50 px-3 rounded border border-gray-100">
-                                                    <div className="flex items-center gap-2">
-                                                        <input type="checkbox" id="req" checked={displayElement.props.fieldRequired || false} onChange={(e) => onUpdateProps(selectedElement.id, { fieldRequired: e.target.checked })} />
-                                                        <label htmlFor="req" className="text-[10px] font-bold text-gray-600 uppercase">Required</label>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <input type="checkbox" id="hid" checked={displayElement.props.fieldHidden || false} onChange={(e) => onUpdateProps(selectedElement.id, { fieldHidden: e.target.checked })} />
-                                                        <label htmlFor="hid" className="text-[10px] font-bold text-gray-600 uppercase">Hidden</label>
-                                                    </div>
+                                                    <div><label className={labelClass}>Label</label><input className={inputClass} value={displayElement.props.fieldLabel || ''} onChange={(e) => onUpdateProps(selectedElement.id, { fieldLabel: e.target.value })} /></div>
+                                                    <div><label className={labelClass}>Name</label><input className={inputClass} value={displayElement.props.fieldName || ''} onChange={(e) => onUpdateProps(selectedElement.id, { fieldName: e.target.value })} placeholder="field_id" /></div>
                                                 </div>
                                                 {displayElement.type === 'input' && (
                                                     <div className="space-y-3">
-                                                        <div><label className={labelClass}>Input Type</label><select className={inputClass} value={displayElement.props.inputType || 'text'} onChange={(e) => onUpdateProps(selectedElement.id, { inputType: e.target.value })}><option value="text">Text</option><option value="email">Email</option><option value="password">Password</option><option value="number">Number</option><option value="tel">Phone</option><option value="url">URL</option><option value="date">Date</option></select></div>
+                                                        <div><label className={labelClass}>Type</label><select className={inputClass} value={displayElement.props.inputType || 'text'} onChange={(e) => onUpdateProps(selectedElement.id, { inputType: e.target.value })}><option value="text">Text</option><option value="email">Email</option><option value="password">Password</option><option value="number">Number</option><option value="tel">Phone</option><option value="url">URL</option><option value="date">Date</option><option value="hidden">Hidden</option></select></div>
+                                                        <div><label className={labelClass}>Placeholder</label><input className={inputClass} value={displayElement.props.fieldPlaceholder || ''} onChange={(e) => onUpdateProps(selectedElement.id, { fieldPlaceholder: e.target.value })} /></div>
+                                                        <div><label className={labelClass}>Default Value</label><input className={inputClass} value={displayElement.props.fieldDefaultValue || ''} onChange={(e) => onUpdateProps(selectedElement.id, { fieldDefaultValue: e.target.value })} /></div>
+                                                    </div>
+                                                )}
+                                                {displayElement.type === 'textarea' && (
+                                                    <div className="space-y-3">
+                                                        <div><label className={labelClass}>Rows</label><input type="number" className={inputClass} value={displayElement.props.fieldRows || 4} onChange={(e) => onUpdateProps(selectedElement.id, { fieldRows: parseInt(e.target.value) })} /></div>
                                                         <div><label className={labelClass}>Placeholder</label><input className={inputClass} value={displayElement.props.fieldPlaceholder || ''} onChange={(e) => onUpdateProps(selectedElement.id, { fieldPlaceholder: e.target.value })} /></div>
                                                     </div>
                                                 )}
                                                 {displayElement.type === 'select' && (
-                                                    <div className="pt-2 border-t border-gray-100">
-                                                        <label className={labelClass}>Options</label>
-                                                        <div className="space-y-2">
-                                                            {(displayElement.props.fieldOptions || []).map((opt: { label: string, value: string }, i: number) => (
-                                                                <div key={i} className="flex gap-1 items-center bg-gray-50 p-1 rounded">
-                                                                    <input className="flex-1 text-[10px] p-1 border rounded" value={opt.label} onChange={(e) => {
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <input type="checkbox" id="multi" checked={displayElement.props.fieldMultiple || false} onChange={(e) => onUpdateProps(selectedElement.id, { fieldMultiple: e.target.checked })} />
+                                                            <label htmlFor="multi" className={labelClass}>Multiple Selection</label>
+                                                        </div>
+                                                        <div className="pt-2 border-t">
+                                                            <label className={labelClass}>Options</label>
+                                                            {(displayElement.props.fieldOptions || []).map((opt: any, i: number) => (
+                                                                <div key={i} className="flex gap-1 mb-1">
+                                                                    <input className={inputClass} placeholder="Label" value={opt.label} onChange={(e) => {
                                                                         const opts = [...(displayElement!.props.fieldOptions || [])];
                                                                         opts[i] = { ...opts[i], label: e.target.value };
                                                                         onUpdateProps(selectedElement.id, { fieldOptions: opts });
                                                                     }} />
-                                                                    <button onClick={() => {
+                                                                    <input className={inputClass} placeholder="Value" value={opt.value} onChange={(e) => {
                                                                         const opts = [...(displayElement!.props.fieldOptions || [])];
-                                                                        opts.splice(i, 1);
+                                                                        opts[i] = { ...opts[i], value: e.target.value };
                                                                         onUpdateProps(selectedElement.id, { fieldOptions: opts });
-                                                                    }} className="text-red-500 p-1"><Icons.Trash width={12} height={12} /></button>
+                                                                    }} />
                                                                 </div>
                                                             ))}
                                                             <button onClick={() => {
                                                                 const opts = [...(displayElement!.props.fieldOptions || [])];
-                                                                opts.push({ label: 'New Option', value: 'opt' + opts.length });
+                                                                opts.push({ label: 'New', value: 'new' });
                                                                 onUpdateProps(selectedElement.id, { fieldOptions: opts });
-                                                            }} className="w-full py-1 text-[10px] text-gray-400 font-bold border border-dashed rounded">+ Add Option</button>
+                                                            }} className="w-full text-[10px] font-bold py-1 border border-dashed rounded mt-1">+ Add Option</button>
                                                         </div>
                                                     </div>
                                                 )}
+                                                {(displayElement.type === 'radio' || displayElement.type === 'checkbox') && (
+                                                    <div className="space-y-3">
+                                                        <div><label className={labelClass}>Submission Value</label><input className={inputClass} value={displayElement.props.fieldValue || ''} onChange={(e) => onUpdateProps(selectedElement.id, { fieldValue: e.target.value })} /></div>
+                                                        <div className="flex items-center gap-2">
+                                                            <input type="checkbox" id="chkd" checked={displayElement.props.checked || false} onChange={(e) => onUpdateProps(selectedElement.id, { checked: e.target.checked })} />
+                                                            <label htmlFor="chkd" className={labelClass}>Checked by Default</label>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-4 py-2 bg-gray-50 px-3 rounded border border-gray-100">
+                                                    <div className="flex items-center gap-2">
+                                                        <input type="checkbox" id="req" checked={displayElement.props.fieldRequired || false} onChange={(e) => onUpdateProps(selectedElement.id, { fieldRequired: e.target.checked })} />
+                                                        <label htmlFor="req" className="text-[10px] font-bold text-gray-600">REQUIRED</label>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <input type="checkbox" id="hid" checked={displayElement.props.fieldHidden || false} onChange={(e) => onUpdateProps(selectedElement.id, { fieldHidden: e.target.checked })} />
+                                                        <label htmlFor="hid" className="text-[10px] font-bold text-gray-600">HIDDEN</label>
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
-
-                                    {/* SHARED MOTION SECTION */}
+                                    {/* Animation Section */}
                                     <div className="pt-4 border-t border-gray-100 space-y-4">
                                          <h3 className={sectionTitleClass}>Motion & Animation</h3>
                                          <div className="space-y-3">
@@ -391,8 +270,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                                         <div><label className={labelClass}>Delay (s)</label><input type="number" step="0.1" className={inputClass} value={displayElement.props.animation?.delay ?? 0} onChange={(e) => handleAnimationUpdate('delay', parseFloat(e.target.value))} /></div>
                                                     </div>
                                                     <div><label className={labelClass}>Easing</label><select className={inputClass} value={displayElement.props.animation?.ease || 'power2.out'} onChange={(e) => handleAnimationUpdate('ease', e.target.value)}>{EASING_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></div>
-                                                    <div><label className={labelClass}>Trigger</label><select className={inputClass} value={displayElement.props.animation?.trigger || 'scroll'} onChange={(e) => handleAnimationUpdate('trigger', e.target.value)}><option value="scroll">On Scroll Into View</option><option value="load">On Page Load</option></select></div>
-                                                    <div><label className={labelClass}>Animate Target</label><select className={inputClass} value={displayElement.props.animation?.target || 'self'} onChange={(e) => handleAnimationUpdate('target', e.target.value)}><option value="self">This Element</option><option value="children">Direct Children (Staggered)</option></select></div>
                                                 </>
                                             )}
                                          </div>
