@@ -1,6 +1,6 @@
 {
   "name": "buildflow-react",
-  "version": "1.0.15",
+  "version": "1.1.0",
   "description": "A powerful visual drag-and-drop website builder for React.",
   "main": "./dist/buildflow.umd.js",
   "module": "./dist/buildflow.es.js",
@@ -38,7 +38,9 @@
     "vite": "^4.4.5",
     "vite-plugin-dts": "^3.9.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "gsap": "^3.12.5",
+    "@gsap/react": "^2.1.0"
   },
   "keywords": [
     "react",
