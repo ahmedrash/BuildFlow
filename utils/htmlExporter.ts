@@ -36,8 +36,11 @@ export const exportHtml = (
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
       ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       
-      /* GSAP Initial state. We use a class that GSAP will override with inline styles */
-      .gsap-reveal { opacity: 0; visibility: hidden; }
+      /* GSAP Initial state: only hide if GSAP hasn't applied inline visibility yet */
+      .gsap-reveal:not([style*="visibility"]) { 
+        opacity: 0 !important; 
+        visibility: hidden !important; 
+      }
     </style>
     ${recaptchaSiteKey ? `<script src="https://www.google.com/recaptcha/api.js" async defer></script>` : ''}
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -82,7 +85,6 @@ export const exportHtml = (
                 const { type: animType, duration = 1, delay = 0, ease = 'power2.out', stagger = 0, target = 'self', viewport = 85, trigger = 'scroll' } = animation;
 
                 let actualTarget = ref.current;
-                // Handle components that use display: contents
                 if (actualTarget.style.display === 'contents' && actualTarget.firstElementChild) {
                     actualTarget = actualTarget.firstElementChild;
                 }
@@ -91,10 +93,12 @@ export const exportHtml = (
                 let elementsToAnimate = target === 'children' ? Array.from(actualTarget.children) : [actualTarget];
                 if (elementsToAnimate.length === 0) return;
 
-                // Ensure visibility is reset so GSAP can handle it
-                gsap.set(elementsToAnimate, { visibility: 'visible' });
+                const fromProps = { 
+                    opacity: 0,
+                    visibility: 'visible',
+                    overwrite: 'auto'
+                };
 
-                const fromProps = { opacity: 0 };
                 const toProps = {
                     opacity: 1,
                     x: 0, y: 0, scale: 1, rotation: 0,
@@ -102,7 +106,6 @@ export const exportHtml = (
                     delay,
                     ease,
                     stagger: target === 'children' ? stagger : 0,
-                    overwrite: 'auto',
                     onStart: () => {
                         elementsToAnimate.forEach(el => el.classList.remove('gsap-reveal'));
                     }
@@ -125,14 +128,18 @@ export const exportHtml = (
                         start: \`top \${viewport}%\`,
                         toggleActions: "play none none reverse",
                     };
-                    tween = gsap.fromTo(elementsToAnimate, fromProps, toProps);
-                } else {
-                    tween = gsap.fromTo(elementsToAnimate, fromProps, toProps);
                 }
+
+                const animTimeout = setTimeout(() => {
+                    tween = gsap.fromTo(elementsToAnimate, fromProps, toProps);
+                }, 100);
                 
                 return () => {
-                    if (tween.scrollTrigger) tween.scrollTrigger.kill();
-                    tween.kill();
+                    clearTimeout(animTimeout);
+                    if (tween) {
+                        if (tween.scrollTrigger) tween.scrollTrigger.kill();
+                        tween.kill();
+                    }
                 };
             }, [element.props.animation, element.id]);
         };
@@ -333,7 +340,7 @@ export const exportHtml = (
             }
         };
 
-        const PageElementRenderer = ({ element, isInsideHidden = false }) => {
+        const PageElementRenderer = ({ element, isInsideHidden = false, isStaggerChild = false }) => {
             let renderedElement = element;
             if (element.type === 'global') {
                 const t = savedTemplates.find(x => x.id === element.props.templateId);
@@ -346,18 +353,21 @@ export const exportHtml = (
             const { type, children, id, props } = renderedElement;
             const { popupTargets } = React.useContext(PopupContext);
             
-            // If this element is a popup/mega menu target AND we're in the main flow, hide it
             if (!isInsideHidden && popupTargets.has(id)) return null;
 
             const hasAnim = props.animation && props.animation.type !== 'none';
             const animTarget = props.animation?.target || 'self';
-            const revealClass = (hasAnim && animTarget === 'self') ? 'gsap-reveal' : '';
+            
+            // The reveal class must be on the actual tag to work with GSAP fromTo visibility
+            const revealClass = (isStaggerChild || (hasAnim && animTarget === 'self')) ? 'gsap-reveal' : '';
 
             const renderBackground = () => {
                 if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
                 const { backgroundImage, backgroundVideo, parallax } = props || {};
-                const finalBgImage = (props.style && props.style.backgroundImage) || backgroundImage;
-                if (backgroundVideo) return <video src={backgroundVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
+                const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = props.style || {};
+                const finalBgImage = styleBgImage || backgroundImage;
+                const finalBgVideo = styleBgVideo || backgroundVideo;
+                if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
                 if (finalBgImage) {
                     const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
                     return <div className={\`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none \${parallax ? 'bg-fixed' : ''}\`} style={{ backgroundImage: \`url(\${url})\` }} />;
@@ -390,11 +400,14 @@ export const exportHtml = (
                      {renderBackground()}
                      {children && children.length > 0 ? (
                          children.map(child => {
-                             const childReveal = (hasAnim && animTarget === 'children') ? 'gsap-reveal' : '';
+                             const parentAnimatesChildren = hasAnim && animTarget === 'children';
                              return (
-                                 <div key={child.id} className={childReveal} style={{ display: 'contents' }}>
-                                     <PageElementRenderer element={child} isInsideHidden={isInsideHidden} />
-                                 </div>
+                                 <PageElementRenderer 
+                                    key={child.id} 
+                                    element={child} 
+                                    isInsideHidden={isInsideHidden} 
+                                    isStaggerChild={parentAnimatesChildren} 
+                                 />
                              )
                          })
                      ) : (
@@ -410,23 +423,19 @@ export const exportHtml = (
             React.useEffect(() => {
                 const refresh = () => ScrollTrigger.refresh();
                 window.addEventListener('load', refresh);
-                const timer = setTimeout(refresh, 800);
-                const timer2 = setTimeout(refresh, 2000);
+                const timers = [100, 500, 1000, 2000, 4000].map(ms => setTimeout(refresh, ms));
                 return () => {
                     window.removeEventListener('load', refresh);
-                    clearTimeout(timer);
-                    clearTimeout(timer2);
+                    timers.forEach(t => clearTimeout(t));
                 };
             }, []);
 
             const hiddenTargetsSet = React.useMemo(() => {
                 const set = new Set();
                 const scanEls = (list) => list.forEach(el => {
-                    // Button popup targets
                     if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) {
                         set.add(el.props.popupTargetId);
                     }
-                    // Nav targets (megamenu and popup)
                     if ((el.type === 'navbar' || el.type === 'menu') && el.props.navLinks) {
                         const scanLinks = (links) => links.forEach(l => {
                             if (l.targetId) set.add(l.targetId);
