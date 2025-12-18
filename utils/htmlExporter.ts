@@ -36,8 +36,8 @@ export const exportHtml = (
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
       ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       
-      /* GSAP Initial state to prevent flash */
-      .gsap-reveal { opacity: 0; }
+      /* GSAP Initial state to prevent flash. Only applies if no inline style is set. */
+      .gsap-reveal:not([style*="opacity"]) { opacity: 0 !important; }
     </style>
     ${recaptchaSiteKey ? `<script src="https://www.google.com/recaptcha/api.js" async defer></script>` : ''}
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -98,7 +98,13 @@ export const exportHtml = (
                     delay,
                     ease,
                     stagger: target === 'children' ? stagger : 0,
-                    overwrite: 'auto'
+                    overwrite: 'auto',
+                    onStart: () => {
+                        elementsToAnimate.forEach(el => el.classList.remove('gsap-reveal'));
+                    },
+                    onComplete: () => {
+                        elementsToAnimate.forEach(el => el.classList.remove('gsap-reveal'));
+                    }
                 };
 
                 switch(animType) {
@@ -121,9 +127,6 @@ export const exportHtml = (
 
                 const tween = gsap.fromTo(elementsToAnimate, fromProps, toProps);
                 
-                // Refresh ScrollTrigger position after layout settled
-                setTimeout(() => ScrollTrigger.refresh(), 200);
-
                 return () => {
                     if (tween.scrollTrigger) tween.scrollTrigger.kill();
                     tween.kill();
@@ -339,7 +342,11 @@ export const exportHtml = (
 
             const { type, children, id, props } = renderedElement;
             const { popupTargets } = React.useContext(PopupContext);
-            const revealClass = props.animation && props.animation.type !== 'none' ? 'gsap-reveal' : '';
+            
+            // Animation handling: determine where to apply initial hidden class
+            const hasAnim = props.animation && props.animation.type !== 'none';
+            const animTarget = props.animation?.target || 'self';
+            const revealClass = (hasAnim && animTarget === 'self') ? 'gsap-reveal' : '';
 
             if (popupTargets.has(id)) return null;
 
@@ -379,7 +386,15 @@ export const exportHtml = (
                 <Tag ref={ref} id={id} className={\`\${props.className || ''} \${revealClass} \${stickyClass} relative\`} style={props.style}>
                      {renderBackground()}
                      {children && children.length > 0 ? (
-                         children.map(child => <PageElementRenderer key={child.id} element={child} />)
+                         children.map(child => {
+                             // If parent animates children, apply reveal class to children
+                             const childReveal = (hasAnim && animTarget === 'children') ? 'gsap-reveal' : '';
+                             return (
+                                 <div key={child.id} className={childReveal} style={{ display: 'contents' }}>
+                                     <PageElementRenderer element={child} />
+                                 </div>
+                             )
+                         })
                      ) : (
                          <ElementRenderer element={renderedElement} />
                      )}
@@ -389,6 +404,24 @@ export const exportHtml = (
 
         const App = () => {
             const [activePopupId, setActivePopupId] = React.useState(null);
+            
+            // Initialization: Refresh ScrollTrigger after Babel & Tailwind settle
+            React.useEffect(() => {
+                const refresh = () => ScrollTrigger.refresh();
+                
+                // Final layout calculation once images are loaded
+                window.addEventListener('load', refresh);
+                
+                const timer = setTimeout(refresh, 500);
+                const timer2 = setTimeout(refresh, 1500);
+                
+                return () => {
+                    window.removeEventListener('load', refresh);
+                    clearTimeout(timer);
+                    clearTimeout(timer2);
+                };
+            }, []);
+
             const popupTargets = React.useMemo(() => {
                 const set = new Set();
                 const scan = (els) => els.forEach(el => {
