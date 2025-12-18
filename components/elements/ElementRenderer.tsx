@@ -1,117 +1,15 @@
-
-import React, { useState, useEffect, useLayoutEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { PageElement, TestimonialItem, NavLinkItem } from '../../types';
 import { Icons } from '../Icons';
 import { EditorConfigContext, PopupContext, PageContext } from '../EditorConfigContext';
 import { ComponentRegistry } from '../registry';
 import '../definitions'; // Register definitions
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-gsap.registerPlugin(ScrollTrigger);
-
-// Fix: Added missing ElementRendererProps interface
 interface ElementRendererProps {
   element: PageElement;
   isPreview?: boolean;
 }
 
-// --- Animation Hook ---
-export const useElementAnimation = (ref: React.RefObject<HTMLElement | null>, element: PageElement, isPreview: boolean) => {
-    useLayoutEffect(() => {
-        if (!isPreview || !element.props.animation || element.props.animation.type === 'none') return;
-        if (!ref.current) return;
-
-        const { animation } = element.props;
-        const { type: animType, duration = 1, delay = 0, ease = 'power2.out', stagger = 0, target = 'self', viewport = 85, trigger = 'scroll' } = animation;
-
-        const ownerDoc = ref.current.ownerDocument;
-        const win = ownerDoc.defaultView as any;
-        
-        const _gsap = win.gsap || gsap;
-        const _ScrollTrigger = win.ScrollTrigger || ScrollTrigger;
-        
-        let actualTarget: HTMLElement | null = ref.current;
-        if (actualTarget.style.display === 'contents' && actualTarget.firstElementChild) {
-            actualTarget = actualTarget.firstElementChild as HTMLElement;
-        }
-
-        if (!actualTarget) return;
-
-        let elementsToAnimate: HTMLElement[] = [];
-        if (target === 'children') {
-             elementsToAnimate = Array.from(actualTarget.children) as HTMLElement[];
-        } else {
-             elementsToAnimate = [actualTarget];
-        }
-
-        if (elementsToAnimate.length === 0) return;
-
-        _gsap.killTweensOf(elementsToAnimate);
-
-        const animProps: any = {
-            duration,
-            delay,
-            ease,
-            stagger: target === 'children' ? stagger : 0,
-        };
-
-        if (trigger === 'scroll') {
-            animProps.scrollTrigger = {
-                trigger: actualTarget,
-                start: `top ${viewport}%`,
-                toggleActions: "play none none reverse",
-                scroller: win !== window ? ownerDoc.body : undefined 
-            };
-        }
-
-        let fromProps: any = { opacity: 0 };
-
-        switch(animType) {
-             case 'fade-in': 
-                break;
-             case 'fade-in-up': 
-                fromProps.y = 50; 
-                break;
-             case 'fade-in-down': 
-                fromProps.y = -50; 
-                break;
-             case 'slide-in-left': 
-                fromProps.x = -100; 
-                break;
-             case 'slide-in-right': 
-                fromProps.x = 100; 
-                break;
-             case 'zoom-in': 
-                fromProps.scale = 0.8; 
-                break;
-             case 'rotate-in': 
-                fromProps.rotation = -15; 
-                fromProps.scale = 0.8; 
-                break;
-             default:
-                return;
-        }
-
-        const ctx = _gsap.context(() => {
-             _gsap.from(elementsToAnimate, {
-                ...fromProps,
-                ...animProps
-            });
-        }, actualTarget);
-        
-        if (_ScrollTrigger && trigger === 'scroll') {
-             setTimeout(() => _ScrollTrigger.refresh(), 50); 
-        }
-
-        return () => {
-             ctx.revert();
-        };
-
-    }, [isPreview, element.props.animation]);
-};
-
-// Fix: Added missing TestimonialSlider component
 const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string; avatarShape: string; bubbleColor: string }> = ({ 
     items, avatarSize, avatarShape, bubbleColor 
 }) => {
@@ -172,13 +70,13 @@ const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string
 
 export const ChildWrapper: React.FC<{ element: PageElement; isPreview?: boolean }> = ({ element, isPreview }) => {
     const { props, type } = element;
-    const ref = useRef<HTMLDivElement>(null);
+    
+    // Check if the component handles its own container rendering
+    // Standard containers in registry (section, container, columns, navbar, card, form) now handle their own ID/Class
     const isSelfContained = ['section', 'container', 'columns', 'navbar', 'slider', 'card', 'form'].includes(type);
-
-    useElementAnimation(ref, element, !!isPreview);
     
     if (isSelfContained) {
-         return <div ref={ref} style={{ display: 'contents' }}><ElementRenderer element={element} isPreview={isPreview} /></div>;
+         return <ElementRenderer element={element} isPreview={isPreview} />;
     }
 
     const renderBackground = () => {
@@ -197,7 +95,7 @@ export const ChildWrapper: React.FC<{ element: PageElement; isPreview?: boolean 
     };
 
     return (
-        <div ref={ref} id={element.id} className={`${props.className || ''} relative`} style={props.style}>
+        <div id={element.id} className={`${props.className || ''} relative`} style={props.style}>
             {renderBackground()}
             <ElementRenderer element={element} isPreview={isPreview} />
         </div>
@@ -209,15 +107,19 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
   const { openPopup } = useContext(PopupContext);
   const { findElement } = useContext(PageContext);
   
+  // Menu State
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
+  // Use Registry
   const definition = ComponentRegistry.get(element.type);
   if (definition) {
       const Component = definition.render;
       return <Component element={element} isPreview={!!isPreview} />;
   }
 
+  // Fallback for complex components not yet in definitions.tsx (e.g. Menu, Slider logic, etc)
+  
   const openMenu = () => { setIsMenuOpen(true); setIsClosing(false); };
   const closeMenu = () => { setIsClosing(true); setTimeout(() => { setIsMenuOpen(false); setIsClosing(false); }, 300); };
   const toggleMenu = () => { if (isMenuOpen && !isClosing) closeMenu(); else if (!isMenuOpen) openMenu(); };
@@ -256,6 +158,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
          if (targetElement) {
              const placement = link.megaMenuPlacement || 'center';
              const containerAlignment = placement === 'left' ? 'mr-auto' : placement === 'right' ? 'ml-auto' : 'mx-auto';
+             // Mega Menu Fix: Use ChildWrapper to render the referenced element.
+             // If targetElement is a container (it usually is), ChildWrapper will call ElementRenderer which renders the container div.
              megaMenuContent = (
                  <div className="absolute top-full left-0 w-full opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
                      <div className="max-h-[80vh] overflow-y-auto">
@@ -343,10 +247,25 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       )
   };
 
+  const renderBackground = () => {
+    if (!['section', 'container', 'columns', 'navbar', 'card'].includes(element.type)) return null;
+    const { backgroundImage, backgroundVideo, parallax } = element.props || {};
+    const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = element.props.style || {};
+    const finalBgImage = styleBgImage || backgroundImage;
+    const finalBgVideo = styleBgVideo || backgroundVideo;
+    if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
+    if (finalBgImage) {
+      const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
+      return <div className={`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none ${parallax ? 'bg-fixed' : ''}`} style={{ backgroundImage: `url(${url})` }} />;
+    }
+    return null;
+  };
+
   switch (element.type) {
     case 'menu':
        const { navLinks = [], linkColor, activeLinkColor, mobileMenuBreakpoint = 'md', mobileMenuType = 'dropdown', hamburgerColor, menuBackgroundColor, mobileMenuIconType = 'menu' } = element.props;
        
+       // Lookup table for static class generation to ensure Tailwind scans them correctly during build
        const menuBreakpoints = {
            'sm': { desktop: 'hidden sm:flex', mobile: 'flex sm:hidden', drawer: 'sm:hidden' },
            'md': { desktop: 'hidden md:flex', mobile: 'flex md:hidden', drawer: 'md:hidden' },
@@ -395,6 +314,10 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
         return <div className="flex items-center gap-2"><input type="radio" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} defaultChecked={element.props.checked} required={element.props.fieldRequired} className={`text-indigo-600 focus:ring-indigo-500 h-4 w-4 ${pointerClass} ${innerClass}`} style={innerStyle} disabled={!isPreview}/>{element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}</div>;
     case 'checkbox': 
         return <div className="flex items-center gap-2"><input type="checkbox" id={element.id} name={element.props.fieldName} value={element.props.fieldValue} required={element.props.fieldRequired} defaultChecked={element.props.checked} className={`text-indigo-600 focus:ring-indigo-500 h-4 w-4 rounded border-gray-300 ${pointerClass} ${innerClass}`} style={innerStyle} disabled={!isPreview}/>{element.props.fieldLabel && <label htmlFor={element.id} className="text-sm text-gray-700">{element.props.fieldLabel} {element.props.fieldRequired && <span className="text-red-500">*</span>}</label>}</div>;
+    case 'list': 
+        const ListTag = element.props.listType || 'ul';
+        const listStyle = element.props.listStyleType || (ListTag === 'ul' ? 'disc' : 'decimal');
+        return (<ListTag className={`pl-5 ${innerClass}`} style={{ listStyleType: listStyle, ...innerStyle }}>{(element.props.items || ['Item 1', 'Item 2', 'Item 3']).map((item, i, arr) => (<li key={i} style={{ marginBottom: i === arr.length - 1 ? 0 : element.props.itemSpacing }}>{item}</li>))}</ListTag>);
     case 'map': 
         const address = element.props.address || 'San Francisco';
         if (!googleMapsApiKey) return (<div className="w-full h-64 bg-gray-100 rounded overflow-hidden flex flex-col items-center justify-center border-2 border-dashed border-gray-300 text-gray-500 gap-2 relative"><Icons.Map width={32} height={32} className="opacity-50" /><div className="font-bold text-sm">Development Mode: Map</div><div className="text-xs text-center px-4">Address: {address}</div></div>);
@@ -416,6 +339,17 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
         const shapeClass = { 'circle': 'rounded-full', 'square': 'rounded-none', 'rounded': 'rounded-lg' }[testimonialAvatarShape as string] || 'rounded-full';
         if (testimonialLayout === 'slider') return <TestimonialSlider items={testimonialItems} avatarSize={sizeClass} avatarShape={shapeClass} bubbleColor={testimonialBubbleColor} />;
         return (<div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 ${innerClass}`} style={innerStyle}>{testimonialItems.map(item => (<div key={item.id} className="flex flex-col h-full"><div className="p-6 rounded-2xl relative mb-4 flex-1 shadow-sm" style={{ backgroundColor: testimonialBubbleColor }}><div className="absolute top-full left-8 -mt-2 border-8 border-transparent" style={{ borderTopColor: testimonialBubbleColor }}></div><p className="text-gray-700 italic relative z-10">"{item.content}"</p></div><div className="flex items-center gap-3 px-2">{item.avatarSrc && (<img src={item.avatarSrc} alt={item.author} className={`${sizeClass} ${shapeClass} object-cover bg-gray-200 border border-white shadow-sm`}/>)}<div><h4 className="font-bold text-sm text-gray-900">{item.author}</h4><p className="text-xs text-gray-500">{item.role}</p><div className="flex text-yellow-400 text-xs mt-0.5">{[...Array(5)].map((_, i) => (<span key={i} className={i < item.rating ? 'opacity-100' : 'opacity-30'}>★</span>))}</div></div></div></div>))}</div>);
+    case 'slider':
+        return (
+             <div id={element.id} className={`${element.props.className || ''} relative`} style={element.props.style}>
+                 {renderBackground()}
+                {element.children?.map((child, i) => (
+                    <div key={child.id} className={i === 0 ? 'relative' : 'hidden'}>
+                         <ChildWrapper element={child} isPreview={isPreview} />
+                    </div>
+                ))}
+             </div>
+        );
     default:
       return null;
   }

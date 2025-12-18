@@ -1,9 +1,8 @@
-
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
 import { Icons } from './Icons';
-import { ElementRenderer, useElementAnimation } from './elements/ElementRenderer';
+import { ElementRenderer } from './elements/ElementRenderer';
 
 interface EditorCanvasProps {
   element: PageElement;
@@ -43,39 +42,30 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0, visible: false });
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
   
+  // Sticky State: 'idle' | 'stuck' | 'unsticking'
   const [stickyState, setStickyState] = useState<'idle' | 'stuck' | 'unsticking'>('idle');
   const stickyStateRef = useRef(stickyState);
   useEffect(() => { stickyStateRef.current = stickyState; }, [stickyState]);
   
-  let renderedElement = element;
-  let isMissingTemplate = false;
-
-  if (element.type === 'global' && getTemplate) {
-      const template = getTemplate(element.props.templateId || '');
-      if (template) {
-          renderedElement = template.element;
-      } else {
-          isMissingTemplate = true;
-      }
-  }
-
-  // Animation Hook integration
-  useElementAnimation(elementRef, renderedElement, isPreview);
-
   const isSelected = selectedId === element.id && !isPreview;
   const isGlobal = element.type === 'global';
   const isPopupTarget = popupTargets?.has(element.id);
   const isMegaMenuTarget = megaMenuTargets?.has(element.id);
   
+  // An element is "hidden" from flow if it's a popup target OR a mega menu target
+  // UNLESS we are explicitly rendering it as content (isPopupContent)
   const isTargetHidden = (isPopupTarget || isMegaMenuTarget) && !isPopupContent;
+  
   const isHidden = element.props.isHidden;
 
+  // Hiding logic:
   let shouldHideClass = '';
   
   if (isHidden) {
       if (isPreview) {
           shouldHideClass = 'hidden';
       } else {
+          // In Editor Mode
           if (showHiddenElements) {
                shouldHideClass = 'opacity-40 grayscale filter border border-dashed border-gray-300';
           } else {
@@ -86,20 +76,22 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       if (isPreview) {
           shouldHideClass = 'hidden';
       } else {
+          // In Editor Mode: Hide targets if toggle is off
           if (!showHiddenElements) {
               shouldHideClass = 'hidden';
           }
       }
   }
 
+  // Sticky Header Logic in Editor
   useEffect(() => {
-     if (renderedElement.type !== 'navbar' || renderedElement.props.headerType !== 'sticky' || !elementRef.current) return;
+     if (element.type !== 'navbar' || element.props.headerType !== 'sticky' || !elementRef.current) return;
      
      const scrollContainer = elementRef.current.ownerDocument.defaultView;
      if (!scrollContainer) return;
 
      const handleScroll = () => {
-         const offset = renderedElement.props.stickyOffset || 100;
+         const offset = element.props.stickyOffset || 100;
          const currentScroll = scrollContainer.scrollY;
          const currentState = stickyStateRef.current;
 
@@ -117,9 +109,10 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
      scrollContainer.addEventListener('scroll', handleScroll);
      return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [renderedElement.type, renderedElement.props.headerType, renderedElement.props.stickyOffset]);
+  }, [element.type, element.props.headerType, element.props.stickyOffset]);
 
 
+  // Position Tracking Logic for Toolbar
   useLayoutEffect(() => {
     if (isSelected && elementRef.current) {
         setPortalContainer(elementRef.current.ownerDocument.body);
@@ -150,10 +143,11 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     } else {
         setToolbarPos(prev => ({ ...prev, visible: false }));
     }
-  }, [isSelected, renderedElement.props.style, renderedElement.children?.length, renderedElement.props.className]); 
+  }, [isSelected, element.props.style, element.children?.length, element.props.className]); 
 
   const handleClick = (e: MouseEvent) => {
     if (isPreview) {
+        // Handle anchor scrolling in preview
         const target = e.target as HTMLElement;
         const link = target.closest('a');
         if (link) {
@@ -184,6 +178,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     e.stopPropagation();
     if (isLocked || isPreview) { e.preventDefault(); return; }
     
+    // Select the element when dragging starts if not already selected
     if (!isSelected) {
         onSelect(element.id, e as any);
     }
@@ -236,25 +231,50 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     onDropElement(element.id, finalPosition, { type, ...data });
   };
 
+  useEffect(() => {
+    if (element.type === 'slider' && element.props.sliderAutoplay && isPreview && element.children && element.children.length > 1) {
+       const interval = element.props.sliderInterval || 3000;
+       const timer = setInterval(() => {
+           const currentIndex = element.props.sliderActiveIndex || 0;
+           const nextIndex = (currentIndex + 1) % element.children!.length;
+           onUpdateProps(element.id, { sliderActiveIndex: nextIndex });
+       }, interval);
+       return () => clearInterval(timer);
+    }
+  }, [element.type, element.props.sliderAutoplay, element.props.sliderInterval, element.children?.length, isPreview]);
+
+  let renderedElement = element;
+  if (isGlobal && getTemplate) {
+      const template = getTemplate(element.props.templateId || '');
+      if (template) renderedElement = template.element;
+  }
+
   const commonStyle = { ...renderedElement.props.style };
-  const classNameToApply = renderedElement.type === 'button' ? '' : (renderedElement.props.className || '');
-  const hasUserPositioning = /\b(absolute|fixed|sticky)\b/.test(classNameToApply);
+  
+  // Navbar positioning logic
+  const isNavbar = renderedElement.type === 'navbar';
   const headerType = renderedElement.props.headerType || 'relative';
   
-  let stickyClass = hasUserPositioning ? '' : 'relative'; 
-  if (renderedElement.type === 'navbar') {
+  let stickyClass = 'relative';
+  if (isNavbar) {
       if (headerType === 'fixed') stickyClass = 'fixed top-0 left-0 w-full z-50';
       else if (headerType === 'sticky') {
           if (stickyState === 'stuck') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md';
           else if (stickyState === 'unsticking') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-out-up shadow-md';
-          else stickyClass = 'relative';
+          else stickyClass = 'relative'; // idle
       }
   }
 
+  // Only clip Slider and Card to allow Dropdowns (in Navbar/Section) to overflow
   const shouldClip = ['slider', 'card'].includes(renderedElement.type);
   const overflowClass = shouldClip ? 'overflow-hidden' : '';
+  
+  // Use stickyClass for positioning if sticky, otherwise default relative
   const containerClasses = `${stickyClass} ${overflowClass}`;
-  const selectionClass = isSelected ? 'ring-2 ring-indigo-500 ring-offset-2 z-[100] cursor-pointer' : isPreview || isLocked ? '' : 'hover:ring-1 hover:ring-indigo-300 cursor-pointer';
+
+  const selectionClass = isSelected 
+    ? 'ring-2 ring-indigo-500 ring-offset-2 z-[100] cursor-pointer' 
+    : isPreview || isLocked ? '' : 'hover:ring-1 hover:ring-indigo-300 cursor-pointer';
   const dropIndicatorClass = dropPosition === 'inside' ? 'ring-2 ring-dashed ring-blue-500 bg-blue-50/50' : '';
   const globalClass = isGlobal ? 'ring-1 ring-amber-300 hover:ring-amber-500' : '';
   
@@ -270,22 +290,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     return classes;
   };
 
+  const classNameToApply = renderedElement.type === 'button' ? '' : (renderedElement.props.className || '');
   const baseClasses = `${classNameToApply} ${selectionClass} ${dropIndicatorClass} ${globalClass} ${containerClasses} ${shouldHideClass} transition-all duration-200`;
-
-  if (isMissingTemplate) {
-      if (!isPreview) {
-          return (
-             <div 
-                id={element.id} 
-                className={`p-4 border-2 border-dashed border-red-300 bg-red-50 text-red-500 rounded flex items-center justify-center cursor-pointer text-sm font-medium ${selectionClass}`}
-                onClick={(e) => onSelect(element.id, e as any)}
-             >
-                 <Icons.X className="w-5 h-5 mr-2 text-red-500" />
-                 <span>Global Template Not Found ({element.name})</span>
-             </div>
-          );
-      } else return null;
-  }
 
   const renderBackground = () => {
     if (!['section', 'container', 'columns', 'navbar', 'card'].includes(renderedElement.type)) return null;
@@ -308,23 +314,53 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       return <Icons.ChevronDown className={direction === 'prev' ? 'rotate-90' : '-rotate-90'} />;
   };
 
+  // Tag resolution handled inside ElementRenderer or here. 
+  // However, for Containers we want EditorCanvas wrapper to be the container.
+  // But since we use ElementRenderer inside, we must be careful not to double render.
+  // EditorCanvas renders a Wrapper Div (or Section). 
+  // ElementRenderer renders CONTENT. 
+  // If ElementRenderer renders the container div itself, EditorCanvas wrapper is redundant.
+  // BUT EditorCanvas logic relies on wrapper for drag events and selection.
+  // Solution: EditorCanvas renders the container div. ElementRenderer renders CHILDREN.
+  
+  // Wait, my new Registry pattern makes Definitions handle the root element.
+  // If Definition handles root element, EditorCanvas wrapping it creates double wrapping.
+  // FIX: EditorCanvas should render ElementRenderer directly if possible, attaching props to it?
+  // React doesn't allow attaching props easily to a functional component result without cloning.
+  
+  // Workaround: 
+  // EditorCanvas IS the wrapper. It renders children recursively.
+  // ElementRenderer is used for LEAF nodes or specific complex logic.
+  // For 'container', 'section', etc, EditorCanvas renders the div, and inside it maps children to EditorCanvas.
+  
   const Tag = (renderedElement.type === 'section' ? 'section' : renderedElement.type === 'form' ? 'form' : 'div') as any;
 
   const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
     if (renderedElement.type === 'card' && renderedElement.props.cardLink) {
         return <a href={renderedElement.props.cardLink} className="block h-full no-underline text-inherit" onClick={e => {
-            if (!isPreview) { e.preventDefault(); return; }
+            if (!isPreview) {
+                e.preventDefault();
+                return;
+            }
+            // In Preview: Disable if empty or not anchor (since cards assume _self)
             const href = renderedElement.props.cardLink;
             const isAnchor = href && href.startsWith('#');
+            
             if (isAnchor) {
                 e.preventDefault();
                 const id = href.substring(1);
                 const doc = (e.target as HTMLElement).ownerDocument;
-                if (!id) doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
-                else doc.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+                if (!id) {
+                     doc.defaultView?.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                     const el = doc.getElementById(id);
+                     if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }
                 return;
             }
-            if (!href || href === '#') e.preventDefault();
+
+            const isEmpty = !href || href === '#';
+            if (isEmpty || !isAnchor) e.preventDefault();
         }}>{children}</a>;
     }
     return <>{children}</>;
@@ -334,20 +370,32 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       if (renderedElement.type === 'slider' && renderedElement.children) {
           const activeIndex = renderedElement.props.sliderActiveIndex || 0;
           const transition = renderedElement.props.sliderTransition || 'fade';
+
           return (
               <>
                   {renderedElement.children.map((child, index) => {
                       const isActive = index === activeIndex;
                       let effectClass = '';
+                      // Base: absolute for inactive to overlap, relative for active to define height
                       const posClass = isActive ? 'relative z-10' : 'absolute top-0 left-0 z-0';
                       const commonClass = 'w-full h-full transition-all duration-700 ease-in-out';
+                      
                       switch(transition) {
-                          case 'zoom': effectClass = isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-110'; break;
-                          case 'slide-up': effectClass = isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'; break;
-                          case 'fade': default: effectClass = isActive ? 'opacity-100' : 'opacity-0';
+                          case 'zoom':
+                              effectClass = isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-110';
+                              break;
+                          case 'slide-up':
+                              effectClass = isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8';
+                              break;
+                          case 'fade':
+                          default:
+                              effectClass = isActive ? 'opacity-100' : 'opacity-0';
                       }
+                      
+                      const pointerEvents = isActive ? '' : 'pointer-events-none';
+
                       return (
-                           <div key={child.id} className={`${commonClass} ${posClass} ${effectClass} ${isActive ? '' : 'pointer-events-none'}`}>
+                           <div key={child.id} className={`${commonClass} ${posClass} ${effectClass} ${pointerEvents}`}>
                                <EditorCanvas element={child} selectedId={selectedId} onSelect={onSelect} isPreview={isPreview} onDropElement={onDropElement} onDuplicate={onDuplicate} onUpdateProps={onUpdateProps} parentId={isGlobal ? element.id : renderedElement.id} getTemplate={getTemplate} isLocked={isGlobal || isLocked} popupTargets={popupTargets} megaMenuTargets={megaMenuTargets} showHiddenElements={showHiddenElements} />
                            </div>
                       )
@@ -402,6 +450,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       
       {!isPreview && isPopupTarget && !isMegaMenuTarget && <div className="absolute top-0 right-0 bg-pink-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">POPUP CONTENT</div>}
       {!isPreview && isMegaMenuTarget && <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-bl pointer-events-none">MEGA MENU CONTENT</div>}
+
       {!isPreview && isHidden && showHiddenElements && <div className="absolute top-0 left-0 bg-gray-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 z-20 rounded-br pointer-events-none"><Icons.EyeOff width={10} height={10} className="inline mr-1"/>HIDDEN</div>}
 
       {renderBackground()}

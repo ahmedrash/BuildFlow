@@ -1,4 +1,5 @@
 
+
 export type ElementType = 
   | 'section' 
   | 'container' 
@@ -24,8 +25,7 @@ export type ElementType =
   | 'testimonial' 
   | 'card'
   | 'slider'
-  | 'global'
-  | 'customScript';
+  | 'global';
 
 export interface ElementStyle {
   backgroundColor?: string;
@@ -100,31 +100,11 @@ export interface NavLinkItem {
     children?: NavLinkItem[];
 }
 
-export interface ListItem {
-    id: string;
-    text: string;
-    href?: string;
-    target?: '_self' | '_blank';
-    iconLeft?: string;
-    iconRight?: string;
-}
-
 export interface SavedTemplate {
     id: string;
     name: string;
     isGlobal: boolean;
     element: PageElement;
-}
-
-export interface AnimationSettings {
-    type: 'none' | 'fade-in' | 'fade-in-up' | 'fade-in-down' | 'slide-in-left' | 'slide-in-right' | 'zoom-in' | 'rotate-in';
-    duration?: number;
-    delay?: number;
-    ease?: string;
-    stagger?: number; // For children
-    target?: 'self' | 'children';
-    viewport?: number; // threshold percentage
-    trigger?: 'scroll' | 'load';
 }
 
 export interface PageElement {
@@ -144,9 +124,6 @@ export interface PageElement {
     // Global Template Specific
     templateId?: string;
     
-    // Animation
-    animation?: AnimationSettings;
-
     // Specific Props
     level?: 1 | 2 | 3 | 4 | 5 | 6;
     parallax?: boolean;
@@ -158,8 +135,7 @@ export interface PageElement {
     listType?: 'ul' | 'ol';
     listStyleType?: string;
     itemSpacing?: string;
-    items?: string[]; // Legacy simple strings
-    listItems?: ListItem[]; // New structured items
+    items?: string[];
     
     // Map Specific
     address?: string;
@@ -253,16 +229,10 @@ export interface PageElement {
 
     code?: string;
     
-    // Custom Script
-    scriptContent?: string;
-
     // Button Specific
     buttonAction?: 'link' | 'submit' | 'popup';
     popupTargetId?: string; // New: Target element ID for popups
     target?: '_self' | '_blank';
-    buttonIconLeft?: string;
-    buttonIconRight?: string;
-    buttonIsIconOnly?: boolean;
 
     // Slider Specific
     sliderItems?: { src: string; caption?: string; content?: string }[];
