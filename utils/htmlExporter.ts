@@ -36,8 +36,8 @@ export const exportHtml = (
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
       ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       
-      /* GSAP Initial state to prevent flash. Only applies if no inline style is set. */
-      .gsap-reveal:not([style*="opacity"]) { opacity: 0 !important; }
+      /* GSAP Initial state. We use a class that GSAP will override with inline styles */
+      .gsap-reveal { opacity: 0; visibility: hidden; }
     </style>
     ${recaptchaSiteKey ? `<script src="https://www.google.com/recaptcha/api.js" async defer></script>` : ''}
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -74,7 +74,7 @@ export const exportHtml = (
         };
 
         const useElementAnimation = (ref, element) => {
-            React.useLayoutEffect(() => {
+            React.useEffect(() => {
                 if (!element.props.animation || element.props.animation.type === 'none') return;
                 if (!ref.current) return;
 
@@ -82,6 +82,7 @@ export const exportHtml = (
                 const { type: animType, duration = 1, delay = 0, ease = 'power2.out', stagger = 0, target = 'self', viewport = 85, trigger = 'scroll' } = animation;
 
                 let actualTarget = ref.current;
+                // Handle components that use display: contents
                 if (actualTarget.style.display === 'contents' && actualTarget.firstElementChild) {
                     actualTarget = actualTarget.firstElementChild;
                 }
@@ -89,6 +90,9 @@ export const exportHtml = (
 
                 let elementsToAnimate = target === 'children' ? Array.from(actualTarget.children) : [actualTarget];
                 if (elementsToAnimate.length === 0) return;
+
+                // Ensure visibility is reset so GSAP can handle it
+                gsap.set(elementsToAnimate, { visibility: 'visible' });
 
                 const fromProps = { opacity: 0 };
                 const toProps = {
@@ -100,9 +104,6 @@ export const exportHtml = (
                     stagger: target === 'children' ? stagger : 0,
                     overwrite: 'auto',
                     onStart: () => {
-                        elementsToAnimate.forEach(el => el.classList.remove('gsap-reveal'));
-                    },
-                    onComplete: () => {
                         elementsToAnimate.forEach(el => el.classList.remove('gsap-reveal'));
                     }
                 };
@@ -117,21 +118,23 @@ export const exportHtml = (
                      case 'rotate-in': fromProps.rotation = -15; fromProps.scale = 0.8; break;
                 }
 
+                let tween;
                 if (trigger === 'scroll') {
                     toProps.scrollTrigger = {
                         trigger: actualTarget,
                         start: \`top \${viewport}%\`,
                         toggleActions: "play none none reverse",
                     };
+                    tween = gsap.fromTo(elementsToAnimate, fromProps, toProps);
+                } else {
+                    tween = gsap.fromTo(elementsToAnimate, fromProps, toProps);
                 }
-
-                const tween = gsap.fromTo(elementsToAnimate, fromProps, toProps);
                 
                 return () => {
                     if (tween.scrollTrigger) tween.scrollTrigger.kill();
                     tween.kill();
                 };
-            }, [element.props.animation]);
+            }, [element.props.animation, element.id]);
         };
 
         const ElementRenderer = ({ element }) => {
@@ -177,10 +180,10 @@ export const exportHtml = (
                          const placement = link.megaMenuPlacement || 'center';
                          const containerAlignment = placement === 'left' ? 'mr-auto' : placement === 'right' ? 'ml-auto' : 'mx-auto';
                          megaMenuContent = (
-                             <div className="absolute top-full left-0 w-full opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
-                                 <div className="max-h-[80vh] overflow-y-auto">
+                             <div className="absolute top-full left-0 w-full opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50 pt-2">
+                                 <div className="max-h-[80vh] overflow-y-auto bg-white shadow-2xl rounded-b-xl border-t border-gray-100">
                                     <div className={\`container \${containerAlignment}\`}>
-                                        <PageElementRenderer element={targetElement} />
+                                        <PageElementRenderer element={targetElement} isInsideHidden={true} />
                                     </div>
                                  </div>
                              </div>
@@ -260,7 +263,7 @@ export const exportHtml = (
                                  {link.type === 'mega-menu' && link.targetId && (() => {
                                      const targetElement = findElement(link.targetId);
                                      if (!targetElement) return null;
-                                     return <div className="border-t border-gray-200 pt-2"><PageElementRenderer element={targetElement} /></div>
+                                     return <div className="border-t border-gray-200 pt-2"><PageElementRenderer element={targetElement} isInsideHidden={true} /></div>
                                  })()}
                              </div>
                          )}
@@ -330,7 +333,7 @@ export const exportHtml = (
             }
         };
 
-        const PageElementRenderer = ({ element }) => {
+        const PageElementRenderer = ({ element, isInsideHidden = false }) => {
             let renderedElement = element;
             if (element.type === 'global') {
                 const t = savedTemplates.find(x => x.id === element.props.templateId);
@@ -343,12 +346,12 @@ export const exportHtml = (
             const { type, children, id, props } = renderedElement;
             const { popupTargets } = React.useContext(PopupContext);
             
-            // Animation handling: determine where to apply initial hidden class
+            // If this element is a popup/mega menu target AND we're in the main flow, hide it
+            if (!isInsideHidden && popupTargets.has(id)) return null;
+
             const hasAnim = props.animation && props.animation.type !== 'none';
             const animTarget = props.animation?.target || 'self';
             const revealClass = (hasAnim && animTarget === 'self') ? 'gsap-reveal' : '';
-
-            if (popupTargets.has(id)) return null;
 
             const renderBackground = () => {
                 if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
@@ -373,13 +376,13 @@ export const exportHtml = (
                 };
                 window.addEventListener('scroll', handleScroll);
                 return () => window.removeEventListener('scroll', handleScroll);
-            }, [headerType]);
+            }, [headerType, type]);
 
             const Tag = type === 'section' ? 'section' : type === 'form' ? 'form' : 'div';
             let stickyClass = '';
             if (type === 'navbar') {
                 if (headerType === 'fixed') stickyClass = 'fixed top-0 left-0 w-full z-50';
-                else if (headerType === 'sticky') stickyClass = stickyState === 'stuck' ? 'fixed top-0 left-0 w-full z-50 shadow-md animate-slide-in-down' : 'relative';
+                else if (headerType === 'sticky') stickyClass = stickyState === 'stuck' ? 'fixed top-0 left-0 w-full z-50 shadow-md animate-slide-in-down bg-white' : 'relative';
             }
 
             return (
@@ -387,11 +390,10 @@ export const exportHtml = (
                      {renderBackground()}
                      {children && children.length > 0 ? (
                          children.map(child => {
-                             // If parent animates children, apply reveal class to children
                              const childReveal = (hasAnim && animTarget === 'children') ? 'gsap-reveal' : '';
                              return (
                                  <div key={child.id} className={childReveal} style={{ display: 'contents' }}>
-                                     <PageElementRenderer element={child} />
+                                     <PageElementRenderer element={child} isInsideHidden={isInsideHidden} />
                                  </div>
                              )
                          })
@@ -405,16 +407,11 @@ export const exportHtml = (
         const App = () => {
             const [activePopupId, setActivePopupId] = React.useState(null);
             
-            // Initialization: Refresh ScrollTrigger after Babel & Tailwind settle
             React.useEffect(() => {
                 const refresh = () => ScrollTrigger.refresh();
-                
-                // Final layout calculation once images are loaded
                 window.addEventListener('load', refresh);
-                
-                const timer = setTimeout(refresh, 500);
-                const timer2 = setTimeout(refresh, 1500);
-                
+                const timer = setTimeout(refresh, 800);
+                const timer2 = setTimeout(refresh, 2000);
                 return () => {
                     window.removeEventListener('load', refresh);
                     clearTimeout(timer);
@@ -422,13 +419,24 @@ export const exportHtml = (
                 };
             }, []);
 
-            const popupTargets = React.useMemo(() => {
+            const hiddenTargetsSet = React.useMemo(() => {
                 const set = new Set();
-                const scan = (els) => els.forEach(el => {
-                    if (el.type === 'button' && el.props.buttonAction === 'popup') set.add(el.props.popupTargetId);
-                    if (el.children) scan(el.children);
+                const scanEls = (list) => list.forEach(el => {
+                    // Button popup targets
+                    if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) {
+                        set.add(el.props.popupTargetId);
+                    }
+                    // Nav targets (megamenu and popup)
+                    if ((el.type === 'navbar' || el.type === 'menu') && el.props.navLinks) {
+                        const scanLinks = (links) => links.forEach(l => {
+                            if (l.targetId) set.add(l.targetId);
+                            if (l.children) scanLinks(l.children);
+                        });
+                        scanLinks(el.props.navLinks);
+                    }
+                    if (el.children) scanEls(el.children);
                 });
-                scan(elements);
+                scanEls(elements);
                 return set;
             }, []);
 
@@ -444,7 +452,7 @@ export const exportHtml = (
 
             return (
                 <EditorConfigContext.Provider value={{ googleMapsApiKey, recaptchaSiteKey }}>
-                    <PopupContext.Provider value={{ openPopup: setActivePopupId, popupTargets }}>
+                    <PopupContext.Provider value={{ openPopup: setActivePopupId, popupTargets: hiddenTargetsSet }}>
                         <PageContext.Provider value={{ findElement: (id) => findElement(id, elements) }}>
                              {elements.map(el => <PageElementRenderer key={el.id} element={el} />)}
                              {activePopupId && activePopupElement && ReactDOM.createPortal(
@@ -453,7 +461,7 @@ export const exportHtml = (
                                      <div className="relative shadow-2xl overflow-hidden w-auto max-w-full max-h-[90vh] overflow-y-auto">
                                           <button className="absolute top-4 right-4 z-50 p-2 bg-white/50 hover:bg-white rounded-full text-gray-800" onClick={() => setActivePopupId(null)}><Icons.X /></button>
                                           <PopupContext.Provider value={{ openPopup: setActivePopupId, popupTargets: new Set() }}>
-                                            <PageElementRenderer element={activePopupElement} />
+                                            <PageElementRenderer element={activePopupElement} isInsideHidden={true} />
                                           </PopupContext.Provider>
                                      </div>
                                  </div>,
