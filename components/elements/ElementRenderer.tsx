@@ -8,35 +8,42 @@ import '../definitions'; // Register definitions
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-// Ensure GSAP plugins are registered in the main context
-gsap.registerPlugin(ScrollTrigger);
+// Ensure GSAP plugins are registered
+if (typeof window !== 'undefined') {
+    gsap.registerPlugin(ScrollTrigger);
+}
 
 // --- Animation Hook ---
 export const useElementAnimation = (ref: React.RefObject<HTMLElement>, element: PageElement, isPreview: boolean) => {
-    // Use useLayoutEffect to prevent FOUC and double-animation glitches in React Strict Mode
     useLayoutEffect(() => {
-        // Only run if in preview mode and animation is configured
+        // Only run if in preview/live mode and animation is configured
         if (!isPreview || !element.props.animation || element.props.animation.type === 'none') return;
         if (!ref.current) return;
 
         const { animation } = element.props;
-        const { type: animType, duration = 1, delay = 0, ease = 'power2.out', stagger = 0, target = 'self', viewport = 85, trigger = 'scroll' } = animation;
+        const { 
+            type: animType, 
+            duration = 1, 
+            delay = 0, 
+            ease = 'power2.out', 
+            stagger = 0, 
+            target = 'self', 
+            viewport = 85, 
+            trigger = 'scroll' 
+        } = animation;
 
-        // Detect context: are we in an iframe (Editor Preview) or Main Window (Public Page)?
+        // Detect context: iframe (Editor) vs Main Window (Live/Export)
         const ownerDoc = ref.current.ownerDocument;
         const win = ownerDoc.defaultView as any;
         
-        // Use GSAP from the specific window context if available (iframe), otherwise global
         const _gsap = win.gsap || gsap;
         const _ScrollTrigger = win.ScrollTrigger || ScrollTrigger;
         
-        // Register if needed in that context
         if (win.gsap && !_ScrollTrigger) {
-             try { win.gsap.registerPlugin(win.ScrollTrigger); } catch(e) { console.warn("Failed to register ScrollTrigger in iframe", e); }
+             try { win.gsap.registerPlugin(win.ScrollTrigger); } catch(e) {}
         }
 
-        // Determine the actual element to animate.
-        // If the ref points to a wrapper (like display:contents div), find the real element.
+        // Target resolution
         let actualTarget: HTMLElement | null = ref.current;
         if (actualTarget.style.display === 'contents' && actualTarget.firstElementChild) {
             actualTarget = actualTarget.firstElementChild as HTMLElement;
@@ -44,87 +51,63 @@ export const useElementAnimation = (ref: React.RefObject<HTMLElement>, element: 
 
         if (!actualTarget) return;
 
-        // Determine targets (self or children)
         let elementsToAnimate: HTMLElement[] = [];
         if (target === 'children') {
-             // Animate children of the target
              elementsToAnimate = Array.from(actualTarget.children) as HTMLElement[];
         } else {
-             // Animate self
              elementsToAnimate = [actualTarget];
         }
 
         if (elementsToAnimate.length === 0) return;
 
-        // Kill previous animations to prevent conflict
+        // Reset and Kill previous to avoid overlaps
         _gsap.killTweensOf(elementsToAnimate);
 
-        const animProps: any = {
+        const fromProps: any = { opacity: 0 };
+        const toProps: any = {
+            opacity: 1,
+            x: 0,
+            y: 0,
+            scale: 1,
+            rotation: 0,
             duration,
             delay,
             ease,
             stagger: target === 'children' ? stagger : 0,
+            overwrite: 'auto'
         };
 
-        // Only add scrollTrigger if trigger type is 'scroll' (default)
+        switch(animType) {
+             case 'fade-in': break;
+             case 'fade-in-up': fromProps.y = 50; break;
+             case 'fade-in-down': fromProps.y = -50; break;
+             case 'slide-in-left': fromProps.x = -100; break;
+             case 'slide-in-right': fromProps.x = 100; break;
+             case 'zoom-in': fromProps.scale = 0.8; break;
+             case 'rotate-in': fromProps.rotation = -15; fromProps.scale = 0.8; break;
+        }
+
         if (trigger === 'scroll') {
-            animProps.scrollTrigger = {
-                trigger: actualTarget, // Trigger is always the container/parent
+            toProps.scrollTrigger = {
+                trigger: actualTarget,
                 start: `top ${viewport}%`,
                 toggleActions: "play none none reverse",
-                // Use the correct scroller (body of the context window)
+                // If in iframe, we must specify the scroller as the iframe body
                 scroller: win !== window ? ownerDoc.body : undefined 
             };
         }
 
-        let fromProps: any = { opacity: 0 };
-
-        switch(animType) {
-             case 'fade-in': 
-                break; // opacity 0 already set
-             case 'fade-in-up': 
-                fromProps.y = 50; 
-                break;
-             case 'fade-in-down': 
-                fromProps.y = -50; 
-                break;
-             case 'slide-in-left': 
-                fromProps.x = -100; 
-                break;
-             case 'slide-in-right': 
-                fromProps.x = 100; 
-                break;
-             case 'zoom-in': 
-                fromProps.scale = 0.8; 
-                break;
-             case 'rotate-in': 
-                fromProps.rotation = -15; 
-                fromProps.scale = 0.8; 
-                break;
-             default:
-                return;
-        }
-
-        // Apply animation
         const ctx = _gsap.context(() => {
-             _gsap.from(elementsToAnimate, {
-                ...fromProps,
-                ...animProps
-            });
+             _gsap.fromTo(elementsToAnimate, fromProps, toProps);
         }, actualTarget);
         
-        // Refresh ScrollTrigger slightly delayed to allow layout to settle
-        if (_ScrollTrigger && trigger === 'scroll') {
-             // Debounced refresh or immediate? Immediate often better in layout effect.
-             // Using a small timeout to let other elements render.
-             setTimeout(() => _ScrollTrigger.refresh(), 50); 
-        }
+        // Refresh positions after initial layout settlement
+        setTimeout(() => {
+            if (_ScrollTrigger) _ScrollTrigger.refresh();
+        }, 100);
 
-        return () => {
-             ctx.revert();
-        };
-
-    }, [isPreview, element.props.animation]); // Re-run if preview toggles or animation config changes
+        return () => ctx.revert();
+    }, [isPreview, element.props.animation, element.id]);
 };
 
 
@@ -150,7 +133,7 @@ const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string
 
     return (
         <div className="relative w-full max-w-2xl mx-auto p-4">
-             <div className="flex flex-col items-center text-center animate-fade-in transition-opacity duration-300">
+             <div className="flex flex-col items-center text-center transition-opacity duration-300">
                  <div className={`p-8 rounded-2xl relative mb-6 shadow-sm`} style={{ backgroundColor: bubbleColor }}>
                      <div className="text-4xl text-indigo-200 absolute top-4 left-4 font-serif leading-none">“</div>
                      <p className="text-lg text-gray-700 relative z-10">{currentItem.content}</p>
@@ -196,11 +179,9 @@ export const ChildWrapper: React.FC<{ element: PageElement; isPreview?: boolean 
     const ref = useRef<HTMLDivElement>(null);
     const isSelfContained = ['section', 'container', 'columns', 'navbar', 'slider', 'card', 'form'].includes(type);
 
-    // Use shared animation hook
     useElementAnimation(ref, element, !!isPreview);
     
     if (isSelfContained) {
-         // Use display: contents to avoid affecting layout, but keep the ref for finding the child
          return <div ref={ref} style={{ display: 'contents' }}><ElementRenderer element={element} isPreview={isPreview} /></div>;
     }
 
@@ -231,37 +212,15 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
   const { googleMapsApiKey } = useContext(EditorConfigContext);
   const { openPopup } = useContext(PopupContext);
   const { findElement } = useContext(PageContext);
-  
-  // Menu State
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
-  // Use Registry
   const definition = ComponentRegistry.get(element.type);
   if (definition) {
       const Component = definition.render;
       return <Component element={element} isPreview={!!isPreview} />;
   }
 
-  // Fallback helper for background rendering (needed for Slider)
-  const renderBackground = () => {
-    const { props, type } = element;
-    if (!['slider'].includes(type)) return null; 
-    const { backgroundImage, backgroundVideo, parallax } = props || {};
-    const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = props.style || {};
-    const finalBgImage = styleBgImage || backgroundImage;
-    const finalBgVideo = styleBgVideo || backgroundVideo;
-
-    if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
-    if (finalBgImage) {
-        const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
-        return <div className={`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none ${parallax ? 'bg-fixed' : ''}`} style={{ backgroundImage: `url(${url})` }} />;
-    }
-    return null;
-  };
-  
-  // Fallback for complex components not yet in definitions.tsx (e.g. Menu, Slider logic, etc)
-  
   const openMenu = () => { setIsMenuOpen(true); setIsClosing(false); };
   const closeMenu = () => { setIsClosing(true); setTimeout(() => { setIsMenuOpen(false); setIsClosing(false); }, 300); };
   const toggleMenu = () => { if (isMenuOpen && !isClosing) closeMenu(); else if (!isMenuOpen) openMenu(); };
@@ -278,7 +237,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
      
      const handleLinkClick = (e: React.MouseEvent) => {
          if (!isPreview) { e.preventDefault(); return; }
-
          if (isPopup && link.targetId) {
              e.preventDefault();
              openPopup(link.targetId);
@@ -294,15 +252,12 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
      };
 
      const baseClasses = `transition-colors hover:opacity-80 font-medium flex items-center gap-1 ${activeLinkColor ? 'hover:text-[var(--active-color)]' : ''} cursor-pointer`;
-     
      let megaMenuContent: React.ReactNode = null;
      if (isMegaMenu && link.targetId) {
          const targetElement = findElement(link.targetId);
          if (targetElement) {
              const placement = link.megaMenuPlacement || 'center';
              const containerAlignment = placement === 'left' ? 'mr-auto' : placement === 'right' ? 'ml-auto' : 'mx-auto';
-             // Mega Menu Fix: Use ChildWrapper to render the referenced element.
-             // If targetElement is a container (it usually is), ChildWrapper will call ElementRenderer which renders the container div.
              megaMenuContent = (
                  <div className="absolute top-full left-0 w-full opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:visible transition-all duration-200 z-50">
                      <div className="max-h-[80vh] overflow-y-auto">
@@ -347,10 +302,8 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
   const MobileNavItemRenderer: React.FC<{ link: NavLinkItem, linkStyle: React.CSSProperties, activeLinkColor?: string }> = ({ link, linkStyle, activeLinkColor }) => {
       const [isExpanded, setIsExpanded] = useState(false);
       const hasChildren = (link.children && link.children.length > 0) || (link.type === 'mega-menu' && link.targetId);
-      
       const handleLinkClick = (e: React.MouseEvent) => {
         if (!isPreview) { e.preventDefault(); return; }
-
         if (hasChildren && !link.href && link.type !== 'popup') { setIsExpanded(!isExpanded); return; }
         if (link.type === 'popup' && link.targetId) { e.preventDefault(); openPopup(link.targetId); closeMenu(); return; }
         if (link.href && link.href.startsWith('#')) {
@@ -394,39 +347,32 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
   switch (element.type) {
     case 'menu':
        const { navLinks = [], linkColor, activeLinkColor, mobileMenuBreakpoint = 'md', mobileMenuType = 'dropdown', hamburgerColor, menuBackgroundColor, mobileMenuIconType = 'menu' } = element.props;
-       
-       // Lookup table for static class generation to ensure Tailwind scans them correctly during build
        const menuBreakpoints = {
            'sm': { desktop: 'hidden sm:flex', mobile: 'flex sm:hidden', drawer: 'sm:hidden' },
            'md': { desktop: 'hidden md:flex', mobile: 'flex md:hidden', drawer: 'md:hidden' },
            'lg': { desktop: 'hidden lg:flex', mobile: 'flex lg:hidden', drawer: 'lg:hidden' },
            'none': { desktop: 'flex', mobile: 'hidden', drawer: 'hidden' }
        };
-
        const bpConfig = menuBreakpoints[mobileMenuBreakpoint as keyof typeof menuBreakpoints] || menuBreakpoints['md'];
-       const breakpointClass = bpConfig.desktop;
-       const mobileToggleClass = bpConfig.mobile;
-       const drawerHiddenClass = bpConfig.drawer;
-
        const linkStyle = { color: linkColor || 'inherit' };
        const activeStyle = activeLinkColor ? { '--active-color': activeLinkColor } as React.CSSProperties : {};
        return (
             <div className={`flex items-center ${innerClass}`} style={{...activeStyle, ...innerStyle}}>
-                <ul className={`${breakpointClass} gap-6 items-center ${pointerClass}`}>
+                <ul className={`${bpConfig.desktop} gap-6 items-center ${pointerClass}`}>
                     {navLinks.map((link, i) => <NavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} />)}
                 </ul>
-                <button className={`${mobileToggleClass} p-2 rounded hover:bg-gray-100 ${pointerClass}`} onClick={toggleMenu} style={{ color: hamburgerColor || 'inherit' }}>
+                <button className={`${bpConfig.mobile} p-2 rounded hover:bg-gray-100 ${pointerClass}`} onClick={toggleMenu} style={{ color: hamburgerColor || 'inherit' }}>
                     {mobileMenuIconType === 'grid' ? <Icons.Grid /> : mobileMenuIconType === 'dots' ? <Icons.Dots /> : <Icons.Menu />}
                 </button>
                 {isMenuOpen && (
                    <>
                    {mobileMenuType === 'dropdown' && (
-                       <div className={`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col z-40 max-h-[80vh] overflow-y-auto ${isClosing ? 'animate-fade-out' : 'animate-fade-in'} ${drawerHiddenClass}`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
+                       <div className={`absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-100 flex flex-col z-40 max-h-[80vh] overflow-y-auto ${isClosing ? 'animate-fade-out' : 'animate-fade-in'} ${bpConfig.drawer}`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
                            {navLinks.map((link, i) => <MobileNavItemRenderer key={i} link={link} linkStyle={linkStyle} activeLinkColor={activeLinkColor} />)}
                        </div>
                    )}
                    {(mobileMenuType === 'slide-left' || mobileMenuType === 'slide-right') && (
-                       <div className={`fixed inset-0 z-50 h-[100vh] ${drawerHiddenClass}`}>
+                       <div className={`fixed inset-0 z-50 h-[100vh] ${bpConfig.drawer}`}>
                            <div className={`absolute inset-0 bg-black/50 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`} onClick={closeMenu}></div>
                            <div className={`absolute top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col overflow-y-auto ${mobileMenuType === 'slide-left' ? (isClosing ? 'left-0 animate-slide-out-left' : 'left-0 animate-slide-in-left') : (isClosing ? 'right-0 animate-slide-out-right' : 'right-0 animate-slide-in-right')}`} style={{ backgroundColor: menuBackgroundColor || 'white' }}>
                                <div className="flex justify-end p-4"><button onClick={closeMenu} className="p-2 text-gray-500 hover:text-gray-700"><Icons.X /></button></div>
@@ -472,7 +418,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
     case 'slider':
         return (
              <div id={element.id} className={`${element.props.className || ''} relative`} style={element.props.style}>
-                 {renderBackground()}
                 {element.children?.map((child, i) => (
                     <div key={child.id} className={i === 0 ? 'relative' : 'hidden'}>
                          <ChildWrapper element={child} isPreview={isPreview} />

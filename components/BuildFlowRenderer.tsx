@@ -27,73 +27,22 @@ export const BuildFlowRenderer: React.FC<BuildFlowRendererProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Expose GSAP to window for custom scripts that expect it globally (e.g., customScript definition)
+  // Expose GSAP to window for custom scripts
   useEffect(() => {
     if (typeof window !== 'undefined') {
-        if (!(window as any).gsap) {
-            (window as any).gsap = gsap;
-        }
-        if (!(window as any).ScrollTrigger) {
-            (window as any).ScrollTrigger = ScrollTrigger;
-        }
+        if (!(window as any).gsap) (window as any).gsap = gsap;
+        if (!(window as any).ScrollTrigger) (window as any).ScrollTrigger = ScrollTrigger;
     }
   }, []);
 
-  // Setup GSAP Animations
+  // Use GSAP hook to refresh ScrollTrigger when layout changes
   useGSAP(() => {
-      // Function to refresh triggers for elements
-      const refreshAnimations = () => {
-          const animateElements = document.querySelectorAll('.animate');
-          
-          animateElements.forEach(el => {
-              // Ensure we don't duplicate triggers
-              if (ScrollTrigger.getById(el.id)) return;
-
-              ScrollTrigger.create({
-                  id: el.id,
-                  trigger: el,
-                  start: "top 90%", // Trigger when top of element hits 90% of viewport
-                  onEnter: () => {
-                      el.classList.remove('animate');
-                  },
-                  once: true // Only animate once
-              });
-          });
-          
+      // Small delay to allow elements to render and images to start loading
+      const timer = setTimeout(() => {
           ScrollTrigger.refresh();
-      };
+      }, 500);
 
-      refreshAnimations();
-
-      // MutationObserver to handle dynamically added elements
-      const mutationObserver = new MutationObserver((mutations) => {
-          let shouldUpdate = false;
-          mutations.forEach(mutation => {
-              if (mutation.addedNodes.length > 0) shouldUpdate = true;
-              if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                   const target = mutation.target as HTMLElement;
-                   if (target.classList.contains('animate')) {
-                       shouldUpdate = true;
-                   }
-              }
-          });
-          
-          if (shouldUpdate) {
-              refreshAnimations();
-          }
-      });
-      
-      if (containerRef.current) {
-          mutationObserver.observe(containerRef.current, { 
-              childList: true, 
-              subtree: true, 
-              attributes: true, 
-              attributeFilter: ['class'] 
-          });
-      }
-      
-      return () => mutationObserver.disconnect();
-
+      return () => clearTimeout(timer);
   }, { dependencies: [initialData], scope: containerRef });
 
   return (
