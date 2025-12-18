@@ -9,6 +9,17 @@ export default function App() {
   const searchParams = new URLSearchParams(window.location.search);
   const isLiveMode = searchParams.get('mode') === 'live';
 
+  // Manage body classes for scrolling
+  useEffect(() => {
+    if (isLiveMode) {
+      document.body.classList.remove('h-screen', 'overflow-hidden');
+      document.body.classList.add('overflow-x-hidden', 'min-h-screen');
+    } else {
+      document.body.classList.add('h-screen', 'overflow-hidden');
+      document.body.classList.remove('overflow-x-hidden', 'min-h-screen');
+    }
+  }, [isLiveMode]);
+
   // Demo Implementation: Load initial data from localStorage or fallback to default template
   const [initialData] = useState<PageElement[]>(() => {
     const saved = localStorage.getItem('buildflow_demo_page');
