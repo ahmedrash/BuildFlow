@@ -36,7 +36,7 @@ export const exportHtml = (
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
       ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
       
-      /* GSAP Hidden state */
+      /* GSAP Initial state to prevent flash */
       .gsap-reveal { opacity: 0; }
     </style>
     ${recaptchaSiteKey ? `<script src="https://www.google.com/recaptcha/api.js" async defer></script>` : ''}
@@ -90,7 +90,6 @@ export const exportHtml = (
                 const { type: animType, duration = 1, delay = 0, ease = 'power2.out', stagger = 0, target = 'self', viewport = 85, trigger = 'scroll' } = animation;
 
                 let actualTarget = ref.current;
-                // If the element has a contents display (like our wrapper), animate the first child
                 if (actualTarget.style.display === 'contents' && actualTarget.firstElementChild) {
                     actualTarget = actualTarget.firstElementChild;
                 }
@@ -99,24 +98,19 @@ export const exportHtml = (
                 let elementsToAnimate = target === 'children' ? Array.from(actualTarget.children) : [actualTarget];
                 if (elementsToAnimate.length === 0) return;
 
-                gsap.killTweensOf(elementsToAnimate);
-
-                const animProps = {
+                // Explicitly use fromTo to ensure we move FROM opacity 0 TO opacity 1
+                // This prevents elements from getting stuck if their CSS is already at opacity 0.
+                const fromProps = { opacity: 0 };
+                const toProps = {
+                    opacity: 1,
+                    x: 0, y: 0, scale: 1, rotation: 0,
                     duration,
                     delay,
                     ease,
                     stagger: target === 'children' ? stagger : 0,
+                    overwrite: 'auto'
                 };
 
-                if (trigger === 'scroll') {
-                    animProps.scrollTrigger = {
-                        trigger: actualTarget,
-                        start: \`top \${viewport}%\`,
-                        toggleActions: "play none none reverse",
-                    };
-                }
-
-                let fromProps = { opacity: 0 };
                 switch(animType) {
                      case 'fade-in': break;
                      case 'fade-in-up': fromProps.y = 50; break;
@@ -127,11 +121,23 @@ export const exportHtml = (
                      case 'rotate-in': fromProps.rotation = -15; fromProps.scale = 0.8; break;
                 }
 
-                const ctx = gsap.context(() => {
-                     gsap.from(elementsToAnimate, { ...fromProps, ...animProps });
-                }, actualTarget);
+                if (trigger === 'scroll') {
+                    toProps.scrollTrigger = {
+                        trigger: actualTarget,
+                        start: \`top \${viewport}%\`,
+                        toggleActions: "play none none reverse",
+                    };
+                }
+
+                const tween = gsap.fromTo(elementsToAnimate, fromProps, toProps);
                 
-                return () => ctx.revert();
+                // Refresh position slightly after mount to handle layout shifts
+                setTimeout(() => ScrollTrigger.refresh(), 100);
+
+                return () => {
+                    if (tween.scrollTrigger) tween.scrollTrigger.kill();
+                    tween.kill();
+                };
             }, [element.props.animation]);
         };
 
@@ -504,6 +510,9 @@ export const exportHtml = (
             const { type, children, id, props } = renderedElement;
             const { popupTargets, megaMenuTargets } = React.useContext(PopupContext);
 
+            // Add gsap-reveal class to elements with animations to ensure they start hidden
+            const revealClass = props.animation && props.animation.type !== 'none' ? 'gsap-reveal' : '';
+
             // Hide initially if it's a target for popup or mega menu
             if (popupTargets.has(id) || megaMenuTargets.has(id)) return null;
 
@@ -556,7 +565,7 @@ export const exportHtml = (
                 <Tag 
                     ref={ref} 
                     id={id} 
-                    className={\`\${type === 'button' ? '' : (props.className || '')} \${overflowClass} \${stickyClass} relative\`} 
+                    className={\`\${type === 'button' ? '' : (props.className || '')} \${revealClass} \${overflowClass} \${stickyClass} relative\`} 
                     style={props.style}
                     {...formProps}
                 >
