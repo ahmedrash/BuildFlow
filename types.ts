@@ -287,7 +287,7 @@ export interface PageElement {
 export interface BuildFlowEditorProps {
     initialData?: PageElement[];
     savedTemplates?: SavedTemplate[];
-    onSave?: (elements: PageElement[]) => void;
+    onSave?: (elements: PageElement[], templates?: SavedTemplate[]) => void;
     onSaveTemplate?: (template: SavedTemplate) => void;
     onDeleteTemplate?: (id: string) => void;
     onUploadImage?: (file: File) => Promise<string>;

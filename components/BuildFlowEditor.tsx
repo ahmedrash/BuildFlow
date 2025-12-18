@@ -455,8 +455,6 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
   };
 
   const handleUpdateNavLink = (id: string, index: number, field: string, value: string) => {
-      // NOTE: This legacy handler is replaced by recursive updates in PropertiesPanel
-      // Kept for simple flat list compatibility if needed
       const el = findElement(id, getActiveElements());
       if (el && el.props.navLinks) {
           const newLinks = [...el.props.navLinks];
@@ -552,7 +550,6 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
           }
           
           if (type === 'navbar') {
-               // Navbar is a container with nested logo and menu
                children = [
                   {
                       id: `${newId}-logo`, type: 'logo', name: 'Logo',
@@ -595,15 +592,11 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 zoom: type === 'map' ? 13 : undefined,
                 mapType: type === 'map' ? 'roadmap' : undefined,
                 videoUrl: type === 'video' ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : undefined,
-                
-                // Defaults for Menu/Navbar
                 navLinks: type === 'menu' ? [{ id: 'l1', label: 'Home', href: '#', type: 'link' }, { id: 'l2', label: 'About', href: '#', type: 'link' }] : undefined,
                 mobileMenuBreakpoint: type === 'menu' ? 'md' : undefined,
-
                 logoType: type === 'logo' ? 'text' : undefined,
                 logoText: type === 'logo' ? 'Logo' : undefined,
                 href: type === 'logo' ? '#' : undefined,
-
                 sliderAutoplay: type === 'slider' ? false : undefined,
                 sliderInterval: type === 'slider' ? 3000 : undefined,
                 sliderNavType: 'chevron',
@@ -646,7 +639,6 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
            const activeList = getActiveElements();
            const dragEl = findElement(dragId, activeList);
            if (dragEl) {
-                // Check if target is a descendant of the dragged element
                 const isDescendant = (parent: PageElement, target: string): boolean => {
                     if (!parent.children) return false;
                     for (const child of parent.children) {
@@ -703,14 +695,16 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
   };
 
   const handleLaunchLivePreview = () => {
-      // Auto-save before opening
-      if (onSave) onSave(elements);
+      // Synchronize both page elements and any potentially modified global templates before opening Live mode
+      if (onSave) {
+          onSave(elements, savedTemplates);
+      }
       
       setTimeout(() => {
           const url = new URL(window.location.href);
           url.searchParams.set('mode', 'live');
           window.open(url.toString(), '_blank');
-      }, 100);
+      }, 50);
   };
   
   // Compute Popup Targets (Buttons & Standard Popup Links)
@@ -718,11 +712,9 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     const targets = new Set<string>();
     const scan = (els: PageElement[]) => {
         els.forEach(el => {
-             // Button triggers
              if (el.type === 'button' && el.props.buttonAction === 'popup' && el.props.popupTargetId) {
                  targets.add(el.props.popupTargetId);
              }
-             // Nav Link Triggers (Standard Popup) - Scan both Navbar (legacy) and Menu elements
              if ((el.type === 'navbar' || el.type === 'menu') && el.props.navLinks) {
                  const scanLinks = (links: any[]) => {
                      links.forEach(l => {
@@ -734,7 +726,6 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                  }
                  scanLinks(el.props.navLinks);
              }
-
              if (el.children) scan(el.children);
         });
     };
@@ -747,7 +738,6 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     const targets = new Set<string>();
     const scan = (els: PageElement[]) => {
         els.forEach(el => {
-             // Scan both Navbar (legacy) and Menu elements
              if ((el.type === 'navbar' || el.type === 'menu') && el.props.navLinks) {
                  const scanLinks = (links: any[]) => {
                      links.forEach(l => {
@@ -766,7 +756,6 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
     return targets;
   }, [elements, editingTemplateId, savedTemplates]);
 
-  // Combined Hidden Targets
   const hiddenTargets = useMemo(() => {
      const combined = new Set(popupTargets);
      megaMenuTargets.forEach(t => combined.add(t));
@@ -774,7 +763,6 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
   }, [popupTargets, megaMenuTargets]);
 
   const openPopup = (id: string) => {
-      // Only open popups in preview mode or if we want to test
       if (isPreview) setActivePopupId(id);
   };
 
@@ -805,7 +793,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 setIsPreview={setIsPreview}
                 onOpenTemplates={() => { setIsTemplatesModalOpen(true); setTemplatesTab('presets'); }}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
-                onSave={() => onSave ? onSave(elements) : null}
+                onSave={() => onSave ? onSave(elements, savedTemplates) : null}
                 onExportHtml={handleExport}
                 onUndo={handleUndo}
                 onRedo={handleRedo}
@@ -889,7 +877,6 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                             </div>
                         )}
                         
-                        {/* Render Popup Modal inside iframe (Preview Mode Only) */}
                         {isPreview && activePopupId && (
                             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
                                 <div 
@@ -917,7 +904,7 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                                                     onUpdateProps={() => {}}
                                                     getTemplate={(tid) => savedTemplates.find(t => t.id === tid)}
                                                     popupTargets={hiddenTargets}
-                                                    isPopupContent={true} // Force visibility
+                                                    isPopupContent={true} 
                                                 />
                                             )
                                         }
@@ -953,7 +940,6 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 />
                 )}
             </div>
-            {/* Modals for Templates/Settings omitted for brevity (same as previous) */}
             {isTemplatesModalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden h-[500px] flex flex-col">

@@ -20,17 +20,32 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Handle saving the page layout
-  const handleSave = (elements: PageElement[]) => {
+  // Handle saving the page layout and optionally templates
+  const handleSave = (elements: PageElement[], templates?: SavedTemplate[]) => {
     localStorage.setItem('buildflow_demo_page', JSON.stringify(elements));
-    console.log('Saved to local storage:', elements);
+    
+    if (templates) {
+        setSavedTemplates(templates);
+        localStorage.setItem('buildflow_templates', JSON.stringify(templates));
+    }
+    
+    console.log('Saved to local storage');
   };
 
-  // Handle saving templates
+  // Handle saving templates with update logic (fixes duplication bug)
   const handleSaveTemplate = (template: SavedTemplate) => {
-    const newTemplates = [...savedTemplates, template];
-    setSavedTemplates(newTemplates);
-    localStorage.setItem('buildflow_templates', JSON.stringify(newTemplates));
+    setSavedTemplates(prev => {
+        const index = prev.findIndex(t => t.id === template.id);
+        let newTemplates;
+        if (index !== -1) {
+            newTemplates = [...prev];
+            newTemplates[index] = template;
+        } else {
+            newTemplates = [...prev, template];
+        }
+        localStorage.setItem('buildflow_templates', JSON.stringify(newTemplates));
+        return newTemplates;
+    });
   };
 
   // Handle deleting templates
@@ -51,14 +66,10 @@ export default function App() {
   };
 
   // --- API Configuration ---
-  // In a real app, these would come from environment variables or a configuration endpoint.
   const GOOGLE_MAPS_API_KEY = ""; 
   const RECAPTCHA_SITE_KEY = "";
 
   if (isLiveMode) {
-      // For live mode, we prefer the latest saved data from localStorage, 
-      // but fallback to state if needed (though state already loads from LS).
-      // We re-read here to ensure a new tab gets the absolute latest if state was stale.
       const savedData = localStorage.getItem('buildflow_demo_page');
       const liveData = savedData ? JSON.parse(savedData) : initialData;
       
