@@ -300,7 +300,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     if (isSelected) return '';
     if (renderedElement.type !== 'card') return '';
     const { cardHoverEffect } = renderedElement.props;
-    let classes = ' transition-all duration-300';
+    let classes = ' ';
     if (cardHoverEffect === 'lift') classes += ' hover:-translate-y-1 hover:shadow-xl';
     if (cardHoverEffect === 'zoom') classes += ' hover:scale-[1.02] hover:shadow-xl';
     if (cardHoverEffect === 'glow') classes += ' hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
