@@ -61,6 +61,93 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                 link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lato:wght@300;400;700&family=Merriweather:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Oswald:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Raleway:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap';
                 doc.head.appendChild(link);
             }
+
+            // Inject GSAP Core
+            if (!doc.getElementById('gsap-core')) {
+                const script = doc.createElement('script');
+                script.id = 'gsap-core';
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js';
+                doc.head.appendChild(script);
+            }
+
+            // Inject GSAP ScrollTrigger
+            if (!doc.getElementById('gsap-scrolltrigger')) {
+                const script = doc.createElement('script');
+                script.id = 'gsap-scrolltrigger';
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js';
+                doc.head.appendChild(script);
+            }
+            
+            // Inject Animation Observer Script
+            if (!doc.getElementById('animate-observer')) {
+                const script = doc.createElement('script');
+                script.id = 'animate-observer';
+                script.innerHTML = `
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const initAnimations = () => {
+                            // Prefer GSAP ScrollTrigger if available
+                            if (window.gsap && window.ScrollTrigger) {
+                                gsap.registerPlugin(ScrollTrigger);
+                                const animateElements = document.querySelectorAll('.animate');
+                                animateElements.forEach(el => {
+                                    // Kill existing trigger if any to prevent duplicates during re-renders
+                                    const existing = ScrollTrigger.getById(el.id); 
+                                    if(existing) existing.kill();
+
+                                    ScrollTrigger.create({
+                                        id: el.id,
+                                        trigger: el,
+                                        start: "top 90%",
+                                        onEnter: () => {
+                                            el.classList.remove('animate');
+                                        },
+                                        scroller: document.body // Target iframe body scroller
+                                    });
+                                });
+                            } else {
+                                // Fallback to IntersectionObserver
+                                const observer = new IntersectionObserver((entries) => {
+                                    entries.forEach(entry => {
+                                        if (entry.isIntersecting && entry.intersectionRatio > 0) {
+                                            entry.target.classList.remove('animate');
+                                            observer.unobserve(entry.target);
+                                        }
+                                    });
+                                }, { threshold: 0.1 });
+        
+                                document.querySelectorAll('.animate').forEach(el => observer.observe(el));
+                            }
+                        };
+
+                        // Check for GSAP load
+                        let attempts = 0;
+                        const checkGSAP = setInterval(() => {
+                            attempts++;
+                            if ((window.gsap && window.ScrollTrigger) || attempts > 20) {
+                                clearInterval(checkGSAP);
+                                initAnimations();
+                            }
+                        }, 100);
+
+                        // Watch for DOM changes (drag/drop) to re-init
+                        const mutationObserver = new MutationObserver((mutations) => {
+                            let shouldUpdate = false;
+                            mutations.forEach(mutation => {
+                                if (mutation.addedNodes.length > 0) shouldUpdate = true;
+                                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                                     // Reactivate animation if class reset to .animate
+                                     const target = mutation.target;
+                                     if (target.classList.contains('animate')) shouldUpdate = true;
+                                }
+                            });
+                            if (shouldUpdate) initAnimations();
+                        });
+
+                        mutationObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+                    });
+                `;
+                doc.head.appendChild(script);
+            }
             
             // Inject Base Styles
             if (!doc.getElementById('base-styles')) {
@@ -69,6 +156,7 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                 styleEl.innerHTML = `
                     html { scroll-behavior: smooth; height: 100%; }
                     body { font-family: 'Inter', sans-serif; background-color: white; overflow-x: hidden; min-height: 100vh; height: 100%; }
+                    .animate { opacity: 0; }
                     ::-webkit-scrollbar { width: 6px; height: 6px; }
                     ::-webkit-scrollbar-track { background: transparent; }
                     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -97,6 +185,12 @@ export const PreviewFrame: React.FC<PreviewFrameProps> = ({ children, width, hei
                                 // Force a layout reflow to ensure new styles are applied before we show it
                                 const _ = doc.body.offsetHeight;
                                 doc.body.style.opacity = '1';
+                                // Trigger animation observer manually in case DOMContentLoaded fired early
+                                const win = iframe.contentWindow as any;
+                                if (win && win.document) {
+                                    const event = new Event('DOMContentLoaded');
+                                    win.document.dispatchEvent(event);
+                                }
                             }
                             setIsReady(true);
                         }, 500); // 500ms safety buffer for Tailwind compilation

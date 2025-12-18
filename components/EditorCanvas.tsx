@@ -1,8 +1,9 @@
+
 import React, { MouseEvent, DragEvent, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
 import { Icons } from './Icons';
-import { ElementRenderer } from './elements/ElementRenderer';
+import { ElementRenderer, useElementAnimation } from './elements/ElementRenderer';
 
 interface EditorCanvasProps {
   element: PageElement;
@@ -47,6 +48,22 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const stickyStateRef = useRef(stickyState);
   useEffect(() => { stickyStateRef.current = stickyState; }, [stickyState]);
   
+  // Resolve Rendered Element (Handle Global Templates)
+  let renderedElement = element;
+  let isMissingTemplate = false;
+
+  if (element.type === 'global' && getTemplate) {
+      const template = getTemplate(element.props.templateId || '');
+      if (template) {
+          renderedElement = template.element;
+      } else {
+          isMissingTemplate = true;
+      }
+  }
+
+  // Animation Hook
+  useElementAnimation(elementRef, renderedElement, isPreview);
+
   const isSelected = selectedId === element.id && !isPreview;
   const isGlobal = element.type === 'global';
   const isPopupTarget = popupTargets?.has(element.id);
@@ -85,13 +102,13 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
   // Sticky Header Logic in Editor
   useEffect(() => {
-     if (element.type !== 'navbar' || element.props.headerType !== 'sticky' || !elementRef.current) return;
+     if (renderedElement.type !== 'navbar' || renderedElement.props.headerType !== 'sticky' || !elementRef.current) return;
      
      const scrollContainer = elementRef.current.ownerDocument.defaultView;
      if (!scrollContainer) return;
 
      const handleScroll = () => {
-         const offset = element.props.stickyOffset || 100;
+         const offset = renderedElement.props.stickyOffset || 100;
          const currentScroll = scrollContainer.scrollY;
          const currentState = stickyStateRef.current;
 
@@ -109,7 +126,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
 
      scrollContainer.addEventListener('scroll', handleScroll);
      return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [element.type, element.props.headerType, element.props.stickyOffset]);
+  }, [renderedElement.type, renderedElement.props.headerType, renderedElement.props.stickyOffset]);
 
 
   // Position Tracking Logic for Toolbar
@@ -143,7 +160,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     } else {
         setToolbarPos(prev => ({ ...prev, visible: false }));
     }
-  }, [isSelected, element.props.style, element.children?.length, element.props.className]); 
+  }, [isSelected, renderedElement.props.style, renderedElement.children?.length, renderedElement.props.className]); 
 
   const handleClick = (e: MouseEvent) => {
     if (isPreview) {
@@ -243,25 +260,26 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     }
   }, [element.type, element.props.sliderAutoplay, element.props.sliderInterval, element.children?.length, isPreview]);
 
-  let renderedElement = element;
-  if (isGlobal && getTemplate) {
-      const template = getTemplate(element.props.templateId || '');
-      if (template) renderedElement = template.element;
-  }
-
   const commonStyle = { ...renderedElement.props.style };
   
+  const classNameToApply = renderedElement.type === 'button' ? '' : (renderedElement.props.className || '');
+  
+  // Check if user explicitly set a positioning class that makes the element a positioning context
+  // This prevents 'relative' from overriding 'absolute', 'fixed', or 'sticky'
+  const hasUserPositioning = /\b(absolute|fixed|sticky)\b/.test(classNameToApply);
+
   // Navbar positioning logic
-  const isNavbar = renderedElement.type === 'navbar';
   const headerType = renderedElement.props.headerType || 'relative';
   
-  let stickyClass = 'relative';
-  if (isNavbar) {
+  // Default to 'relative' for editor controls anchor, unless user set explicit positioning
+  let stickyClass = hasUserPositioning ? '' : 'relative'; 
+
+  if (renderedElement.type === 'navbar') {
       if (headerType === 'fixed') stickyClass = 'fixed top-0 left-0 w-full z-50';
       else if (headerType === 'sticky') {
           if (stickyState === 'stuck') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md';
           else if (stickyState === 'unsticking') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-out-up shadow-md';
-          else stickyClass = 'relative'; // idle
+          else stickyClass = 'relative'; // idle, navbar forces relative here if not fixed/sticky
       }
   }
 
@@ -269,7 +287,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const shouldClip = ['slider', 'card'].includes(renderedElement.type);
   const overflowClass = shouldClip ? 'overflow-hidden' : '';
   
-  // Use stickyClass for positioning if sticky, otherwise default relative
+  // Use stickyClass for positioning if sticky/relative, otherwise default
   const containerClasses = `${stickyClass} ${overflowClass}`;
 
   const selectionClass = isSelected 
@@ -290,8 +308,25 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     return classes;
   };
 
-  const classNameToApply = renderedElement.type === 'button' ? '' : (renderedElement.props.className || '');
   const baseClasses = `${classNameToApply} ${selectionClass} ${dropIndicatorClass} ${globalClass} ${containerClasses} ${shouldHideClass} transition-all duration-200`;
+
+  // Fallback UI for missing template
+  if (isMissingTemplate) {
+      if (!isPreview) {
+          return (
+             <div 
+                id={element.id} 
+                className={`p-4 border-2 border-dashed border-red-300 bg-red-50 text-red-500 rounded flex items-center justify-center cursor-pointer text-sm font-medium ${selectionClass}`}
+                onClick={(e) => onSelect(element.id, e as any)}
+             >
+                 <Icons.X className="w-5 h-5 mr-2 text-red-500" />
+                 <span>Global Template Not Found ({element.name})</span>
+             </div>
+          );
+      } else {
+          return null;
+      }
+  }
 
   const renderBackground = () => {
     if (!['section', 'container', 'columns', 'navbar', 'card'].includes(renderedElement.type)) return null;
@@ -314,25 +349,6 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       return <Icons.ChevronDown className={direction === 'prev' ? 'rotate-90' : '-rotate-90'} />;
   };
 
-  // Tag resolution handled inside ElementRenderer or here. 
-  // However, for Containers we want EditorCanvas wrapper to be the container.
-  // But since we use ElementRenderer inside, we must be careful not to double render.
-  // EditorCanvas renders a Wrapper Div (or Section). 
-  // ElementRenderer renders CONTENT. 
-  // If ElementRenderer renders the container div itself, EditorCanvas wrapper is redundant.
-  // BUT EditorCanvas logic relies on wrapper for drag events and selection.
-  // Solution: EditorCanvas renders the container div. ElementRenderer renders CHILDREN.
-  
-  // Wait, my new Registry pattern makes Definitions handle the root element.
-  // If Definition handles root element, EditorCanvas wrapping it creates double wrapping.
-  // FIX: EditorCanvas should render ElementRenderer directly if possible, attaching props to it?
-  // React doesn't allow attaching props easily to a functional component result without cloning.
-  
-  // Workaround: 
-  // EditorCanvas IS the wrapper. It renders children recursively.
-  // ElementRenderer is used for LEAF nodes or specific complex logic.
-  // For 'container', 'section', etc, EditorCanvas renders the div, and inside it maps children to EditorCanvas.
-  
   const Tag = (renderedElement.type === 'section' ? 'section' : renderedElement.type === 'form' ? 'form' : 'div') as any;
 
   const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {

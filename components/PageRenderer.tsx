@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { PageElement, SavedTemplate } from '../types';
-import { ElementRenderer } from './elements/ElementRenderer';
+import { ElementRenderer, useElementAnimation } from './elements/ElementRenderer';
 import { Icons } from './Icons';
 import { EditorConfigContext, PopupContext, PageContext } from './EditorConfigContext';
 
@@ -10,6 +11,218 @@ interface PageRendererProps {
   savedTemplates?: SavedTemplate[];
   isPreview?: boolean;
 }
+
+// Separate component for each element to allow hooks (like animations)
+const RenderedPageElement: React.FC<{
+  element: PageElement;
+  savedTemplates: SavedTemplate[];
+  isPreview: boolean;
+  popupTargets: Set<string>;
+  megaMenuTargets: Set<string>;
+}> = ({ element, savedTemplates, isPreview, popupTargets, megaMenuTargets }) => {
+    // Global Template Resolution
+    let renderedElement = element;
+    if (element.type === 'global') {
+        const template = savedTemplates.find(t => t.id === element.props.templateId);
+        if (template) {
+            renderedElement = template.element;
+        }
+    }
+
+    const { type, children, id, props } = renderedElement;
+    const elementRef = useRef<HTMLElement>(null);
+    
+    // Animation Hook
+    useElementAnimation(elementRef, renderedElement, isPreview);
+    
+    // Hiding Logic
+    const isHiddenTarget = (popupTargets.has(id) || megaMenuTargets.has(id)) && isPreview;
+    
+    // Background Rendering
+    const renderBackground = () => {
+        if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
+        const { backgroundImage, backgroundVideo, parallax } = props || {};
+        const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = props.style || {};
+        
+        const finalBgImage = styleBgImage || backgroundImage;
+        const finalBgVideo = styleBgVideo || backgroundVideo;
+    
+        if (finalBgVideo) {
+          return (
+            <video 
+              src={finalBgVideo} 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none"
+            />
+          );
+        }
+    
+        if (finalBgImage) {
+          const url = finalBgImage.startsWith('url') 
+            ? finalBgImage.slice(4, -1).replace(/["']/g, "") 
+            : finalBgImage;
+          return (
+            <div 
+              className={`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none ${parallax ? 'bg-fixed' : ''}`}
+              style={{ backgroundImage: `url(${url})` }}
+            />
+          );
+        }
+        return null;
+    };
+
+    // Navbar Sticky Logic
+    const isNavbar = type === 'navbar';
+    const headerType = props.headerType || 'relative';
+    
+    // Inner Component for Navbar to manage sticky state
+    const NavbarWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
+        const [stickyState, setStickyState] = useState<'idle' | 'stuck' | 'unsticking'>('idle');
+        // We use the parent's ref for animation, so we need another ref or just reuse if possible.
+        // Actually, NavbarWrapper renders a DIV, so it needs a ref.
+        // But the parent RenderedPageElement is what wraps THIS.
+        // Wait, if isNavbar is true, RenderedPageElement returns NavbarWrapper. 
+        // So NavbarWrapper receives the ref from RenderedPageElement via prop or we just attach ref here.
+        
+        const stateRef = useRef(stickyState);
+        useEffect(() => { stateRef.current = stickyState; }, [stickyState]);
+        
+        useEffect(() => {
+            if (headerType !== 'sticky' || !isPreview) return;
+            const handleScroll = () => {
+                const offset = props.stickyOffset || 100;
+                const currentState = stateRef.current;
+                
+                if (window.scrollY > offset) {
+                    if (currentState !== 'stuck') setStickyState('stuck');
+                } else {
+                    if (currentState === 'stuck') {
+                        setStickyState('unsticking');
+                        setTimeout(() => setStickyState(prev => prev === 'unsticking' ? 'idle' : prev), 300);
+                    }
+                }
+            };
+            window.addEventListener('scroll', handleScroll);
+            return () => window.removeEventListener('scroll', handleScroll);
+        }, [headerType, props.stickyOffset, isPreview]);
+        
+        let stickyClass = 'relative';
+        if (headerType === 'fixed') stickyClass = 'fixed top-0 left-0 w-full z-50';
+        else if (headerType === 'sticky') {
+            if (stickyState === 'stuck') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md';
+            else if (stickyState === 'unsticking') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-out-up shadow-md';
+        }
+        
+        // Combine refs? No, useElementAnimation expects ref to the element being animated.
+        // Here we attach elementRef to the outer div of Navbar.
+        return (
+            <div 
+                ref={elementRef as React.RefObject<HTMLDivElement>}
+                id={id} 
+                className={`${props.className || ''} ${stickyClass}`} 
+                style={props.style}
+            >
+                {children}
+            </div>
+        )
+    };
+
+    const overflowClass = ['slider', 'card'].includes(type) ? 'overflow-hidden' : '';
+    const containerClasses = `${overflowClass}`;
+    const classNameToApply = type === 'button' ? '' : (props.className || '');
+    const hiddenClass = isHiddenTarget ? ' hidden' : '';
+    
+    const getCardHoverClass = () => {
+        if (type !== 'card') return '';
+        const { cardHoverEffect } = props;
+        let classes = ' transition-all duration-300';
+        if (cardHoverEffect === 'lift') classes += ' hover:-translate-y-1 hover:shadow-xl';
+        if (cardHoverEffect === 'zoom') classes += ' hover:scale-[1.02] hover:shadow-xl';
+        if (cardHoverEffect === 'glow') classes += ' hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
+        if (cardHoverEffect === 'border') classes += ' hover:border-indigo-500 border border-transparent';
+        return classes;
+    };
+
+    const Tag = (type === 'section' ? 'section' : type === 'form' ? 'form' : 'div') as React.ElementType;
+    
+    const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
+        if (type === 'card' && props.cardLink) {
+             return <a href={props.cardLink} className="block h-full no-underline text-inherit">{children}</a>;
+        }
+        return <>{children}</>;
+    };
+
+    if (type === 'slider' && children) {
+        return (
+            <Tag ref={elementRef} key={id} className={`${classNameToApply} ${containerClasses}${hiddenClass}`} style={props.style}>
+                {renderBackground()}
+                <SliderRenderer 
+                   element={renderedElement} 
+                   savedTemplates={savedTemplates}
+                   isPreview={isPreview}
+                   popupTargets={popupTargets}
+                   megaMenuTargets={megaMenuTargets}
+                />
+            </Tag>
+        );
+    }
+
+    if (isNavbar) {
+        return (
+            <NavbarWrapper key={id}>
+                {renderBackground()}
+                <LinkWrapper>
+                    {children && children.length > 0 ? (
+                        children.map(child => (
+                             <RenderedPageElement 
+                                key={child.id} 
+                                element={child} 
+                                savedTemplates={savedTemplates} 
+                                isPreview={isPreview}
+                                popupTargets={popupTargets}
+                                megaMenuTargets={megaMenuTargets}
+                             />
+                        ))
+                    ) : (
+                        <ElementRenderer element={renderedElement} isPreview={isPreview} />
+                    )}
+                </LinkWrapper>
+            </NavbarWrapper>
+        )
+    }
+
+    const formProps = type === 'form' ? {
+        action: props.formActionUrl,
+        method: "POST"
+    } : {};
+
+    return (
+        <Tag ref={elementRef} key={id} id={id} className={`${classNameToApply} ${containerClasses} ${getCardHoverClass()}${hiddenClass}`} style={props.style} {...formProps}>
+            {type === 'form' && props.formThankYouUrl && <input type="hidden" name="_next" value={props.formThankYouUrl} />}
+            {renderBackground()}
+            
+            <LinkWrapper>
+                {children && children.length > 0 ? (
+                    children.map(child => (
+                        <RenderedPageElement 
+                            key={child.id} 
+                            element={child} 
+                            savedTemplates={savedTemplates} 
+                            isPreview={isPreview}
+                            popupTargets={popupTargets}
+                            megaMenuTargets={megaMenuTargets}
+                        />
+                    ))
+                ) : (
+                    <ElementRenderer element={renderedElement} isPreview={isPreview} />
+                )}
+            </LinkWrapper>
+        </Tag>
+    );
+};
 
 export const PageRenderer: React.FC<PageRendererProps> = ({ 
     elements, 
@@ -62,186 +275,19 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
 
   const activePopupElement = activePopupId ? findElementById(activePopupId, elements) : null;
 
-  const renderElement = (element: PageElement): React.ReactNode => {
-    // Global Template Resolution
-    let renderedElement = element;
-    if (element.type === 'global') {
-        const template = savedTemplates.find(t => t.id === element.props.templateId);
-        if (template) {
-            renderedElement = template.element;
-        }
-    }
-
-    const { type, children, id, props } = renderedElement;
-    
-    // Hiding Logic
-    const isHiddenTarget = (popupTargets.has(id) || megaMenuTargets.has(id)) && isPreview;
-    
-    // Background Rendering
-    const renderBackground = () => {
-        if (!['section', 'container', 'columns', 'navbar', 'card'].includes(type)) return null;
-        const { backgroundImage, backgroundVideo, parallax } = props || {};
-        const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = props.style || {};
-        
-        const finalBgImage = styleBgImage || backgroundImage;
-        const finalBgVideo = styleBgVideo || backgroundVideo;
-    
-        if (finalBgVideo) {
-          return (
-            <video 
-              src={finalBgVideo} 
-              autoPlay 
-              loop 
-              muted 
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none"
-            />
-          );
-        }
-    
-        if (finalBgImage) {
-          const url = finalBgImage.startsWith('url') 
-            ? finalBgImage.slice(4, -1).replace(/["']/g, "") 
-            : finalBgImage;
-          return (
-            <div 
-              className={`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none ${parallax ? 'bg-fixed' : ''}`}
-              style={{ backgroundImage: `url(${url})` }}
-            />
-          );
-        }
-        return null;
-    };
-
-    // Navbar Sticky Logic
-    const isNavbar = type === 'navbar';
-    const headerType = props.headerType || 'relative';
-    
-    const NavbarWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
-        const [stickyState, setStickyState] = useState<'idle' | 'stuck' | 'unsticking'>('idle');
-        const ref = useRef<HTMLDivElement>(null);
-        const stateRef = useRef(stickyState);
-        useEffect(() => { stateRef.current = stickyState; }, [stickyState]);
-        
-        useEffect(() => {
-            if (headerType !== 'sticky' || !isPreview) return;
-            const handleScroll = () => {
-                const offset = props.stickyOffset || 100;
-                const currentState = stateRef.current;
-                
-                if (window.scrollY > offset) {
-                    if (currentState !== 'stuck') setStickyState('stuck');
-                } else {
-                    if (currentState === 'stuck') {
-                        setStickyState('unsticking');
-                        setTimeout(() => setStickyState(prev => prev === 'unsticking' ? 'idle' : prev), 300);
-                    }
-                }
-            };
-            window.addEventListener('scroll', handleScroll);
-            return () => window.removeEventListener('scroll', handleScroll);
-        }, [headerType, props.stickyOffset, isPreview]);
-        
-        let stickyClass = 'relative';
-        if (headerType === 'fixed') stickyClass = 'fixed top-0 left-0 w-full z-50';
-        else if (headerType === 'sticky') {
-            if (stickyState === 'stuck') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-in-down shadow-md';
-            else if (stickyState === 'unsticking') stickyClass = 'fixed top-0 left-0 w-full z-50 animate-slide-out-up shadow-md';
-        }
-        
-        return (
-            <div 
-                ref={ref} 
-                id={id} 
-                className={`${props.className || ''} ${stickyClass}`} 
-                style={props.style}
-            >
-                {children}
-            </div>
-        )
-    };
-
-    const overflowClass = ['slider', 'card'].includes(type) ? 'overflow-hidden' : '';
-    const containerClasses = `${overflowClass}`;
-    const classNameToApply = type === 'button' ? '' : (props.className || '');
-    const hiddenClass = isHiddenTarget ? ' hidden' : '';
-    
-    const getCardHoverClass = () => {
-        if (type !== 'card') return '';
-        const { cardHoverEffect } = props;
-        let classes = ' transition-all duration-300';
-        if (cardHoverEffect === 'lift') classes += ' hover:-translate-y-1 hover:shadow-xl';
-        if (cardHoverEffect === 'zoom') classes += ' hover:scale-[1.02] hover:shadow-xl';
-        if (cardHoverEffect === 'glow') classes += ' hover:shadow-[0_0_15px_rgba(79,70,229,0.3)]';
-        if (cardHoverEffect === 'border') classes += ' hover:border-indigo-500 border border-transparent';
-        return classes;
-    };
-
-    const Tag = (type === 'section' ? 'section' : type === 'form' ? 'form' : 'div') as React.ElementType;
-    
-    const LinkWrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
-        if (type === 'card' && props.cardLink) {
-             return <a href={props.cardLink} className="block h-full no-underline text-inherit">{children}</a>;
-        }
-        return <>{children}</>;
-    };
-
-    if (type === 'slider' && children) {
-        return (
-            <Tag key={id} className={`${classNameToApply} ${containerClasses}${hiddenClass}`} style={props.style}>
-                {renderBackground()}
-                <SliderRenderer 
-                   element={renderedElement} 
-                   renderChild={renderElement} 
-                />
-            </Tag>
-        );
-    }
-
-    if (type === 'menu') {
-       // Menu logic delegated to ElementRenderer if needed, but handled for structure
-    }
-
-    if (isNavbar) {
-        return (
-            <NavbarWrapper key={id}>
-                {renderBackground()}
-                <LinkWrapper>
-                    {children && children.length > 0 ? (
-                        children.map(child => renderElement(child))
-                    ) : (
-                        <ElementRenderer element={renderedElement} isPreview={isPreview} />
-                    )}
-                </LinkWrapper>
-            </NavbarWrapper>
-        )
-    }
-
-    const formProps = type === 'form' ? {
-        action: props.formActionUrl,
-        method: "POST"
-    } : {};
-
-    return (
-        <Tag key={id} id={id} className={`${classNameToApply} ${containerClasses} ${getCardHoverClass()}${hiddenClass}`} style={props.style} {...formProps}>
-            {type === 'form' && props.formThankYouUrl && <input type="hidden" name="_next" value={props.formThankYouUrl} />}
-            {renderBackground()}
-            
-            <LinkWrapper>
-                {children && children.length > 0 ? (
-                    children.map(child => renderElement(child))
-                ) : (
-                    <ElementRenderer element={renderedElement} isPreview={isPreview} />
-                )}
-            </LinkWrapper>
-        </Tag>
-    );
-  };
-
   return (
     <PopupContext.Provider value={{ openPopup, popupTargets }}>
         <PageContext.Provider value={{ findElement: (id) => findElementById(id, elements) }}>
-            {elements.map(el => renderElement(el))}
+            {elements.map(el => (
+                <RenderedPageElement 
+                    key={el.id} 
+                    element={el} 
+                    savedTemplates={savedTemplates} 
+                    isPreview={isPreview}
+                    popupTargets={popupTargets}
+                    megaMenuTargets={megaMenuTargets}
+                />
+            ))}
             
             {activePopupId && activePopupElement && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in">
@@ -264,7 +310,10 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
                                         <div style={{ display: 'block !important' }}>
                                             <PopupRootRenderer 
                                                 element={modalEl} 
-                                                renderChild={renderElement} 
+                                                savedTemplates={savedTemplates}
+                                                isPreview={isPreview}
+                                                popupTargets={popupTargets}
+                                                megaMenuTargets={megaMenuTargets}
                                             />
                                         </div>
                                     </div>
@@ -280,7 +329,13 @@ export const PageRenderer: React.FC<PageRendererProps> = ({
   );
 };
 
-const PopupRootRenderer: React.FC<{ element: PageElement, renderChild: (el: PageElement) => React.ReactNode }> = ({ element, renderChild }) => {
+const PopupRootRenderer: React.FC<{ 
+    element: PageElement, 
+    savedTemplates: SavedTemplate[],
+    isPreview: boolean,
+    popupTargets: Set<string>,
+    megaMenuTargets: Set<string>
+}> = ({ element, savedTemplates, isPreview, popupTargets, megaMenuTargets }) => {
     const { type, children, props } = element;
     const Tag = (type === 'section' ? 'section' : type === 'form' ? 'form' : 'div') as React.ElementType;
     
@@ -307,12 +362,27 @@ const PopupRootRenderer: React.FC<{ element: PageElement, renderChild: (el: Page
         <Tag className={`${classNameToApply} ${containerClasses}`} style={{ ...props.style, display: 'block' }} {...formProps}>
              {type === 'form' && props.formThankYouUrl && <input type="hidden" name="_next" value={props.formThankYouUrl} />}
             {renderBackground()}
-            {children && children.length > 0 ? children.map(child => renderChild(child)) : <ElementRenderer element={element} isPreview={true} />}
+            {children && children.length > 0 ? children.map(child => (
+                <RenderedPageElement 
+                    key={child.id} 
+                    element={child} 
+                    savedTemplates={savedTemplates} 
+                    isPreview={isPreview}
+                    popupTargets={popupTargets}
+                    megaMenuTargets={megaMenuTargets}
+                />
+            )) : <ElementRenderer element={element} isPreview={true} />}
         </Tag>
     );
 }
 
-const SliderRenderer: React.FC<{ element: PageElement; renderChild: (el: PageElement) => React.ReactNode }> = ({ element, renderChild }) => {
+const SliderRenderer: React.FC<{ 
+    element: PageElement; 
+    savedTemplates: SavedTemplate[];
+    isPreview: boolean;
+    popupTargets: Set<string>;
+    megaMenuTargets: Set<string>;
+}> = ({ element, savedTemplates, isPreview, popupTargets, megaMenuTargets }) => {
     const [activeIndex, setActiveIndex] = useState(0);
     const transition = element.props.sliderTransition || 'fade';
 
@@ -361,7 +431,14 @@ const SliderRenderer: React.FC<{ element: PageElement; renderChild: (el: PageEle
                         key={child.id} 
                         className={`${commonClass} ${posClass} ${effectClass} ${pointerEvents}`}
                     >
-                        {renderChild(child)}
+                        <RenderedPageElement 
+                            key={child.id} 
+                            element={child} 
+                            savedTemplates={savedTemplates} 
+                            isPreview={isPreview}
+                            popupTargets={popupTargets}
+                            megaMenuTargets={megaMenuTargets}
+                        />
                     </div>
                 )
             })}

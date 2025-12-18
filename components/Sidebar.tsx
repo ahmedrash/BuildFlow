@@ -14,7 +14,14 @@ interface SidebarProps {
     onDropElement: (targetId: string, position: 'inside' | 'after' | 'before', data: any) => void;
 }
 
-const SidebarItem = ({ type, icon: Icon, label, onDragStart }: { type: ElementType, icon: any, label: string, onDragStart: (e: React.DragEvent, type: ElementType) => void }) => (
+interface SidebarItemProps {
+    type: ElementType;
+    icon: any;
+    label: string;
+    onDragStart: (e: React.DragEvent, type: ElementType) => void;
+}
+
+const SidebarItem: React.FC<SidebarItemProps> = ({ type, icon: Icon, label, onDragStart }) => (
     <div
        draggable
        onDragStart={(e) => onDragStart(e, type)}

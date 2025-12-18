@@ -1,0 +1,108 @@
+============================================================
+BUILDFLOW VISUAL BUILDER - ELEMENT & PROPERTY REFERENCE
+============================================================
+Last Updated: 2024-05-20
+This document serves as a complete map of the components,
+properties, and settings available within the BuildFlow engine.
+
+------------------------------------------------------------
+1. COMMON PROPERTIES (Available for ALL Elements)
+------------------------------------------------------------
+* ID: Unique identifier for the element. Used for Anchors, Popups, and GSAP targeting.
+* Name: Display name in the Layers tree and Editor toolbar.
+* isHidden: Toggle visibility. In Editor: shows as faded/dashed. In Preview: hidden from DOM.
+* Animations:
+    - Type: none, fade-in, fade-in-up, fade-in-down, slide-in-left, slide-in-right, zoom-in, rotate-in.
+    - Trigger: scroll (viewport based) or load (immediate).
+    - Duration: Animation length in seconds.
+    - Delay: Wait time before start in seconds.
+    - Ease: GSAP easing functions (Power2, Power4, Back, Elastic, Bounce, Linear).
+    - Target: 'self' (animate element) or 'children' (staggered animation for direct children).
+    - Stagger: Delay between children animations (if target is children).
+    - Viewport: Percentage of viewport height to trigger (e.g., 85%).
+* Style (Inline CSS):
+    - Background: Color (Hex/RGBA), Image (URL/Upload), Parallax (Fixed BG).
+    - Typography: Color, Font Family, Font Size, Text Align, Line Height, Font Weight.
+    - Layout: Padding (All/Sides), Margin (All/Sides), Width, Height, Display, Gap.
+    - Borders: Border (Short-hand), Border Radius, Box Shadow, Opacity.
+* ClassName: Raw Tailwind CSS classes. Features integrated autocomplete.
+
+------------------------------------------------------------
+2. LAYOUT ELEMENTS (Structural Containers)
+------------------------------------------------------------
+* Section:
+    - Root level container. Supports full-width backgrounds (Video/Image).
+* Container:
+    - Generic wrapper for grouping elements.
+* Columns:
+    - Grid-based wrapper. Usually configured via Tailwind (e.g., 'grid grid-cols-3').
+* Navbar:
+    - Special container for site headers.
+    - Properties: headerType (relative, fixed, sticky), stickyOffset (scroll px).
+* Card:
+    - Content wrapper with special effects.
+    - Properties: cardBadge (Text), cardLink (Wrapper URL), cardHoverEffect (lift, zoom, glow, border).
+
+------------------------------------------------------------
+3. BASIC ELEMENTS
+------------------------------------------------------------
+* Text:
+    - Properties: content (String).
+* Heading:
+    - Properties: level (H1-H6), content (String).
+* Button:
+    - Properties: content (Text), buttonAction (link, submit, popup), href (URL/Anchor), popupTargetId (Element ID), target (_self, _blank), buttonIconLeft (Icon name), buttonIconRight (Icon name), buttonIsIconOnly (Boolean).
+* List:
+    - Properties: listType (ul, ol), listStyleType (disc, decimal, none), itemSpacing, listItems (Array of {id, text, href, target, iconLeft, iconRight}).
+
+------------------------------------------------------------
+4. MEDIA & INTERACTIVE ELEMENTS
+------------------------------------------------------------
+* Image:
+    - Properties: src (URL/Upload), alt (Text), imageObjectFit (cover, contain, fill), imageHeight (px/%/auto).
+* Video:
+    - Properties: videoUrl (Youtube URL or MP4 URL).
+* Slider (Carousel):
+    - Properties: sliderAutoplay (Boolean), sliderInterval (ms), sliderNavType (chevron, arrow, caret), sliderShowPagination (Boolean), sliderTransition (fade, zoom, slide-up), children (Each child acts as a slide).
+* Gallery:
+    - Properties: galleryLayout (grid, masonry, flex), galleryColumnCount (1-6), galleryGap, galleryAspectRatio, galleryObjectFit, galleryImages (Array of {id, src, alt}).
+* Map:
+    - Properties: address (String), zoom (1-21), mapType (roadmap, satellite). Requires API Key in config.
+* Logo:
+    - Properties: logoType (text, image), logoText, logoSrc, logoWidth, href.
+
+------------------------------------------------------------
+5. FORM ELEMENTS
+------------------------------------------------------------
+* Smart Form (Container):
+    - Properties: formActionUrl (Endpoint), formThankYouUrl (Redirect), formSuccessMessage, formEnableRecaptcha (Boolean), formLabelLayout (top, horizontal).
+* Input:
+    - Properties: fieldName, fieldLabel, inputType (text, email, password, etc), fieldPlaceholder, fieldDefaultValue, fieldRequired (Boolean), fieldHidden (Boolean).
+* Textarea:
+    - Properties: fieldName, fieldLabel, fieldPlaceholder, fieldDefaultValue, fieldRows, fieldRequired (Boolean).
+* Select:
+    - Properties: fieldName, fieldLabel, fieldDefaultValue, fieldMultiple (Boolean), fieldOptions (Array of {label, value}), fieldRequired (Boolean).
+* Radio / Checkbox:
+    - Properties: fieldName (Group Name), fieldLabel, fieldValue, checked (Boolean), fieldRequired (Boolean).
+
+------------------------------------------------------------
+6. ADVANCED ELEMENTS
+------------------------------------------------------------
+* Menu:
+    - Properties: navLinks (Tree-structure of links, supports Dropdowns, Popups, and Mega-Menus), mobileMenuBreakpoint (sm, md, lg, none), mobileMenuType (dropdown, slide-left, slide-right), mobileMenuIconType (menu, grid, dots), linkColor, activeLinkColor, hamburgerColor, menuBackgroundColor.
+* Testimonial:
+    - Properties: testimonialLayout (grid, slider), testimonialAvatarSize, testimonialAvatarShape, testimonialBubbleColor, testimonialItems (Array of {id, content, author, role, avatarSrc, rating}).
+* Custom Code:
+    - Properties: code (Raw HTML/CSS).
+* Custom Script:
+    - Properties: scriptContent (Raw JavaScript). Provides access to `gsap`, `ScrollTrigger`, `window`, and `document` within the specific rendering context (Iframe or Live).
+* Global Component (System):
+    - Properties: templateId (Links to a Master Template). Changes to the Master Template reflect in all Global instances.
+
+------------------------------------------------------------
+7. REGISTRY SYSTEM (Developer Extension)
+------------------------------------------------------------
+Custom components can be added via `ComponentRegistry.register()`.
+Required fields: type, name, icon, group, render (Component).
+Optional fields: propertiesPanel (React component for sidebar settings).
+============================================================

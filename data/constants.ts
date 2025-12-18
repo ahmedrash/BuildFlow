@@ -1,9 +1,20 @@
+
 import { PageElement } from '../types';
 
 export const FONT_FAMILIES = [
   'Inherit', 'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 
   'Playfair Display', 'Oswald', 'Raleway', 'Poppins', 'Merriweather', 
   'sans-serif', 'serif', 'monospace'
+];
+
+export const ICON_OPTIONS = [
+    'ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown',
+    'ChevronRight', 'ChevronLeft', 'ChevronUp', 'ChevronDown',
+    'Plus', 'Minus', 'Check', 'X', 'Search', 'Menu', 'User', 'Mail', 'Phone',
+    'ExternalLink', 'Download', 'Upload', 'Trash', 'Edit', 'Save', 'Settings',
+    'ShoppingCart', 'CreditCard', 'Calendar', 'Clock', 'MapPin', 'Globe',
+    'Facebook', 'Twitter', 'Instagram', 'Linkedin', 'Youtube', 'Github',
+    'Play', 'Pause', 'Info', 'AlertTriangle', 'AlertCircle', 'HelpCircle'
 ];
 
 export const MENU_PRESETS = {
@@ -140,7 +151,7 @@ export const TEMPLATES: { name: string; elements: PageElement[] }[] = [
               content: 'Start Building',
               buttonAction: 'popup',
               popupTargetId: 'contact-popup',
-              className: 'bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-bold transition-all hover:scale-105 shadow-xl shadow-indigo-900/50'
+              className: 'bg-indigo-600 hover:bg-indigo-50 text-white px-8 py-4 rounded-full font-bold transition-all hover:scale-105 shadow-xl shadow-indigo-900/50'
             }
           },
           {

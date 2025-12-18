@@ -46,6 +46,11 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
 
   // Template State
   const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>(externalTemplates);
+
+  // Sync templates from props when they load asynchronously
+  useEffect(() => {
+      setSavedTemplates(externalTemplates);
+  }, [externalTemplates]);
   
   // Edit Master Template Mode
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
@@ -392,6 +397,12 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
   };
   
   const handleFinishEditingTemplate = () => {
+      if (editingTemplateId && onExternalSaveTemplate) {
+          const template = savedTemplates.find(t => t.id === editingTemplateId);
+          if (template) {
+              onExternalSaveTemplate(template);
+          }
+      }
       setEditingTemplateId(null);
       setSelectedId(null);
       showToast("Master Template saved");
@@ -831,12 +842,12 @@ export const BuildFlowEditor: React.FC<BuildFlowEditorProps> = ({
                 )}
 
                 <main 
-                    className={`flex-1 bg-gray-200/50 relative flex justify-center ${isPreview ? 'overflow-hidden p-0 items-center' : 'overflow-y-auto p-8 items-start scroll-smooth'}`}
+                    className={`flex-1 bg-gray-200/50 relative flex justify-center ${isPreview ? 'overflow-hidden p-0 items-center' : 'overflow-hidden p-8 items-center justify-center'}`}
                     onClick={() => setSelectedId(null)}
                 >
                 <PreviewFrame
                     width={viewportWidth}
-                    className={`transition-all duration-500 ease-in-out bg-white shadow-2xl ${isPreview ? 'w-full h-full border-0 rounded-none' : 'h-fit min-h-[800px] ring-1 ring-gray-200'}`}
+                    className={`transition-all duration-500 ease-in-out bg-white ${isPreview ? 'w-full h-full border-0 rounded-none' : 'w-full h-full shadow-2xl'}`}
                 >
                     <div 
                         id="canvas-root" 

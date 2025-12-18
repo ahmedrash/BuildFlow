@@ -1,9 +1,132 @@
-import React, { useState, useEffect, useContext } from 'react';
+
+import React, { useState, useEffect, useLayoutEffect, useContext, useRef } from 'react';
 import { PageElement, TestimonialItem, NavLinkItem } from '../../types';
 import { Icons } from '../Icons';
 import { EditorConfigContext, PopupContext, PageContext } from '../EditorConfigContext';
 import { ComponentRegistry } from '../registry';
 import '../definitions'; // Register definitions
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+// Ensure GSAP plugins are registered in the main context
+gsap.registerPlugin(ScrollTrigger);
+
+// --- Animation Hook ---
+export const useElementAnimation = (ref: React.RefObject<HTMLElement>, element: PageElement, isPreview: boolean) => {
+    // Use useLayoutEffect to prevent FOUC and double-animation glitches in React Strict Mode
+    useLayoutEffect(() => {
+        // Only run if in preview mode and animation is configured
+        if (!isPreview || !element.props.animation || element.props.animation.type === 'none') return;
+        if (!ref.current) return;
+
+        const { animation } = element.props;
+        const { type: animType, duration = 1, delay = 0, ease = 'power2.out', stagger = 0, target = 'self', viewport = 85, trigger = 'scroll' } = animation;
+
+        // Detect context: are we in an iframe (Editor Preview) or Main Window (Public Page)?
+        const ownerDoc = ref.current.ownerDocument;
+        const win = ownerDoc.defaultView as any;
+        
+        // Use GSAP from the specific window context if available (iframe), otherwise global
+        const _gsap = win.gsap || gsap;
+        const _ScrollTrigger = win.ScrollTrigger || ScrollTrigger;
+        
+        // Register if needed in that context
+        if (win.gsap && !_ScrollTrigger) {
+             try { win.gsap.registerPlugin(win.ScrollTrigger); } catch(e) { console.warn("Failed to register ScrollTrigger in iframe", e); }
+        }
+
+        // Determine the actual element to animate.
+        // If the ref points to a wrapper (like display:contents div), find the real element.
+        let actualTarget: HTMLElement | null = ref.current;
+        if (actualTarget.style.display === 'contents' && actualTarget.firstElementChild) {
+            actualTarget = actualTarget.firstElementChild as HTMLElement;
+        }
+
+        if (!actualTarget) return;
+
+        // Determine targets (self or children)
+        let elementsToAnimate: HTMLElement[] = [];
+        if (target === 'children') {
+             // Animate children of the target
+             elementsToAnimate = Array.from(actualTarget.children) as HTMLElement[];
+        } else {
+             // Animate self
+             elementsToAnimate = [actualTarget];
+        }
+
+        if (elementsToAnimate.length === 0) return;
+
+        // Kill previous animations to prevent conflict
+        _gsap.killTweensOf(elementsToAnimate);
+
+        const animProps: any = {
+            duration,
+            delay,
+            ease,
+            stagger: target === 'children' ? stagger : 0,
+        };
+
+        // Only add scrollTrigger if trigger type is 'scroll' (default)
+        if (trigger === 'scroll') {
+            animProps.scrollTrigger = {
+                trigger: actualTarget, // Trigger is always the container/parent
+                start: `top ${viewport}%`,
+                toggleActions: "play none none reverse",
+                // Use the correct scroller (body of the context window)
+                scroller: win !== window ? ownerDoc.body : undefined 
+            };
+        }
+
+        let fromProps: any = { opacity: 0 };
+
+        switch(animType) {
+             case 'fade-in': 
+                break; // opacity 0 already set
+             case 'fade-in-up': 
+                fromProps.y = 50; 
+                break;
+             case 'fade-in-down': 
+                fromProps.y = -50; 
+                break;
+             case 'slide-in-left': 
+                fromProps.x = -100; 
+                break;
+             case 'slide-in-right': 
+                fromProps.x = 100; 
+                break;
+             case 'zoom-in': 
+                fromProps.scale = 0.8; 
+                break;
+             case 'rotate-in': 
+                fromProps.rotation = -15; 
+                fromProps.scale = 0.8; 
+                break;
+             default:
+                return;
+        }
+
+        // Apply animation
+        const ctx = _gsap.context(() => {
+             _gsap.from(elementsToAnimate, {
+                ...fromProps,
+                ...animProps
+            });
+        }, actualTarget);
+        
+        // Refresh ScrollTrigger slightly delayed to allow layout to settle
+        if (_ScrollTrigger && trigger === 'scroll') {
+             // Debounced refresh or immediate? Immediate often better in layout effect.
+             // Using a small timeout to let other elements render.
+             setTimeout(() => _ScrollTrigger.refresh(), 50); 
+        }
+
+        return () => {
+             ctx.revert();
+        };
+
+    }, [isPreview, element.props.animation]); // Re-run if preview toggles or animation config changes
+};
+
 
 interface ElementRendererProps {
   element: PageElement;
@@ -70,13 +193,15 @@ const TestimonialSlider: React.FC<{ items: TestimonialItem[]; avatarSize: string
 
 export const ChildWrapper: React.FC<{ element: PageElement; isPreview?: boolean }> = ({ element, isPreview }) => {
     const { props, type } = element;
-    
-    // Check if the component handles its own container rendering
-    // Standard containers in registry (section, container, columns, navbar, card, form) now handle their own ID/Class
+    const ref = useRef<HTMLDivElement>(null);
     const isSelfContained = ['section', 'container', 'columns', 'navbar', 'slider', 'card', 'form'].includes(type);
+
+    // Use shared animation hook
+    useElementAnimation(ref, element, !!isPreview);
     
     if (isSelfContained) {
-         return <ElementRenderer element={element} isPreview={isPreview} />;
+         // Use display: contents to avoid affecting layout, but keep the ref for finding the child
+         return <div ref={ref} style={{ display: 'contents' }}><ElementRenderer element={element} isPreview={isPreview} /></div>;
     }
 
     const renderBackground = () => {
@@ -95,7 +220,7 @@ export const ChildWrapper: React.FC<{ element: PageElement; isPreview?: boolean 
     };
 
     return (
-        <div id={element.id} className={`${props.className || ''} relative`} style={props.style}>
+        <div ref={ref} id={element.id} className={`${props.className || ''} relative`} style={props.style}>
             {renderBackground()}
             <ElementRenderer element={element} isPreview={isPreview} />
         </div>
@@ -118,6 +243,23 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       return <Component element={element} isPreview={!!isPreview} />;
   }
 
+  // Fallback helper for background rendering (needed for Slider)
+  const renderBackground = () => {
+    const { props, type } = element;
+    if (!['slider'].includes(type)) return null; 
+    const { backgroundImage, backgroundVideo, parallax } = props || {};
+    const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = props.style || {};
+    const finalBgImage = styleBgImage || backgroundImage;
+    const finalBgVideo = styleBgVideo || backgroundVideo;
+
+    if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
+    if (finalBgImage) {
+        const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
+        return <div className={`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none ${parallax ? 'bg-fixed' : ''}`} style={{ backgroundImage: `url(${url})` }} />;
+    }
+    return null;
+  };
+  
   // Fallback for complex components not yet in definitions.tsx (e.g. Menu, Slider logic, etc)
   
   const openMenu = () => { setIsMenuOpen(true); setIsClosing(false); };
@@ -136,6 +278,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
      
      const handleLinkClick = (e: React.MouseEvent) => {
          if (!isPreview) { e.preventDefault(); return; }
+
          if (isPopup && link.targetId) {
              e.preventDefault();
              openPopup(link.targetId);
@@ -207,6 +350,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
       
       const handleLinkClick = (e: React.MouseEvent) => {
         if (!isPreview) { e.preventDefault(); return; }
+
         if (hasChildren && !link.href && link.type !== 'popup') { setIsExpanded(!isExpanded); return; }
         if (link.type === 'popup' && link.targetId) { e.preventDefault(); openPopup(link.targetId); closeMenu(); return; }
         if (link.href && link.href.startsWith('#')) {
@@ -245,20 +389,6 @@ export const ElementRenderer: React.FC<ElementRendererProps> = ({ element, isPre
                )}
           </div>
       )
-  };
-
-  const renderBackground = () => {
-    if (!['section', 'container', 'columns', 'navbar', 'card'].includes(element.type)) return null;
-    const { backgroundImage, backgroundVideo, parallax } = element.props || {};
-    const { backgroundImage: styleBgImage, backgroundVideo: styleBgVideo } = element.props.style || {};
-    const finalBgImage = styleBgImage || backgroundImage;
-    const finalBgVideo = styleBgVideo || backgroundVideo;
-    if (finalBgVideo) return <video src={finalBgVideo} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover -z-10 pointer-events-none" />;
-    if (finalBgImage) {
-      const url = finalBgImage.startsWith('url') ? finalBgImage.slice(4, -1).replace(/["']/g, "") : finalBgImage;
-      return <div className={`absolute inset-0 w-full h-full bg-cover bg-center -z-10 pointer-events-none ${parallax ? 'bg-fixed' : ''}`} style={{ backgroundImage: `url(${url})` }} />;
-    }
-    return null;
   };
 
   switch (element.type) {

@@ -1,8 +1,9 @@
+
 import React, { useRef, useState, useEffect } from 'react';
-import { PageElement, FormField, SavedTemplate, TestimonialItem, ElementType, NavLinkItem } from '../../types';
+import { PageElement, FormField, SavedTemplate, TestimonialItem, ElementType, NavLinkItem, ListItem, AnimationSettings } from '../../types';
 import { Icons } from '../Icons';
 import { ColorPicker } from '../ui/ColorPicker';
-import { FONT_FAMILIES, MENU_PRESETS } from '../../data/constants';
+import { FONT_FAMILIES, MENU_PRESETS, ICON_OPTIONS } from '../../data/constants';
 import { TAILWIND_CLASSES } from '../../data/tailwindClasses';
 import { DesignSettings } from './DesignSettings';
 import { ComponentRegistry } from '../registry';
@@ -39,12 +40,36 @@ const sectionTitleClass = "text-xs font-bold text-gray-900 uppercase tracking-wi
 
 const LAYOUT_TYPES: ElementType[] = ['section', 'container', 'columns', 'slider', 'card', 'form', 'navbar'];
 
+const ANIMATION_TYPES = [
+    { label: 'None', value: 'none' },
+    { label: 'Fade In', value: 'fade-in' },
+    { label: 'Fade In Up', value: 'fade-in-up' },
+    { label: 'Fade In Down', value: 'fade-in-down' },
+    { label: 'Slide In Left', value: 'slide-in-left' },
+    { label: 'Slide In Right', value: 'slide-in-right' },
+    { label: 'Zoom In', value: 'zoom-in' },
+    { label: 'Rotate In', value: 'rotate-in' },
+];
+
+const EASING_TYPES = [
+    { label: 'Power2 Out (Default)', value: 'power2.out' },
+    { label: 'Power4 Out (Smooth)', value: 'power4.out' },
+    { label: 'Back Out (Bouncy)', value: 'back.out(1.7)' },
+    { label: 'Elastic Out (Rubber)', value: 'elastic.out(1, 0.3)' },
+    { label: 'Bounce Out', value: 'bounce.out' },
+    { label: 'Linear', value: 'none' },
+];
+
 // --- Helper Component for Nav Tree ---
 const NavTreeItem: React.FC<{ 
     link: NavLinkItem, 
     onUpdate: (updatedLink: NavLinkItem) => void,
-    onRemove: () => void 
-}> = ({ link, onUpdate, onRemove }) => {
+    onRemove: () => void,
+    onMoveUp?: () => void,
+    onMoveDown?: () => void,
+    isFirst?: boolean,
+    isLast?: boolean
+}> = ({ link, onUpdate, onRemove, onMoveUp, onMoveDown, isFirst, isLast }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
@@ -71,6 +96,18 @@ const NavTreeItem: React.FC<{
         onUpdate({ ...link, children: newChildren });
     };
 
+    const handleMoveChild = (index: number, direction: 'up' | 'down') => {
+        const newChildren = [...(link.children || [])];
+        if (direction === 'up') {
+            if (index === 0) return;
+            [newChildren[index - 1], newChildren[index]] = [newChildren[index], newChildren[index - 1]];
+        } else {
+            if (index === newChildren.length - 1) return;
+            [newChildren[index], newChildren[index + 1]] = [newChildren[index + 1], newChildren[index]];
+        }
+        onUpdate({ ...link, children: newChildren });
+    };
+
     return (
         <div className="border border-gray-200 rounded-md bg-white mb-2 overflow-hidden">
             <div className="flex items-center p-2 bg-gray-50 gap-2">
@@ -81,8 +118,30 @@ const NavTreeItem: React.FC<{
                 </button>
                 <span className="text-xs font-medium flex-1 truncate">{link.label}</span>
                 <span className="text-[9px] uppercase font-bold text-gray-400 border border-gray-200 px-1 rounded">{link.type || 'link'}</span>
-                <button onClick={() => setIsEditing(!isEditing)} className="text-gray-400 hover:text-indigo-600 p-1"><Icons.Settings width={12} height={12} /></button>
-                <button onClick={onRemove} className="text-gray-400 hover:text-red-600 p-1"><Icons.Trash width={12} height={12} /></button>
+                
+                {(onMoveUp && onMoveDown) && (
+                    <div className="flex flex-col gap-0.5 mr-1">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onMoveUp(); }} 
+                            disabled={isFirst}
+                            className={`text-gray-400 hover:text-indigo-600 p-0.5 hover:bg-gray-200 rounded ${isFirst ? 'opacity-20 cursor-not-allowed' : ''}`}
+                            title="Move Up"
+                        >
+                            <Icons.ChevronUp width={8} height={8} />
+                        </button>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onMoveDown(); }} 
+                            disabled={isLast}
+                            className={`text-gray-400 hover:text-indigo-600 p-0.5 hover:bg-gray-200 rounded ${isLast ? 'opacity-20 cursor-not-allowed' : ''}`}
+                            title="Move Down"
+                        >
+                            <Icons.ChevronDown width={8} height={8} />
+                        </button>
+                    </div>
+                )}
+
+                <button onClick={() => setIsEditing(!isEditing)} className="text-gray-400 hover:text-indigo-600 p-1 hover:bg-gray-200 rounded"><Icons.Settings width={12} height={12} /></button>
+                <button onClick={onRemove} className="text-gray-400 hover:text-red-600 p-1 hover:bg-gray-200 rounded"><Icons.Trash width={12} height={12} /></button>
             </div>
             
             {isEditing && (
@@ -127,15 +186,11 @@ const NavTreeItem: React.FC<{
                                         <option value="center">Center</option>
                                         <option value="right">Right</option>
                                     </select>
-                                    <p className="text-[10px] text-gray-400 mt-1">
-                                        The mega menu will span the full width of the navbar. This setting aligns the content container.
-                                    </p>
                                 </div>
                             )}
                         </div>
                     )}
                     
-                    {/* Only allow children if not a mega menu (simplification) */}
                     {link.type !== 'mega-menu' && (
                         <button onClick={handleAddChild} className="w-full text-xs text-indigo-600 bg-indigo-50 py-1.5 rounded font-bold hover:bg-indigo-100 border border-indigo-200">+ Add Sub Link</button>
                     )}
@@ -151,6 +206,10 @@ const NavTreeItem: React.FC<{
                                 link={child} 
                                 onUpdate={(updated) => handleUpdateChild(i, updated)}
                                 onRemove={() => handleRemoveChild(i)}
+                                onMoveUp={() => handleMoveChild(i, 'up')}
+                                onMoveDown={() => handleMoveChild(i, 'down')}
+                                isFirst={i === 0}
+                                isLast={i === (link.children?.length || 0) - 1}
                              />
                          ))}
                     </div>
@@ -183,12 +242,9 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 }) => {
     const galleryUrlInputRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState<'content' | 'element' | 'container'>('content');
-    
-    // Select Option Helpers
     const [newOptionLabel, setNewOptionLabel] = useState('');
     const [newOptionValue, setNewOptionValue] = useState('');
 
-    // Resolve element for display if global
     let displayElement = selectedElement;
     let isGlobalInstance = false;
     let templateName = '';
@@ -203,8 +259,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     }
 
     const isLayoutElement = displayElement ? LAYOUT_TYPES.includes(displayElement.type) : false;
-
-    // Registry Lookup
     const definition = displayElement ? ComponentRegistry.get(displayElement.type) : undefined;
 
     useEffect(() => {
@@ -213,7 +267,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         }
     }, [displayElement?.id, isLayoutElement, activeTab]);
 
-    // New Option Helper (For Select)
+    // ... (helper functions for Options, Testimonials, Gallery, Styles) ...
     const handleAddOption = () => {
         if (!selectedElement || !newOptionLabel) return;
         const currentOptions = selectedElement.props.fieldOptions || [];
@@ -232,7 +286,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         });
     };
     
-    // Testimonial Helpers
     const handleUpdateTestimonial = (index: number, field: string, value: any) => {
         if (!selectedElement) return;
         const items = [...(selectedElement.props.testimonialItems || [])];
@@ -262,7 +315,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         onUpdateProps(selectedElement.id, { testimonialItems: newItems });
     };
 
-    // Gallery Helpers
     const handleUpdateGalleryImage = (index: number, newSrc: string) => {
         if (!selectedElement) return;
         const currentImages = [...(displayElement!.props.galleryImages || [])];
@@ -272,24 +324,61 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         }
     };
 
-    // Style Helpers
-    const handleElementStyleUpdate = (key: string, value: string) => {
+    const handleElementStyleUpdate = (key: string, value: string) => { 
         if (!selectedElement) return;
         const currentStyle = selectedElement.props.elementStyle || {};
         onUpdateProps(selectedElement.id, { elementStyle: { ...currentStyle, [key]: value } });
     };
-
     const handleElementClassUpdate = (value: string) => {
         if (!selectedElement) return;
         onUpdateProps(selectedElement.id, { elementClassName: value });
     };
-    
-    // Recursive Nav Link Update
     const handleUpdateNavLinkItem = (index: number, updatedItem: NavLinkItem) => {
         if (!selectedElement || !selectedElement.props.navLinks) return;
         const newLinks = [...selectedElement.props.navLinks];
         newLinks[index] = updatedItem;
         onUpdateProps(selectedElement.id, { navLinks: newLinks });
+    }
+    const handleMoveNavLinkItem = (index: number, direction: 'up' | 'down') => {
+        if (!selectedElement || !selectedElement.props.navLinks) return;
+        const newLinks = [...selectedElement.props.navLinks];
+        if (direction === 'up') {
+            if (index === 0) return;
+            [newLinks[index - 1], newLinks[index]] = [newLinks[index], newLinks[index - 1]];
+        } else {
+            if (index === newLinks.length - 1) return;
+            [newLinks[index], newLinks[index + 1]] = [newLinks[index + 1], newLinks[index]];
+        }
+        onUpdateProps(selectedElement.id, { navLinks: newLinks });
+    };
+
+    const handleAddListItem = () => {
+        if (!selectedElement) return;
+        const currentItems = displayElement!.props.listItems || (displayElement!.props.items?.map((t, i) => ({ id: `li-${i}`, text: t })) || []);
+        const newItem: ListItem = { id: `li-${Date.now()}`, text: 'New Item' };
+        onUpdateProps(selectedElement.id, { listItems: [...currentItems, newItem] });
+    };
+    
+    const handleUpdateListItem = (index: number, updates: Partial<ListItem>) => {
+        if (!selectedElement) return;
+        const currentItems = displayElement!.props.listItems || (displayElement!.props.items?.map((t, i) => ({ id: `li-${i}`, text: t })) || []);
+        const newItems = [...currentItems];
+        if (newItems[index]) {
+            newItems[index] = { ...newItems[index], ...updates };
+            onUpdateProps(selectedElement.id, { listItems: newItems });
+        }
+    };
+    
+    const handleRemoveListItem = (index: number) => {
+        if (!selectedElement) return;
+        const currentItems = displayElement!.props.listItems || (displayElement!.props.items?.map((t, i) => ({ id: `li-${i}`, text: t })) || []);
+        onUpdateProps(selectedElement.id, { listItems: currentItems.filter((_, i) => i !== index) });
+    };
+
+    const handleAnimationUpdate = (key: keyof AnimationSettings, value: any) => {
+        if (!selectedElement) return;
+        const currentAnim = selectedElement.props.animation || { type: 'none' };
+        onUpdateProps(selectedElement.id, { animation: { ...currentAnim, [key]: value } });
     }
 
     return (
@@ -304,17 +393,15 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 </div>
             ) : (
                 <>
-                {/* Header */}
+                {/* Header ... */}
                 <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between shrink-0">
                     <div className="flex-1 mr-4">
-                        {/* Name Editing */}
                         <input 
                             className="text-sm font-bold text-gray-800 bg-transparent border-b border-dashed border-transparent hover:border-gray-300 focus:border-indigo-500 outline-none w-full mb-1 transition-all"
                             value={displayElement.name}
                             onChange={(e) => onUpdateName(selectedElement.id, e.target.value)}
                             placeholder="Element Name"
                         />
-                        {/* ID Editing */}
                         <div className="flex items-center bg-gray-100 rounded px-2 py-0.5">
                             <span className="text-[10px] text-gray-400 font-mono mr-2">ID:</span>
                             <input 
@@ -325,131 +412,134 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                         </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                        <button 
-                            onClick={() => onDuplicate(selectedElement.id)}
-                            className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors"
-                            title="Duplicate Element"
-                        >
-                            <Icons.Copy />
-                        </button>
-                        <button 
-                            onClick={() => onDelete(selectedElement.id)}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
-                            title="Delete Element"
-                        >
-                            <Icons.Trash />
-                        </button>
+                        <button onClick={() => onDuplicate(selectedElement.id)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors" title="Duplicate Element"><Icons.Copy /></button>
+                        <button onClick={() => onDelete(selectedElement.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors" title="Delete Element"><Icons.Trash /></button>
                     </div>
                 </div>
                 
-                {/* Tabs */}
+                {/* Tabs ... */}
                 <div className="flex border-b border-gray-200 bg-white shrink-0">
-                    <button 
-                        onClick={() => setActiveTab('content')}
-                        className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'content' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
-                    >
-                        Content
-                    </button>
-                    {!isLayoutElement && (
-                    <button 
-                        onClick={() => setActiveTab('element')}
-                        className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'element' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
-                    >
-                        Element
-                    </button>
-                    )}
-                    <button 
-                        onClick={() => setActiveTab('container')}
-                        className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'container' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
-                    >
-                        Container
-                    </button>
+                    <button onClick={() => setActiveTab('content')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'content' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>Content</button>
+                    {!isLayoutElement && (<button onClick={() => setActiveTab('element')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'element' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>Element</button>)}
+                    <button onClick={() => setActiveTab('container')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeTab === 'container' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>Container</button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
-                    {/* Global Warning */}
+                    {/* Global Warning ... */}
                     {isGlobalInstance && (
                         <div className="bg-amber-50 border-b border-amber-100 p-4">
                             <div className="flex items-center gap-2 text-amber-800 mb-2">
                                 <Icons.Globe />
                                 <h3 className="text-xs font-bold uppercase">Global Component</h3>
                             </div>
-                            <p className="text-[11px] text-amber-700 mb-3">
-                                This is an instance of <strong>{templateName}</strong>. Content is locked.
-                            </p>
+                            <p className="text-[11px] text-amber-700 mb-3">This is an instance of <strong>{templateName}</strong>. Content is locked.</p>
                             <div className="flex gap-2">
-                                <button 
-                                    onClick={() => onEditTemplate(selectedElement.props.templateId!)}
-                                    className="flex-1 py-1.5 px-2 bg-white border border-amber-300 text-amber-800 text-xs rounded hover:bg-amber-100 transition"
-                                >
-                                    Edit Master
-                                </button>
-                                <button 
-                                    onClick={() => onDetach(selectedElement.id)}
-                                    className="flex-1 py-1.5 px-2 bg-transparent border border-amber-300 text-amber-800 text-xs rounded hover:bg-amber-100 transition"
-                                >
-                                    Detach
-                                </button>
+                                <button onClick={() => onEditTemplate(selectedElement.props.templateId!)} className="flex-1 py-1.5 px-2 bg-white border border-amber-300 text-amber-800 text-xs rounded hover:bg-amber-100 transition">Edit Master</button>
+                                <button onClick={() => onDetach(selectedElement.id)} className="flex-1 py-1.5 px-2 bg-transparent border border-amber-300 text-amber-800 text-xs rounded hover:bg-amber-100 transition">Detach</button>
                             </div>
                         </div>
                     )}
 
                     {isGlobalInstance && activeTab === 'content' ? (
-                         <div className="p-5 text-center text-gray-400 text-xs italic">
-                             To edit content properties, click "Edit Master" or "Detach".
-                         </div>
+                         <div className="p-5 text-center text-gray-400 text-xs italic">To edit content properties, click "Edit Master" or "Detach".</div>
                     ) : (
                         <div className="p-5">
                             {/* --- CONTENT TAB --- */}
                             {activeTab === 'content' && (
                                 <div className="space-y-6">
-                                    {/* Custom Properties Panel from Registry */}
+                                    {/* Animation Controls */}
+                                    <div className="space-y-4 border-b border-gray-100 pb-4">
+                                         <h3 className={sectionTitleClass}>Animations</h3>
+                                         <div className="space-y-3">
+                                            <div>
+                                                <label className={labelClass}>Animation Type</label>
+                                                <select 
+                                                    className={inputClass} 
+                                                    value={displayElement.props.animation?.type || 'none'}
+                                                    onChange={(e) => handleAnimationUpdate('type', e.target.value)}
+                                                >
+                                                    {ANIMATION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                                </select>
+                                            </div>
+                                            {displayElement.props.animation?.type && displayElement.props.animation.type !== 'none' && (
+                                                <>
+                                                    <div>
+                                                        <label className={labelClass}>Trigger</label>
+                                                        <select
+                                                            className={inputClass}
+                                                            value={displayElement.props.animation.trigger || 'scroll'}
+                                                            onChange={(e) => handleAnimationUpdate('trigger', e.target.value)}
+                                                        >
+                                                            <option value="scroll">On Scroll</option>
+                                                            <option value="load">On Load (Immediate)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className={labelClass}>Duration (s)</label>
+                                                            <input type="number" step="0.1" className={inputClass} value={displayElement.props.animation.duration ?? 1} onChange={(e) => handleAnimationUpdate('duration', parseFloat(e.target.value))} />
+                                                        </div>
+                                                        <div>
+                                                            <label className={labelClass}>Delay (s)</label>
+                                                            <input type="number" step="0.1" className={inputClass} value={displayElement.props.animation.delay ?? 0} onChange={(e) => handleAnimationUpdate('delay', parseFloat(e.target.value))} />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className={labelClass}>Easing</label>
+                                                        <select className={inputClass} value={displayElement.props.animation.ease || 'power2.out'} onChange={(e) => handleAnimationUpdate('ease', e.target.value)}>
+                                                            {EASING_TYPES.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    {isLayoutElement && (
+                                                        <>
+                                                            <div>
+                                                                <label className={labelClass}>Target</label>
+                                                                <select className={inputClass} value={displayElement.props.animation.target || 'self'} onChange={(e) => handleAnimationUpdate('target', e.target.value)}>
+                                                                    <option value="self">Animate Self</option>
+                                                                    <option value="children">Animate Children (Stagger)</option>
+                                                                </select>
+                                                            </div>
+                                                            {displayElement.props.animation.target === 'children' && (
+                                                                 <div>
+                                                                    <label className={labelClass}>Stagger (s)</label>
+                                                                    <input type="number" step="0.05" className={inputClass} value={displayElement.props.animation.stagger ?? 0.1} onChange={(e) => handleAnimationUpdate('stagger', parseFloat(e.target.value))} />
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </>
+                                            )}
+                                         </div>
+                                    </div>
+
+                                    {/* Custom Properties Panel ... */}
                                     {definition?.propertiesPanel && (
                                          <div className="space-y-4 border-b border-gray-100 pb-4">
                                              <h3 className={sectionTitleClass}>{definition.name} Settings</h3>
-                                             <definition.propertiesPanel 
-                                                 element={displayElement} 
-                                                 onUpdateProps={(id, props) => onUpdateProps(id, props)} 
-                                             />
+                                             <definition.propertiesPanel element={displayElement} onUpdateProps={(id, props) => onUpdateProps(id, props)} />
                                          </div>
                                     )}
-
-                                    {/* Save as Template Button */}
-                                    <button 
-                                        onClick={() => onSaveTemplate(selectedElement.id)}
-                                        className="w-full py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md text-xs font-bold uppercase tracking-wide hover:bg-indigo-100 flex items-center justify-center gap-2 mb-4"
-                                    >
-                                        <Icons.Download width={14} height={14} /> Save as Template
-                                    </button>
                                     
-                                    {/* NAVBAR CONFIGURATION - Container Settings Only */}
+                                    {/* Rest of the component code ... */}
+                                    <button onClick={() => onSaveTemplate(selectedElement.id)} className="w-full py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md text-xs font-bold uppercase tracking-wide hover:bg-indigo-100 flex items-center justify-center gap-2 mb-4"><Icons.Download width={14} height={14} /> Save as Template</button>
+                                    
+                                    {/* NAVBAR CONFIGURATION */}
                                     {displayElement.type === 'navbar' && (
                                         <div className="space-y-4">
                                             <h3 className={sectionTitleClass}>Navbar Container</h3>
                                             <div className="bg-blue-50 p-3 rounded-md text-xs text-blue-700 mb-2"><p>This is a flex container. Add Logo and Menu elements inside.</p></div>
-                                            
                                             <div>
                                                 <label className={labelClass}>Header Type</label>
-                                                <select
-                                                    className={inputClass}
-                                                    value={displayElement.props.headerType || 'relative'}
-                                                    onChange={(e) => onUpdateProps(selectedElement.id, { headerType: e.target.value })}
-                                                >
+                                                <select className={inputClass} value={displayElement.props.headerType || 'relative'} onChange={(e) => onUpdateProps(selectedElement.id, { headerType: e.target.value })}>
                                                     <option value="relative">Relative (Normal)</option>
                                                     <option value="fixed">Fixed (Always Top)</option>
                                                     <option value="sticky">Sticky (Slide-in)</option>
                                                 </select>
                                             </div>
-
                                             {displayElement.props.headerType === 'sticky' && (
                                                 <div>
                                                     <label className={labelClass}>Sticky Scroll Offset (px)</label>
-                                                    <input 
-                                                        type="number"
-                                                        className={inputClass}
-                                                        value={displayElement.props.stickyOffset || 100}
-                                                        onChange={(e) => onUpdateProps(selectedElement.id, { stickyOffset: Number(e.target.value) })}
-                                                    />
+                                                    <input type="number" className={inputClass} value={displayElement.props.stickyOffset || 100} onChange={(e) => onUpdateProps(selectedElement.id, { stickyOffset: Number(e.target.value) })} />
                                                 </div>
                                             )}
                                         </div>
@@ -459,20 +549,9 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                     {displayElement.type === 'menu' && (
                                         <div className="space-y-4">
                                             <h3 className={sectionTitleClass}>Menu Settings</h3>
-
-                                            {/* Menu Source */}
                                             <div>
                                                 <label className={labelClass}>Load Preset</label>
-                                                <select 
-                                                    className={inputClass}
-                                                    onChange={(e) => {
-                                                        const preset = MENU_PRESETS[e.target.value as keyof typeof MENU_PRESETS];
-                                                        if (preset) {
-                                                            onUpdateProps(selectedElement.id, { navLinks: preset });
-                                                        }
-                                                    }}
-                                                    defaultValue=""
-                                                >
+                                                <select className={inputClass} onChange={(e) => { const preset = MENU_PRESETS[e.target.value as keyof typeof MENU_PRESETS]; if (preset) onUpdateProps(selectedElement.id, { navLinks: preset }); }} defaultValue="">
                                                     <option value="" disabled>Select a preset...</option>
                                                     <option value="simple">Simple</option>
                                                     <option value="business">Business</option>
@@ -480,8 +559,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                                     <option value="app">App</option>
                                                 </select>
                                             </div>
-
-                                            {/* Link Configuration */}
                                             <div>
                                                 <div className="flex items-center justify-between mb-2">
                                                     <label className="text-sm font-medium text-gray-700">Menu Items</label>
@@ -489,33 +566,17 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                                 </div>
                                                 <div className="space-y-2">
                                                     {displayElement.props.navLinks?.map((link, i) => (
-                                                        <NavTreeItem 
-                                                            key={link.id || i} 
-                                                            link={link} 
-                                                            onUpdate={(updated) => handleUpdateNavLinkItem(i, updated)}
-                                                            onRemove={() => onRemoveNavLink(selectedElement.id, i)}
-                                                        />
+                                                        <NavTreeItem key={link.id || i} link={link} onUpdate={(updated) => handleUpdateNavLinkItem(i, updated)} onRemove={() => onRemoveNavLink(selectedElement.id, i)} onMoveUp={() => handleMoveNavLinkItem(i, 'up')} onMoveDown={() => handleMoveNavLinkItem(i, 'down')} isFirst={i === 0} isLast={i === (displayElement.props.navLinks?.length || 0) - 1} />
                                                     ))}
-                                                    {(!displayElement.props.navLinks || displayElement.props.navLinks.length === 0) && (
-                                                        <div className="text-center text-xs text-gray-400 py-4 italic border border-dashed border-gray-200 rounded">
-                                                            No links. Add one!
-                                                        </div>
-                                                    )}
+                                                    {(!displayElement.props.navLinks || displayElement.props.navLinks.length === 0) && <div className="text-center text-xs text-gray-400 py-4 italic border border-dashed border-gray-200 rounded">No links. Add one!</div>}
                                                 </div>
                                             </div>
-
-                                            {/* Style & Mobile */}
                                             <div className="space-y-3 border-t border-gray-100 pt-3">
                                                 <h4 className="text-[10px] font-bold text-gray-400">Mobile & Style</h4>
-                                                
                                                 <div className="grid grid-cols-1 gap-3">
                                                     <div>
                                                         <label className={labelClass}>Hamburger Breakpoint</label>
-                                                        <select 
-                                                            className={inputClass}
-                                                            value={displayElement.props.mobileMenuBreakpoint || 'md'}
-                                                            onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuBreakpoint: e.target.value })}
-                                                        >
+                                                        <select className={inputClass} value={displayElement.props.mobileMenuBreakpoint || 'md'} onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuBreakpoint: e.target.value })}>
                                                             <option value="none">None (Always Visible)</option>
                                                             <option value="sm">Mobile (sm)</option>
                                                             <option value="md">Tablet (md)</option>
@@ -524,61 +585,28 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                                     </div>
                                                     <div>
                                                         <label className={labelClass}>Mobile Menu Style</label>
-                                                        <select 
-                                                            className={inputClass}
-                                                            value={displayElement.props.mobileMenuType || 'dropdown'}
-                                                            onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuType: e.target.value })}
-                                                        >
+                                                        <select className={inputClass} value={displayElement.props.mobileMenuType || 'dropdown'} onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuType: e.target.value })}>
                                                             <option value="dropdown">Dropdown</option>
                                                             <option value="slide-left">Side (Left)</option>
                                                             <option value="slide-right">Side (Right)</option>
                                                         </select>
                                                     </div>
-                                                    <div>
+                                                     <div>
                                                         <label className={labelClass}>Mobile Menu Icon</label>
-                                                        <select 
-                                                            className={inputClass}
-                                                            value={displayElement.props.mobileMenuIconType || 'menu'}
-                                                            onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuIconType: e.target.value })}
-                                                        >
+                                                        <select className={inputClass} value={displayElement.props.mobileMenuIconType || 'menu'} onChange={(e) => onUpdateProps(selectedElement.id, { mobileMenuIconType: e.target.value })}>
                                                             <option value="menu">Hamburger (Default)</option>
                                                             <option value="grid">Grid</option>
                                                             <option value="dots">Dots</option>
                                                         </select>
                                                     </div>
                                                 </div>
-
                                                 <div className="grid grid-cols-2 gap-3">
-                                                    <div>
-                                                        <label className={labelClass}>Link Color</label>
-                                                        <ColorPicker 
-                                                            value={displayElement.props.linkColor}
-                                                            onChange={(val) => onUpdateProps(selectedElement.id, { linkColor: val })}
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className={labelClass}>Active Color</label>
-                                                        <ColorPicker 
-                                                            value={displayElement.props.activeLinkColor}
-                                                            onChange={(val) => onUpdateProps(selectedElement.id, { activeLinkColor: val })}
-                                                        />
-                                                    </div>
+                                                    <div><label className={labelClass}>Link Color</label><ColorPicker value={displayElement.props.linkColor} onChange={(val) => onUpdateProps(selectedElement.id, { linkColor: val })} /></div>
+                                                    <div><label className={labelClass}>Active Color</label><ColorPicker value={displayElement.props.activeLinkColor} onChange={(val) => onUpdateProps(selectedElement.id, { activeLinkColor: val })} /></div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-3">
-                                                    <div>
-                                                        <label className={labelClass}>Hamburger Color</label>
-                                                        <ColorPicker 
-                                                            value={displayElement.props.hamburgerColor}
-                                                            onChange={(val) => onUpdateProps(selectedElement.id, { hamburgerColor: val })}
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className={labelClass}>Menu Background</label>
-                                                        <ColorPicker 
-                                                            value={displayElement.props.menuBackgroundColor}
-                                                            onChange={(val) => onUpdateProps(selectedElement.id, { menuBackgroundColor: val })}
-                                                        />
-                                                    </div>
+                                                    <div><label className={labelClass}>Hamburger Color</label><ColorPicker value={displayElement.props.hamburgerColor} onChange={(val) => onUpdateProps(selectedElement.id, { hamburgerColor: val })} /></div>
+                                                    <div><label className={labelClass}>Menu Background</label><ColorPicker value={displayElement.props.menuBackgroundColor} onChange={(val) => onUpdateProps(selectedElement.id, { menuBackgroundColor: val })} /></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -588,70 +616,27 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                     {displayElement.type === 'logo' && (
                                         <div className="space-y-4">
                                             <h3 className={sectionTitleClass}>Logo Settings</h3>
-                                            
                                             <div>
                                                 <label className={labelClass}>Logo Type</label>
-                                                <select 
-                                                    className={inputClass}
-                                                    value={displayElement.props.logoType || 'text'}
-                                                    onChange={(e) => onUpdateProps(selectedElement.id, { logoType: e.target.value })}
-                                                >
+                                                <select className={inputClass} value={displayElement.props.logoType || 'text'} onChange={(e) => onUpdateProps(selectedElement.id, { logoType: e.target.value })}>
                                                     <option value="text">Text</option>
                                                     <option value="image">Image</option>
                                                 </select>
                                             </div>
-
                                             <div>
                                                 <label className={labelClass}>Link URL</label>
-                                                <input 
-                                                    className={inputClass}
-                                                    value={displayElement.props.href || ''}
-                                                    onChange={(e) => onUpdateProps(selectedElement.id, { href: e.target.value })}
-                                                    placeholder="https://..."
-                                                />
+                                                <input className={inputClass} value={displayElement.props.href || ''} onChange={(e) => onUpdateProps(selectedElement.id, { href: e.target.value })} placeholder="https://..." />
                                             </div>
-
                                             {displayElement.props.logoType === 'text' ? (
-                                                 <div>
-                                                    <label className={labelClass}>Logo Text</label>
-                                                    <input 
-                                                        className={inputClass}
-                                                        value={displayElement.props.logoText || ''}
-                                                        onChange={(e) => onUpdateProps(selectedElement.id, { logoText: e.target.value })}
-                                                    />
-                                                </div>
+                                                 <div><label className={labelClass}>Logo Text</label><input className={inputClass} value={displayElement.props.logoText || ''} onChange={(e) => onUpdateProps(selectedElement.id, { logoText: e.target.value })} /></div>
                                             ) : (
                                                 <>
                                                     <div>
                                                         <label className={labelClass}>Image Source</label>
-                                                        <input 
-                                                            className={inputClass}
-                                                            value={displayElement.props.logoSrc || ''}
-                                                            onChange={(e) => onUpdateProps(selectedElement.id, { logoSrc: e.target.value })}
-                                                            placeholder="https://..."
-                                                        />
-                                                         <input 
-                                                            type="file" 
-                                                            accept="image/*"
-                                                            className={fileInputClass}
-                                                            onChange={async (e) => {
-                                                                const file = e.target.files?.[0];
-                                                                if (file) {
-                                                                    const base64 = await onFileUpload(file);
-                                                                    onUpdateProps(selectedElement.id, { logoSrc: base64 });
-                                                                }
-                                                            }}
-                                                        />
+                                                        <input className={inputClass} value={displayElement.props.logoSrc || ''} onChange={(e) => onUpdateProps(selectedElement.id, { logoSrc: e.target.value })} placeholder="https://..." />
+                                                         <input type="file" accept="image/*" className={fileInputClass} onChange={async (e) => { const file = e.target.files?.[0]; if (file) { const base64 = await onFileUpload(file); onUpdateProps(selectedElement.id, { logoSrc: base64 }); } }} />
                                                     </div>
-                                                    <div>
-                                                        <label className={labelClass}>Width</label>
-                                                        <input 
-                                                            className={inputClass}
-                                                            value={displayElement.props.logoWidth || 'auto'}
-                                                            onChange={(e) => onUpdateProps(selectedElement.id, { logoWidth: e.target.value })}
-                                                            placeholder="120px"
-                                                        />
-                                                    </div>
+                                                    <div><label className={labelClass}>Width</label><input className={inputClass} value={displayElement.props.logoWidth || 'auto'} onChange={(e) => onUpdateProps(selectedElement.id, { logoWidth: e.target.value })} placeholder="120px" /></div>
                                                 </>
                                             )}
                                         </div>
@@ -663,59 +648,51 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                             <h3 className={sectionTitleClass}>Button Settings</h3>
                                             <div>
                                                 <label className={labelClass}>Action</label>
-                                                <select
-                                                    className={inputClass}
-                                                    value={displayElement.props.buttonAction || 'link'}
-                                                    onChange={(e) => onUpdateProps(selectedElement.id, { buttonAction: e.target.value })}
-                                                >
+                                                <select className={inputClass} value={displayElement.props.buttonAction || 'link'} onChange={(e) => onUpdateProps(selectedElement.id, { buttonAction: e.target.value })}>
                                                     <option value="link">Open Link</option>
                                                     <option value="submit">Submit Form</option>
                                                     <option value="popup">Open Popup</option>
                                                 </select>
                                             </div>
-
                                             {displayElement.props.buttonAction === 'link' && (
                                                 <div>
                                                     <label className={labelClass}>URL / Anchor</label>
-                                                    <input
-                                                        className={inputClass}
-                                                        value={displayElement.props.href || ''}
-                                                        onChange={(e) => onUpdateProps(selectedElement.id, { href: e.target.value })}
-                                                        placeholder="https://... or #section-id"
-                                                    />
-                                                    <div className="flex items-center gap-2 mt-2">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            className="accent-indigo-600 w-3 h-3"
-                                                            checked={displayElement.props.target === '_blank'}
-                                                            onChange={(e) => onUpdateProps(selectedElement.id, { target: e.target.checked ? '_blank' : '_self' })}
-                                                        />
-                                                        <label className="text-xs text-gray-600">Open in new tab</label>
-                                                    </div>
+                                                    <input className={inputClass} value={displayElement.props.href || ''} onChange={(e) => onUpdateProps(selectedElement.id, { href: e.target.value })} placeholder="https://... or #section-id" />
+                                                    <div className="flex items-center gap-2 mt-2"><input type="checkbox" className="accent-indigo-600 w-3 h-3" checked={displayElement.props.target === '_blank'} onChange={(e) => onUpdateProps(selectedElement.id, { target: e.target.checked ? '_blank' : '_self' })} /><label className="text-xs text-gray-600">Open in new tab</label></div>
                                                 </div>
                                             )}
-
                                             {displayElement.props.buttonAction === 'popup' && (
                                                 <div>
                                                     <label className={labelClass}>Target Element ID</label>
-                                                    <input
-                                                        className={inputClass}
-                                                        value={displayElement.props.popupTargetId || ''}
-                                                        onChange={(e) => onUpdateProps(selectedElement.id, { popupTargetId: e.target.value })}
-                                                        placeholder="e.g. section-123"
-                                                    />
-                                                    <p className="text-[10px] text-gray-400 mt-1 leading-tight">
-                                                        Enter the ID of the element you want to show in the popup.
-                                                    </p>
+                                                    <input className={inputClass} value={displayElement.props.popupTargetId || ''} onChange={(e) => onUpdateProps(selectedElement.id, { popupTargetId: e.target.value })} placeholder="e.g. section-123" />
+                                                    <p className="text-[10px] text-gray-400 mt-1 leading-tight">Enter the ID of the element you want to show in the popup.</p>
                                                 </div>
                                             )}
-                                            <div>
-                                                <label className={labelClass}>Button Text</label>
-                                                <input 
-                                                    className={inputClass}
-                                                    value={displayElement.props.content || ''}
-                                                    onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })}
-                                                />
+                                            <div className="pt-4 border-t border-gray-100 space-y-3">
+                                                <h4 className={sectionTitleClass}>Content & Icons</h4>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <input type="checkbox" id="iconOnly" className="accent-indigo-600 w-3.5 h-3.5" checked={displayElement.props.buttonIsIconOnly || false} onChange={(e) => onUpdateProps(selectedElement.id, { buttonIsIconOnly: e.target.checked })} />
+                                                    <label htmlFor="iconOnly" className="text-xs text-gray-700 font-medium">Icon Only Button</label>
+                                                </div>
+                                                {!displayElement.props.buttonIsIconOnly && (<div><label className={labelClass}>Button Text</label><input className={inputClass} value={displayElement.props.content || ''} onChange={(e) => onUpdateProps(selectedElement.id, { content: e.target.value })} /></div>)}
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className={labelClass}>{displayElement.props.buttonIsIconOnly ? 'Icon' : 'Left Icon'}</label>
+                                                        <select className={inputClass} value={displayElement.props.buttonIconLeft || ''} onChange={(e) => onUpdateProps(selectedElement.id, { buttonIconLeft: e.target.value })}>
+                                                            <option value="">None</option>
+                                                            {ICON_OPTIONS.map(icon => <option key={icon} value={icon}>{icon}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    {!displayElement.props.buttonIsIconOnly && (
+                                                        <div>
+                                                            <label className={labelClass}>Right Icon</label>
+                                                            <select className={inputClass} value={displayElement.props.buttonIconRight || ''} onChange={(e) => onUpdateProps(selectedElement.id, { buttonIconRight: e.target.value })}>
+                                                                <option value="">None</option>
+                                                                {ICON_OPTIONS.map(icon => <option key={icon} value={icon}>{icon}</option>)}
+                                                            </select>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -875,10 +852,76 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                         <div className="space-y-3">
                                             <h3 className={sectionTitleClass}>List Settings</h3>
                                             <div className="grid grid-cols-2 gap-3">
-                                                <div><label className={labelClass}>Type</label><select className={inputClass} value={displayElement.props.listType || 'ul'} onChange={(e) => onUpdateProps(selectedElement.id, { listType: e.target.value })}><option value="ul">Bullet</option><option value="ol">Numbered</option></select></div>
-                                                <div><label className={labelClass}>Spacing</label><input className={inputClass} value={displayElement.props.itemSpacing || ''} onChange={(e) => onUpdateProps(selectedElement.id, { itemSpacing: e.target.value })} placeholder="0.5rem" /></div>
+                                                <div>
+                                                    <label className={labelClass}>Type</label>
+                                                    <select className={inputClass} value={displayElement.props.listType || 'ul'} onChange={(e) => onUpdateProps(selectedElement.id, { listType: e.target.value })}>
+                                                        <option value="ul">Bullet</option>
+                                                        <option value="ol">Numbered</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className={labelClass}>Spacing</label>
+                                                    <input className={inputClass} value={displayElement.props.itemSpacing || ''} onChange={(e) => onUpdateProps(selectedElement.id, { itemSpacing: e.target.value })} placeholder="0.5rem" />
+                                                </div>
                                             </div>
-                                            <div><label className={labelClass}>Items (one per line)</label><textarea className={inputClass} rows={5} value={(displayElement.props.items || []).join('\n')} onChange={(e) => onUpdateProps(selectedElement.id, { items: e.target.value.split('\n') })} /></div>
+
+                                            <div className="space-y-2 mt-4">
+                                                <label className={labelClass}>List Items</label>
+                                                {/* Ensure we have array of objects */}
+                                                {(displayElement.props.listItems || (displayElement.props.items?.map((t, i) => ({ id: `li-${i}`, text: t })) || [])).map((item: ListItem, i) => (
+                                                    <div key={item.id || i} className="border border-gray-200 rounded p-2 bg-gray-50 flex flex-col gap-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <input 
+                                                                className={inputClass} 
+                                                                value={item.text} 
+                                                                onChange={(e) => handleUpdateListItem(i, { text: e.target.value })} 
+                                                                placeholder="Item Text" 
+                                                            />
+                                                            <button onClick={() => handleRemoveListItem(i)} className="ml-2 text-gray-400 hover:text-red-500">
+                                                                <Icons.Trash width={12} height={12} />
+                                                            </button>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <input 
+                                                                className={inputClass} 
+                                                                value={item.href || ''} 
+                                                                onChange={(e) => handleUpdateListItem(i, { href: e.target.value })} 
+                                                                placeholder="URL (optional)" 
+                                                            />
+                                                             <select 
+                                                                className={inputClass} 
+                                                                value={item.target || '_self'} 
+                                                                onChange={(e) => handleUpdateListItem(i, { target: e.target.value as any })}
+                                                                disabled={!item.href}
+                                                            >
+                                                                <option value="_self">Same Tab</option>
+                                                                <option value="_blank">New Tab</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <select 
+                                                                className={inputClass} 
+                                                                value={item.iconLeft || ''} 
+                                                                onChange={(e) => handleUpdateListItem(i, { iconLeft: e.target.value })}
+                                                            >
+                                                                <option value="">No Left Icon</option>
+                                                                {ICON_OPTIONS.map(icon => <option key={icon} value={icon}>{icon}</option>)}
+                                                            </select>
+                                                            <select 
+                                                                className={inputClass} 
+                                                                value={item.iconRight || ''} 
+                                                                onChange={(e) => handleUpdateListItem(i, { iconRight: e.target.value })}
+                                                            >
+                                                                <option value="">No Right Icon</option>
+                                                                {ICON_OPTIONS.map(icon => <option key={icon} value={icon}>{icon}</option>)}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <button onClick={handleAddListItem} className="w-full py-1.5 bg-indigo-50 text-indigo-600 rounded border border-indigo-200 text-xs font-bold hover:bg-indigo-100 flex items-center justify-center gap-1">
+                                                    <Icons.Plus width={12} height={12} /> Add Item
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                     {/* Custom Code */}
@@ -886,6 +929,19 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                         <div className="space-y-3">
                                             <h3 className={sectionTitleClass}>Custom HTML Code</h3>
                                             <textarea className="w-full h-64 font-mono text-xs bg-slate-800 text-green-400 p-3 rounded" value={displayElement.props.code || ''} onChange={(e) => onUpdateProps(selectedElement.id, { code: e.target.value })} placeholder="<div>Hello World</div>" />
+                                        </div>
+                                    )}
+                                    {/* Custom Script */}
+                                    {displayElement.type === 'customScript' && (
+                                        <div className="space-y-3">
+                                            <h3 className={sectionTitleClass}>Animation Script</h3>
+                                            <p className="text-[10px] text-gray-500 mb-2">Write standard GSAP code. <code>gsap</code> and <code>ScrollTrigger</code> are available globally.</p>
+                                            <textarea 
+                                                className="w-full h-64 font-mono text-xs bg-slate-900 text-green-400 p-3 rounded outline-none border border-slate-700 focus:border-indigo-500"
+                                                value={displayElement.props.scriptContent || ''}
+                                                onChange={(e) => onUpdateProps(selectedElement.id, { scriptContent: e.target.value })}
+                                                placeholder={`gsap.to(".my-element", { x: 100, duration: 1 });`}
+                                            />
                                         </div>
                                     )}
                                 </div>
